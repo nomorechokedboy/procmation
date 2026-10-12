@@ -2,8 +2,23 @@ import { expect, test } from "@playwright/test";
 
 const SELECTED_CLASS_REGEX = /selected/;
 
+const E2E_ADMIN = {
+  name: "E2E Admin",
+  email: "e2e-admin@example.com",
+  password: "e2e-password-123",
+};
+
 test.describe("Workflow Editor", () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, baseURL }) => {
+    // The app is invite-only, so create the first admin (a repeat run gets a
+    // 409 which is fine) and sign in before opening the editor
+    await page.request.post("/api/setup", { data: E2E_ADMIN });
+    const signIn = await page.request.post("/api/auth/sign-in/email", {
+      data: { email: E2E_ADMIN.email, password: E2E_ADMIN.password },
+      headers: { origin: new URL(baseURL ?? "http://localhost:3000").origin },
+    });
+    expect(signIn.ok()).toBe(true);
+
     // Navigate to the homepage which has an embedded workflow canvas
     await page.goto("/", { waitUntil: "domcontentloaded" });
     // Wait for the canvas to be ready

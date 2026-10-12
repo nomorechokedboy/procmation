@@ -1,0 +1,99 @@
+import { and, desc, eq, isNull } from "drizzle-orm";
+import { NextResponse } from "next/server";
+import {
+  generateInviteToken,
+  INVITE_TTL_MS,
+  normalizeEmail,
+} from "@/lib/auth-provision";
+import { db } from "@/lib/db";
+import { invitations, type UserRole, users } from "@/lib/db/schema";
+import { requireAdmin } from "@/lib/session";
+
+const ROLES: UserRole[] = ["admin", "member"];
+
+function getAppOrigin(request: Request): string {
+  return (
+    process.env.BETTER_AUTH_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    new URL(request.url).origin
+  ).replace(/\/$/, "");
+}
+
+export async function GET(request: Request) {
+  const guard = await requireAdmin(request);
+  if (!guard.ok) {
+    return guard.response;
+  }
+
+  const rows = await db
+    .select({
+      id: invitations.id,
+      email: invitations.email,
+      role: invitations.role,
+      expiresAt: invitations.expiresAt,
+      acceptedAt: invitations.acceptedAt,
+      createdAt: invitations.createdAt,
+    })
+    .from(invitations)
+    .orderBy(desc(invitations.createdAt));
+
+  return NextResponse.json(rows);
+}
+
+export async function POST(request: Request) {
+  const guard = await requireAdmin(request);
+  if (!guard.ok) {
+    return guard.response;
+  }
+
+  const body = (await request.json()) as { email?: string; role?: UserRole };
+  const email = body.email ? normalizeEmail(body.email) : "";
+  const role = body.role ?? "member";
+
+  if (!email.includes("@")) {
+    return NextResponse.json({ error: "A valid email is required" }, { status: 400 });
+  }
+  if (!ROLES.includes(role)) {
+    return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+  }
+
+  const [existingUser] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+  if (existingUser) {
+    return NextResponse.json(
+      { error: "A user with this email already exists" },
+      { status: 409 }
+    );
+  }
+
+  const { token, tokenHash } = generateInviteToken();
+
+  const [invitation] = await db.transaction(async (tx) => {
+    // Re-inviting replaces any earlier pending invitation for the same email
+    await tx
+      .delete(invitations)
+      .where(and(eq(invitations.email, email), isNull(invitations.acceptedAt)));
+
+    return tx
+      .insert(invitations)
+      .values({
+        email,
+        role,
+        tokenHash,
+        invitedBy: guard.user.id,
+        expiresAt: new Date(Date.now() + INVITE_TTL_MS),
+      })
+      .returning({ id: invitations.id, expiresAt: invitations.expiresAt });
+  });
+
+  return NextResponse.json({
+    id: invitation.id,
+    email,
+    role,
+    expiresAt: invitation.expiresAt,
+    inviteUrl: `${getAppOrigin(request)}/invite/${token}`,
+  });
+}

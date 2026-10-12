@@ -654,11 +654,87 @@ export const aiGatewayApi = {
     }),
 };
 
+// Setup, invitations and members (invite-only access)
+export type UserRole = "admin" | "member";
+
+export type Member = {
+  id: string;
+  name: string | null;
+  email: string | null;
+  role: UserRole;
+  createdAt: string;
+};
+
+export type InvitationSummary = {
+  id: string;
+  email: string;
+  role: UserRole;
+  expiresAt: string;
+  acceptedAt: string | null;
+  createdAt: string;
+};
+
+export const setupApi = {
+  getStatus: () => apiCall<{ needsSetup: boolean }>("/api/setup"),
+
+  createAdmin: (data: { name: string; email: string; password: string }) =>
+    apiCall<{ success: boolean }>("/api/setup", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+};
+
+export const inviteApi = {
+  list: () => apiCall<InvitationSummary[]>("/api/invites"),
+
+  create: (data: { email: string; role: UserRole }) =>
+    apiCall<{
+      id: string;
+      email: string;
+      role: UserRole;
+      expiresAt: string;
+      inviteUrl: string;
+    }>("/api/invites", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  revoke: (inviteId: string) =>
+    apiCall<{ success: boolean }>(`/api/invites/${inviteId}`, {
+      method: "DELETE",
+    }),
+
+  lookup: (token: string) =>
+    apiCall<{ email: string; role: UserRole }>(`/api/invite/${token}`),
+
+  accept: (token: string, data: { name: string; password: string }) =>
+    apiCall<{ success: boolean; email: string }>(
+      `/api/invite/${token}/accept`,
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      }
+    ),
+};
+
+export const memberApi = {
+  list: () => apiCall<Member[]>("/api/members"),
+
+  updateRole: (memberId: string, role: UserRole) =>
+    apiCall<{ success: boolean }>(`/api/members/${memberId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ role }),
+    }),
+};
+
 // Export all APIs as a single object
 export const api = {
   ai: aiApi,
   aiGateway: aiGatewayApi,
   integration: integrationApi,
+  invite: inviteApi,
+  member: memberApi,
+  setup: setupApi,
   user: userApi,
   workflow: workflowApi,
 };

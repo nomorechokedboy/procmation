@@ -3,6 +3,8 @@ import { boolean, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import type { IntegrationType } from "../types/integration";
 import { generateId } from "../utils/id";
 
+export type UserRole = "admin" | "member";
+
 // Better Auth tables
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
@@ -12,8 +14,9 @@ export const users = pgTable("users", {
   image: text("image"),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
-  // Anonymous user tracking
+  // Anonymous user tracking (legacy column, anonymous sign-in is disabled)
   isAnonymous: boolean("is_anonymous").default(false),
+  role: text("role").$type<UserRole>().notNull().default("member"),
 });
 
 export const sessions = pgTable("sessions", {
@@ -54,6 +57,22 @@ export const verifications = pgTable("verifications", {
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at"),
   updatedAt: timestamp("updated_at"),
+});
+
+// Invite-only sign-up: an admin creates an invitation, the invitee accepts it once
+export const invitations = pgTable("invitations", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => generateId()),
+  email: text("email").notNull(),
+  role: text("role").$type<UserRole>().notNull().default("member"),
+  tokenHash: text("token_hash").notNull().unique(),
+  invitedBy: text("invited_by")
+    .notNull()
+    .references(() => users.id),
+  expiresAt: timestamp("expires_at").notNull(),
+  acceptedAt: timestamp("accepted_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 // Workflow visibility type
@@ -174,6 +193,7 @@ export const workflowExecutionsRelations = relations(
   })
 );
 
+export type Invitation = typeof invitations.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type Workflow = typeof workflows.$inferSelect;

@@ -5,6 +5,7 @@ import {
   accounts,
   apiKeys,
   integrations,
+  invitations,
   sessions,
   users,
   verifications,
@@ -26,6 +27,7 @@ const schema = {
   workflowExecutionsRelations,
   apiKeys,
   integrations,
+  invitations,
 };
 
 const connectionString =

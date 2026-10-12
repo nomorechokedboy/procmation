@@ -1,12 +1,10 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { anonymous, genericOAuth } from "better-auth/plugins";
-import { eq } from "drizzle-orm";
+import { genericOAuth } from "better-auth/plugins";
 import { isAiGatewayManagedKeysEnabled } from "./ai-gateway/config";
 import { db } from "./db";
 import {
   accounts,
-  integrations,
   sessions,
   users,
   verifications,
@@ -54,47 +52,6 @@ function getBaseURL() {
 
 // Build plugins array conditionally
 const plugins = [
-  anonymous({
-    async onLinkAccount(data) {
-      // When an anonymous user links to a real account, migrate their data
-      const fromUserId = data.anonymousUser.user.id;
-      const toUserId = data.newUser.user.id;
-
-      console.log(
-        `[Anonymous Migration] Migrating from user ${fromUserId} to ${toUserId}`
-      );
-
-      try {
-        // Migrate workflows
-        await db
-          .update(workflows)
-          .set({ userId: toUserId })
-          .where(eq(workflows.userId, fromUserId));
-
-        // Migrate workflow executions
-        await db
-          .update(workflowExecutions)
-          .set({ userId: toUserId })
-          .where(eq(workflowExecutions.userId, fromUserId));
-
-        // Migrate integrations
-        await db
-          .update(integrations)
-          .set({ userId: toUserId })
-          .where(eq(integrations.userId, fromUserId));
-
-        console.log(
-          `[Anonymous Migration] Successfully migrated data from ${fromUserId} to ${toUserId}`
-        );
-      } catch (error) {
-        console.error(
-          "[Anonymous Migration] Error migrating user data:",
-          error
-        );
-        throw error;
-      }
-    },
-  }),
   ...(process.env.VERCEL_CLIENT_ID
     ? [
         genericOAuth({
@@ -113,6 +70,7 @@ const plugins = [
                 : ["openid", "email", "profile"],
               discoveryUrl: undefined,
               pkce: true,
+              disableSignUp: true,
               getUserInfo: async (tokens) => {
                 const response = await fetch(
                   "https://api.vercel.com/login/oauth/userinfo",
@@ -145,20 +103,33 @@ export const auth = betterAuth({
     provider: "pg",
     schema,
   }),
+  // Invite-only: accounts are created by the setup flow or by accepting an invitation
   emailAndPassword: {
     enabled: true,
+    disableSignUp: true,
     requireEmailVerification: false,
+  },
+  user: {
+    additionalFields: {
+      role: {
+        type: "string",
+        defaultValue: "member",
+        input: false,
+      },
+    },
   },
   socialProviders: {
     github: {
       clientId: process.env.GITHUB_CLIENT_ID || "",
       clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
       enabled: !!process.env.GITHUB_CLIENT_ID,
+      disableImplicitSignUp: true,
     },
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID || "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
       enabled: !!process.env.GOOGLE_CLIENT_ID,
+      disableImplicitSignUp: true,
     },
   },
   plugins,
