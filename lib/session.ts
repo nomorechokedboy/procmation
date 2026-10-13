@@ -13,7 +13,7 @@ type GuardResult =
   | { ok: true; user: SessionUser }
   | { ok: false; response: NextResponse };
 
-export async function requireAdmin(request: Request): Promise<GuardResult> {
+export async function requireUser(request: Request): Promise<GuardResult> {
   const session = await auth.api.getSession({ headers: request.headers });
 
   if (!session?.user) {
@@ -23,13 +23,7 @@ export async function requireAdmin(request: Request): Promise<GuardResult> {
     };
   }
 
-  const role = (session.user as { role?: UserRole }).role;
-  if (role !== "admin") {
-    return {
-      ok: false,
-      response: NextResponse.json({ error: "Forbidden" }, { status: 403 }),
-    };
-  }
+  const role = (session.user as { role?: UserRole }).role ?? "member";
 
   return {
     ok: true,
@@ -40,4 +34,20 @@ export async function requireAdmin(request: Request): Promise<GuardResult> {
       role,
     },
   };
+}
+
+export async function requireAdmin(request: Request): Promise<GuardResult> {
+  const guard = await requireUser(request);
+  if (!guard.ok) {
+    return guard;
+  }
+
+  if (guard.user.role !== "admin") {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: "Forbidden" }, { status: 403 }),
+    };
+  }
+
+  return guard;
 }

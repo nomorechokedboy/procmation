@@ -1,6 +1,15 @@
 "use client";
 
-import { Key, LogOut, Moon, Plug, Settings, Sun, Users } from "lucide-react";
+import {
+  Key,
+  ListChecks,
+  LogOut,
+  Moon,
+  Plug,
+  Settings,
+  Sun,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
@@ -126,12 +135,20 @@ export const UserMenu = () => {
           <span>API Keys</span>
         </DropdownMenuItem>
         {session.user.role === "admin" && (
-          <DropdownMenuItem asChild>
-            <Link href="/admin/members">
-              <Users className="size-4" />
-              <span>Members</span>
-            </Link>
-          </DropdownMenuItem>
+          <>
+            <DropdownMenuItem asChild>
+              <Link href="/admin/processes">
+                <ListChecks className="size-4" />
+                <span>Processes</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/admin/members">
+                <Users className="size-4" />
+                <span>Members</span>
+              </Link>
+            </DropdownMenuItem>
+          </>
         )}
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>

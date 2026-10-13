@@ -4,6 +4,8 @@ import { Copy } from "lucide-react";
 import Link from "next/link";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { DepartmentsCard } from "@/components/admin/departments-card";
+import { MemberProfileDialog } from "@/components/admin/member-profile-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -23,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import {
   api,
+  type Department,
   type InvitationSummary,
   type Member,
   type UserRole,
@@ -66,6 +69,8 @@ export default function MembersPage() {
 
   const [members, setMembers] = useState<Member[]>([]);
   const [invites, setInvites] = useState<InvitationSummary[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<UserRole>("member");
   const [creating, setCreating] = useState(false);
@@ -73,11 +78,13 @@ export default function MembersPage() {
 
   const load = useCallback(async () => {
     try {
-      const [memberList, inviteList] = await Promise.all([
+      const [memberList, inviteList, departmentList] = await Promise.all([
         api.member.list(),
         api.invite.list(),
+        api.department.list(),
       ]);
       setMembers(memberList);
+      setDepartments(departmentList);
       setInvites(inviteList.filter((invite) => !invite.acceptedAt));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to load");
@@ -211,29 +218,58 @@ export default function MembersPage() {
                 <CardTitle>Team</CardTitle>
               </CardHeader>
               <CardContent className="divide-y">
-                {members.map((member) => (
-                  <div
-                    className="flex items-center justify-between gap-3 py-3"
-                    key={member.id}
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate font-medium text-sm">
-                        {member.name || member.email}
-                      </p>
-                      <p className="truncate text-muted-foreground text-xs">
-                        {member.email}
-                      </p>
+                {members.map((member) => {
+                  const department = departments.find(
+                    (item) => item.id === member.departmentId
+                  );
+                  const manager = members.find(
+                    (item) => item.id === member.managerId
+                  );
+                  const details = [
+                    member.jobTitle,
+                    department?.name,
+                    manager ? `Reports to ${manager.name || manager.email}` : null,
+                  ].filter(Boolean);
+                  return (
+                    <div
+                      className="flex items-center justify-between gap-3 py-3"
+                      key={member.id}
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-sm">
+                          {member.name || member.email}
+                        </p>
+                        <p className="truncate text-muted-foreground text-xs">
+                          {member.email}
+                        </p>
+                        {details.length > 0 ? (
+                          <p className="truncate text-muted-foreground text-xs">
+                            {details.join(" / ")}
+                          </p>
+                        ) : null}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={() => setEditingMember(member)}
+                          size="sm"
+                          variant="outline"
+                        >
+                          Profile
+                        </Button>
+                        <RoleSelect
+                          onChange={(newRole) =>
+                            handleRoleChange(member.id, newRole)
+                          }
+                          value={member.role}
+                        />
+                      </div>
                     </div>
-                    <RoleSelect
-                      onChange={(newRole) =>
-                        handleRoleChange(member.id, newRole)
-                      }
-                      value={member.role}
-                    />
-                  </div>
-                ))}
+                  );
+                })}
               </CardContent>
             </Card>
+
+            <DepartmentsCard departments={departments} onChanged={load} />
 
             {invites.length > 0 ? (
               <Card>
@@ -272,6 +308,16 @@ export default function MembersPage() {
               </Card>
             ) : null}
           </>
+        ) : null}
+
+        {editingMember ? (
+          <MemberProfileDialog
+            departments={departments}
+            member={editingMember}
+            members={members}
+            onClose={() => setEditingMember(null)}
+            onSaved={load}
+          />
         ) : null}
       </div>
     </div>

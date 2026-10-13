@@ -4,6 +4,7 @@
  */
 
 import type { IntegrationConfig, IntegrationType } from "./types/integration";
+import type { FormField } from "./types/process-form";
 import type { WorkflowEdge, WorkflowNode } from "./workflow-store";
 
 // Workflow data types
@@ -663,6 +664,37 @@ export type Member = {
   email: string | null;
   role: UserRole;
   createdAt: string;
+  departmentId: string | null;
+  managerId: string | null;
+  jobTitle: string | null;
+};
+
+export type MemberProfileUpdate = {
+  departmentId?: string | null;
+  managerId?: string | null;
+  jobTitle?: string | null;
+};
+
+export type Department = {
+  id: string;
+  name: string;
+  parentId: string | null;
+  memberCount: number;
+};
+
+export type ProcessStatus = "draft" | "published" | "archived";
+
+export type ProcessSummary = {
+  id: string;
+  workflowId: string;
+  name: string;
+  description: string | null;
+  status: ProcessStatus;
+  version: number;
+  category: string | null;
+  startFormFields: FormField[];
+  publishedAt: string | null;
+  updatedAt: string;
 };
 
 export type InvitationSummary = {
@@ -720,6 +752,12 @@ export const inviteApi = {
 export const memberApi = {
   list: () => apiCall<Member[]>("/api/members"),
 
+  updateProfile: (memberId: string, data: MemberProfileUpdate) =>
+    apiCall<{ success: boolean }>(`/api/members/${memberId}/profile`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
   updateRole: (memberId: string, role: UserRole) =>
     apiCall<{ success: boolean }>(`/api/members/${memberId}`, {
       method: "PATCH",
@@ -727,13 +765,72 @@ export const memberApi = {
     }),
 };
 
+export const departmentApi = {
+  list: () => apiCall<Department[]>("/api/departments"),
+
+  create: (data: { name: string; parentId?: string | null }) =>
+    apiCall<Omit<Department, "memberCount">>("/api/departments", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  update: (
+    departmentId: string,
+    data: { name?: string; parentId?: string | null }
+  ) =>
+    apiCall<Omit<Department, "memberCount">>(
+      `/api/departments/${departmentId}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }
+    ),
+
+  delete: (departmentId: string) =>
+    apiCall<{ success: boolean }>(`/api/departments/${departmentId}`, {
+      method: "DELETE",
+    }),
+};
+
+export const processApi = {
+  list: () => apiCall<ProcessSummary[]>("/api/processes"),
+
+  get: (processId: string) =>
+    apiCall<ProcessSummary>(`/api/processes/${processId}`),
+
+  create: (data: {
+    workflowId: string;
+    category?: string | null;
+    startFormFields?: FormField[];
+  }) =>
+    apiCall<ProcessSummary>("/api/processes", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  update: (
+    processId: string,
+    data: {
+      status?: ProcessStatus;
+      category?: string | null;
+      startFormFields?: FormField[];
+    }
+  ) =>
+    apiCall<ProcessSummary>(`/api/processes/${processId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+};
+
 // Export all APIs as a single object
 export const api = {
   ai: aiApi,
   aiGateway: aiGatewayApi,
+  department: departmentApi,
   integration: integrationApi,
   invite: inviteApi,
   member: memberApi,
+  process: processApi,
   setup: setupApi,
   user: userApi,
   workflow: workflowApi,

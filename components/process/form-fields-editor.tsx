@@ -1,0 +1,266 @@
+"use client";
+
+import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { slugifyFieldKey } from "@/lib/process-form-validation";
+import type { FormField, FormFieldType } from "@/lib/types/process-form";
+
+const TYPE_LABELS: Record<FormFieldType, string> = {
+  text: "Short text",
+  textarea: "Long text",
+  number: "Number",
+  date: "Date",
+  select: "Dropdown",
+  checkbox: "Yes / no",
+};
+
+type Row = {
+  uid: number;
+  field: FormField;
+  // Keys of existing fields stay fixed so renaming a label never changes the
+  // key that submitted data is stored under
+  keyLocked: boolean;
+};
+
+type FormFieldsEditorProps = {
+  initialFields: FormField[];
+  onChange: (fields: FormField[]) => void;
+};
+
+function parseOptions(text: string): { label: string; value: string }[] {
+  const seen = new Set<string>();
+  const options: { label: string; value: string }[] = [];
+  for (const part of text.split(",")) {
+    const label = part.trim();
+    if (!label) {
+      continue;
+    }
+    let value = slugifyFieldKey(label).replace(/^field_/, "") || "option";
+    let suffix = 2;
+    while (seen.has(value)) {
+      value = `${value}_${suffix}`;
+      suffix += 1;
+    }
+    seen.add(value);
+    options.push({ label, value });
+  }
+  return options;
+}
+
+function uniqueKey(base: string, rows: Row[], selfUid: number): string {
+  const taken = new Set(
+    rows.filter((row) => row.uid !== selfUid).map((row) => row.field.key)
+  );
+  let key = base || "field";
+  let suffix = 2;
+  while (taken.has(key)) {
+    key = `${base}_${suffix}`;
+    suffix += 1;
+  }
+  return key;
+}
+
+function OptionsInput({
+  options,
+  onChange,
+}: {
+  options: { label: string; value: string }[];
+  onChange: (options: { label: string; value: string }[]) => void;
+}) {
+  // Keep the raw text so typing a trailing comma is not swallowed
+  const [text, setText] = useState(options.map((option) => option.label).join(", "));
+
+  return (
+    <Input
+      aria-label="Dropdown options"
+      onChange={(event) => {
+        setText(event.target.value);
+        onChange(parseOptions(event.target.value));
+      }}
+      placeholder="Options, separated by commas"
+      value={text}
+    />
+  );
+}
+
+export function FormFieldsEditor({
+  initialFields,
+  onChange,
+}: FormFieldsEditorProps) {
+  const [nextUid, setNextUid] = useState(initialFields.length);
+  const [rows, setRows] = useState<Row[]>(
+    initialFields.map((field, index) => ({
+      uid: index,
+      field,
+      keyLocked: true,
+    }))
+  );
+
+  const commit = (updated: Row[]) => {
+    setRows(updated);
+    onChange(updated.map((row) => row.field));
+  };
+
+  const updateField = (uid: number, changes: Partial<FormField>) => {
+    commit(
+      rows.map((row) => {
+        if (row.uid !== uid) {
+          return row;
+        }
+        const field = { ...row.field, ...changes };
+        if (changes.type && changes.type !== "select") {
+          field.options = undefined;
+        }
+        if (changes.type === "select" && !field.options) {
+          field.options = [];
+        }
+        return { ...row, field };
+      })
+    );
+  };
+
+  const handleLabelChange = (row: Row, label: string) => {
+    const key = row.keyLocked
+      ? row.field.key
+      : uniqueKey(slugifyFieldKey(label), rows, row.uid);
+    commit(
+      rows.map((item) =>
+        item.uid === row.uid
+          ? { ...item, field: { ...item.field, label, key } }
+          : item
+      )
+    );
+  };
+
+  const addField = () => {
+    commit([
+      ...rows,
+      {
+        uid: nextUid,
+        field: { key: uniqueKey("field", rows, nextUid), label: "", type: "text" },
+        keyLocked: false,
+      },
+    ]);
+    setNextUid(nextUid + 1);
+  };
+
+  const move = (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= rows.length) {
+      return;
+    }
+    const updated = [...rows];
+    [updated[index], updated[target]] = [updated[target], updated[index]];
+    commit(updated);
+  };
+
+  return (
+    <div className="space-y-3">
+      {rows.length === 0 ? (
+        <p className="text-muted-foreground text-sm">
+          No fields yet. The requester will start this process without filling
+          anything in.
+        </p>
+      ) : null}
+
+      {rows.map((row, index) => (
+        <div className="space-y-2 rounded-md border p-3" key={row.uid}>
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              aria-label="Field label"
+              className="min-w-40 flex-1"
+              onChange={(event) => handleLabelChange(row, event.target.value)}
+              placeholder="Label, for example Days requested"
+              value={row.field.label}
+            />
+            <Select
+              onValueChange={(type) =>
+                updateField(row.uid, { type: type as FormFieldType })
+              }
+              value={row.field.type}
+            >
+              <SelectTrigger aria-label="Field type" className="w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(TYPE_LABELS) as FormFieldType[]).map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {TYPE_LABELS[type]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={row.field.required === true}
+                id={`required-${row.uid}`}
+                onCheckedChange={(checked) =>
+                  updateField(row.uid, { required: checked === true })
+                }
+              />
+              <Label className="text-sm" htmlFor={`required-${row.uid}`}>
+                Required
+              </Label>
+            </div>
+            <div className="flex">
+              <Button
+                aria-label="Move field up"
+                disabled={index === 0}
+                onClick={() => move(index, -1)}
+                size="icon"
+                type="button"
+                variant="ghost"
+              >
+                <ChevronUp className="size-4" />
+              </Button>
+              <Button
+                aria-label="Move field down"
+                disabled={index === rows.length - 1}
+                onClick={() => move(index, 1)}
+                size="icon"
+                type="button"
+                variant="ghost"
+              >
+                <ChevronDown className="size-4" />
+              </Button>
+              <Button
+                aria-label="Remove field"
+                onClick={() => commit(rows.filter((item) => item.uid !== row.uid))}
+                size="icon"
+                type="button"
+                variant="ghost"
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            </div>
+          </div>
+
+          {row.field.type === "select" ? (
+            <OptionsInput
+              onChange={(options) => updateField(row.uid, { options })}
+              options={row.field.options ?? []}
+            />
+          ) : null}
+
+          <p className="text-muted-foreground text-xs">Key: {row.field.key}</p>
+        </div>
+      ))}
+
+      <Button onClick={addField} size="sm" type="button" variant="outline">
+        <Plus className="size-4" />
+        Add field
+      </Button>
+    </div>
+  );
+}
