@@ -3,9 +3,11 @@ import {
   type AnyPgColumn,
   boolean,
   check,
+  foreignKey,
   index,
   integer,
   jsonb,
+  pgSequence,
   pgTable,
   text,
   timestamp,
@@ -211,7 +213,32 @@ export type ProcessInstanceStatus =
   | "failed"
   | "cancelled";
 export type TaskStatus = "pending" | "completed" | "cancelled";
-export type CaseStatus = "open" | "closed";
+export type CaseStatus =
+  | "open"
+  | "in_progress"
+  | "pending_approval"
+  | "approved"
+  | "rejected"
+  | "completed"
+  | "cancelled";
+export type CasePriority = "low" | "medium" | "high" | "urgent";
+export type TimelineEventType =
+  | "case_created"
+  | "case_updated"
+  | "task_created"
+  | "task_completed"
+  | "task_reassigned"
+  | "status_changed"
+  | "comment_added"
+  | "form_submitted"
+  | "escalation_triggered";
+export type NotificationType =
+  | "task_assigned"
+  | "task_due_soon"
+  | "task_overdue"
+  | "case_updated"
+  | "case_completed"
+  | "escalation";
 
 export const departments = pgTable("departments", {
   id: text("id")
@@ -254,40 +281,6 @@ export const forms = pgTable("forms", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
-
-// Not used by the prototype: long-lived records that group several instances
-export const cases = pgTable("cases", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => generateId()),
-  title: text("title").notNull(),
-  status: text("status").notNull().default("open").$type<CaseStatus>(),
-  ownerId: text("owner_id")
-    .notNull()
-    .references(() => users.id),
-  departmentId: text("department_id").references(() => departments.id),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  closedAt: timestamp("closed_at"),
-});
-
-export const caseTimeline = pgTable(
-  "case_timeline",
-  {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => generateId()),
-    caseId: text("case_id")
-      .notNull()
-      .references(() => cases.id, { onDelete: "cascade" }),
-    actorId: text("actor_id").references(() => users.id),
-    kind: text("kind").notNull(),
-    // biome-ignore lint/suspicious/noExplicitAny: JSONB type - shape depends on kind
-    data: jsonb("data").$type<Record<string, any>>(),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-  },
-  (table) => [index("case_timeline_case_idx").on(table.caseId)]
-);
 
 // A published, startable process. The graph itself lives in the linked workflow.
 export const processDefinitions = pgTable(
@@ -333,15 +326,12 @@ export const processInstances = pgTable(
       .notNull()
       .references(() => processDefinitions.id),
     // Link to the execution record that holds per-node logs for the Runs UI
-    workflowExecutionId: text("workflow_execution_id")
-      .unique()
-      .references(() => workflowExecutions.id),
+    workflowExecutionId: text("workflow_execution_id").unique(),
     // Workflow DevKit run id, used to look up and resume the suspended run
     runId: text("run_id").unique(),
     requesterId: text("requester_id")
       .notNull()
       .references(() => users.id),
-    caseId: text("case_id").references(() => cases.id),
     status: text("status")
       .notNull()
       .default("running")
@@ -353,6 +343,13 @@ export const processInstances = pgTable(
     completedAt: timestamp("completed_at"),
   },
   (table) => [
+    // Named explicitly: the generated name is longer than Postgres' 63
+    // character identifier limit and would be silently truncated
+    foreignKey({
+      columns: [table.workflowExecutionId],
+      foreignColumns: [workflowExecutions.id],
+      name: "process_instances_execution_fk",
+    }),
     index("process_instances_requester_idx").on(table.requesterId),
     index("process_instances_definition_status_idx").on(
       table.definitionId,
@@ -407,6 +404,73 @@ export const tasks = pgTable(
   ]
 );
 
+// A case is the human-facing record of one request: it has a readable number,
+// an initiator, a priority and a timeline. It points at the process instance
+// that executes it, once one exists.
+export const caseNumberSeq = pgSequence("case_number_seq");
+
+export const cases = pgTable(
+  "cases",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => generateId()),
+    // Human-readable number such as CASE-2026-00042
+    caseNumber: text("case_number").notNull().unique(),
+    processDefinitionId: text("process_definition_id")
+      .notNull()
+      .references(() => processDefinitions.id),
+    processInstanceId: text("process_instance_id").references(
+      () => processInstances.id,
+      { onDelete: "set null" }
+    ),
+    title: text("title").notNull(),
+    status: text("status").notNull().default("open").$type<CaseStatus>(),
+    priority: text("priority")
+      .notNull()
+      .default("medium")
+      .$type<CasePriority>(),
+    initiatorId: text("initiator_id")
+      .notNull()
+      .references(() => users.id),
+    participants: jsonb("participants").notNull().$type<string[]>().default([]),
+    metadata: jsonb("metadata")
+      .notNull()
+      .$type<Record<string, unknown>>()
+      .default({}),
+    dueAt: timestamp("due_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("cases_initiator_idx").on(table.initiatorId),
+    index("cases_status_idx").on(table.status),
+    uniqueIndex("cases_instance_idx").on(table.processInstanceId),
+  ]
+);
+
+export const caseTimeline = pgTable(
+  "case_timeline",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => generateId()),
+    caseId: text("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    eventType: text("event_type").notNull().$type<TimelineEventType>(),
+    actorId: text("actor_id").references(() => users.id),
+    // Which workflow node produced the event
+    nodeId: text("node_id"),
+    data: jsonb("data")
+      .notNull()
+      .$type<Record<string, unknown>>()
+      .default({}),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [index("case_timeline_case_idx").on(table.caseId)]
+);
+
 // Values someone submitted: the start form (no task) or a task form
 export const formSubmissions = pgTable(
   "form_submissions",
@@ -428,7 +492,7 @@ export const formSubmissions = pgTable(
   (table) => [index("form_submissions_instance_idx").on(table.instanceId)]
 );
 
-// Not used by the prototype (email only): in-app notifications
+// In-app notifications for a user
 export const notifications = pgTable(
   "notifications",
   {
@@ -438,14 +502,19 @@ export const notifications = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    type: text("type").notNull(),
+    type: text("type").notNull().$type<NotificationType>(),
     title: text("title").notNull(),
-    body: text("body"),
-    link: text("link"),
-    readAt: timestamp("read_at"),
+    body: text("body").notNull(),
+    data: jsonb("data")
+      .notNull()
+      .$type<Record<string, unknown>>()
+      .default({}),
+    read: boolean("read").notNull().default(false),
+    caseId: text("case_id").references(() => cases.id, { onDelete: "cascade" }),
+    taskId: text("task_id").references(() => tasks.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
-  (table) => [index("notifications_user_read_idx").on(table.userId, table.readAt)]
+  (table) => [index("notifications_user_read_idx").on(table.userId, table.read)]
 );
 
 // Not used by the prototype: deadlines that remind or escalate on a task
@@ -516,6 +585,8 @@ export type Department = typeof departments.$inferSelect;
 export type UserProfile = typeof userProfiles.$inferSelect;
 export type Form = typeof forms.$inferSelect;
 export type Case = typeof cases.$inferSelect;
+export type NewCase = typeof cases.$inferInsert;
+export type CaseTimelineEntry = typeof caseTimeline.$inferSelect;
 export type ProcessDefinition = typeof processDefinitions.$inferSelect;
 export type NewProcessDefinition = typeof processDefinitions.$inferInsert;
 export type ProcessInstance = typeof processInstances.$inferSelect;
@@ -525,4 +596,5 @@ export type NewTask = typeof tasks.$inferInsert;
 export type FormSubmission = typeof formSubmissions.$inferSelect;
 export type NewFormSubmission = typeof formSubmissions.$inferInsert;
 export type Notification = typeof notifications.$inferSelect;
+export type NewNotification = typeof notifications.$inferInsert;
 export type ProcessTemplate = typeof processTemplates.$inferSelect;

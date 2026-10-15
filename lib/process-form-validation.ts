@@ -112,3 +112,83 @@ export function validateFormFields(value: unknown): ValidationResult {
 
   return { ok: true, fields };
 }
+
+const MAX_TEXT_VALUE_LENGTH = 5000;
+const DATE_VALUE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+type ValuesResult =
+  | { ok: true; values: Record<string, unknown> }
+  | { ok: false; error: string };
+
+function isBlank(value: unknown): boolean {
+  return value === undefined || value === null || value === "";
+}
+
+function validateFieldValue(field: FormField, value: unknown): string | null {
+  switch (field.type) {
+    case "text":
+    case "textarea":
+      if (typeof value !== "string" || value.length > MAX_TEXT_VALUE_LENGTH) {
+        return `"${field.label}" must be text up to ${MAX_TEXT_VALUE_LENGTH} characters`;
+      }
+      return null;
+    case "number":
+      return typeof value === "number" && Number.isFinite(value)
+        ? null
+        : `"${field.label}" must be a number`;
+    case "date":
+      return typeof value === "string" &&
+        DATE_VALUE_PATTERN.test(value) &&
+        !Number.isNaN(Date.parse(value))
+        ? null
+        : `"${field.label}" must be a date (YYYY-MM-DD)`;
+    case "select":
+      return field.options?.some((option) => option.value === value)
+        ? null
+        : `"${field.label}" must be one of the listed options`;
+    case "checkbox":
+      return typeof value === "boolean"
+        ? null
+        : `"${field.label}" must be true or false`;
+    default:
+      return null;
+  }
+}
+
+/**
+ * Checks submitted values against a form definition and drops keys the form
+ * does not have. A required checkbox must be ticked.
+ */
+export function validateFormValues(
+  fields: FormField[],
+  input: unknown
+): ValuesResult {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return { ok: false, error: "Values must be an object" };
+  }
+
+  const submitted = input as Record<string, unknown>;
+  const values: Record<string, unknown> = {};
+
+  for (const field of fields) {
+    const value = submitted[field.key];
+
+    if (isBlank(value)) {
+      if (field.required) {
+        return { ok: false, error: `"${field.label}" is required` };
+      }
+      continue;
+    }
+
+    const problem = validateFieldValue(field, value);
+    if (problem) {
+      return { ok: false, error: problem };
+    }
+    if (field.required && field.type === "checkbox" && value !== true) {
+      return { ok: false, error: `"${field.label}" is required` };
+    }
+    values[field.key] = value;
+  }
+
+  return { ok: true, values };
+}

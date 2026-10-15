@@ -50,6 +50,13 @@
       "when": 1791786753598,
       "tag": "0006_zippy_ultron",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792053089270,
+      "tag": "0007_complex_blacklash",
+      "breakpoints": true
     }
   ]
 }
