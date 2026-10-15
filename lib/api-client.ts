@@ -3,6 +3,15 @@
  * Replaces server actions with API endpoints
  */
 
+import type {
+  Case,
+  CasePriority,
+  CaseStatus,
+  CaseTimelineEntry,
+  Notification,
+  Task,
+  TaskStatus,
+} from "./db/schema";
 import type { IntegrationConfig, IntegrationType } from "./types/integration";
 import type { FormField } from "./types/process-form";
 import type { WorkflowEdge, WorkflowNode } from "./workflow-store";
@@ -822,16 +831,146 @@ export const processApi = {
     }),
 };
 
+// Dates arrive as ISO strings once a row has been through JSON
+type Serialized<T> = {
+  [K in keyof T]: T[K] extends Date
+    ? string
+    : T[K] extends Date | null
+      ? string | null
+      : T[K];
+};
+
+export type CaseRecord = Serialized<Case>;
+export type CaseTimelineRecord = Serialized<CaseTimelineEntry>;
+export type TaskRecord = Serialized<Task>;
+export type NotificationRecord = Serialized<Notification>;
+
+export type CaseDetail = {
+  case: CaseRecord;
+  timeline: CaseTimelineRecord[];
+  tasks: TaskRecord[];
+};
+
+export const caseApi = {
+  list: (filters?: {
+    all?: boolean;
+    status?: CaseStatus;
+    priority?: CasePriority;
+    processId?: string;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters?.all) {
+      params.set("all", "true");
+    }
+    if (filters?.status) {
+      params.set("status", filters.status);
+    }
+    if (filters?.priority) {
+      params.set("priority", filters.priority);
+    }
+    if (filters?.processId) {
+      params.set("processId", filters.processId);
+    }
+    const query = params.toString();
+    return apiCall<CaseRecord[]>(`/api/bpma/cases${query ? `?${query}` : ""}`);
+  },
+
+  get: (caseId: string) => apiCall<CaseDetail>(`/api/bpma/cases/${caseId}`),
+
+  create: (data: {
+    processDefinitionId: string;
+    title: string;
+    priority?: CasePriority;
+    dueAt?: string | null;
+    metadata?: Record<string, unknown>;
+  }) =>
+    apiCall<CaseRecord>("/api/bpma/cases", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  update: (
+    caseId: string,
+    data: {
+      title?: string;
+      status?: CaseStatus;
+      priority?: CasePriority;
+      dueAt?: string | null;
+      participants?: string[];
+      metadata?: Record<string, unknown>;
+    }
+  ) =>
+    apiCall<CaseRecord>(`/api/bpma/cases/${caseId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+};
+
+export const taskApi = {
+  list: (status?: TaskStatus) =>
+    apiCall<TaskRecord[]>(
+      `/api/bpma/tasks${status ? `?status=${status}` : ""}`
+    ),
+
+  get: (taskId: string) => apiCall<TaskRecord>(`/api/bpma/tasks/${taskId}`),
+
+  complete: (
+    taskId: string,
+    data: { outcome?: string; values?: Record<string, unknown> }
+  ) =>
+    apiCall<TaskRecord>(`/api/bpma/tasks/${taskId}/complete`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  reassign: (taskId: string, assigneeId: string) =>
+    apiCall<TaskRecord>(`/api/bpma/tasks/${taskId}/reassign`, {
+      method: "POST",
+      body: JSON.stringify({ assigneeId }),
+    }),
+};
+
+export const notificationApi = {
+  list: (options?: { unread?: boolean; limit?: number }) => {
+    const params = new URLSearchParams();
+    if (options?.unread) {
+      params.set("unread", "true");
+    }
+    if (options?.limit) {
+      params.set("limit", String(options.limit));
+    }
+    const query = params.toString();
+    return apiCall<{ notifications: NotificationRecord[]; unreadCount: number }>(
+      `/api/bpma/notifications${query ? `?${query}` : ""}`
+    );
+  },
+
+  markRead: (ids: string[]) =>
+    apiCall<{ success: boolean }>("/api/bpma/notifications", {
+      method: "PATCH",
+      body: JSON.stringify({ ids }),
+    }),
+
+  markAllRead: () =>
+    apiCall<{ success: boolean }>("/api/bpma/notifications", {
+      method: "PATCH",
+      body: JSON.stringify({ all: true }),
+    }),
+};
+
 // Export all APIs as a single object
 export const api = {
   ai: aiApi,
   aiGateway: aiGatewayApi,
+  case: caseApi,
   department: departmentApi,
   integration: integrationApi,
   invite: inviteApi,
   member: memberApi,
+  notification: notificationApi,
   process: processApi,
   setup: setupApi,
+  task: taskApi,
   user: userApi,
   workflow: workflowApi,
 };
