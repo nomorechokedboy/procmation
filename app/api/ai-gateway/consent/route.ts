@@ -52,16 +52,16 @@ async function createVercelApiKey(
   const response = await fetch(
     `https://api.vercel.com/v1/api-keys?teamId=${teamId}`,
     {
-      method: "POST",
+      body: JSON.stringify({
+        exchange: true,
+        name: API_KEY_NAME,
+        purpose: API_KEY_PURPOSE,
+      }),
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        purpose: API_KEY_PURPOSE,
-        name: API_KEY_NAME,
-        exchange: true,
-      }),
+      method: "POST",
     }
   );
 
@@ -78,7 +78,7 @@ async function createVercelApiKey(
     return null;
   }
 
-  return { token: newKey.apiKeyString, id: newKey.apiKey?.id };
+  return { id: newKey.apiKey?.id, token: newKey.apiKeyString };
 }
 
 type SaveIntegrationParams = {
@@ -105,12 +105,12 @@ async function saveIntegration(params: SaveIntegrationParams): Promise<string> {
   // Always create a new integration - users can have multiple managed keys for different teams
   const integrationId = generateId();
   await db.insert(integrations).values({
+    config: encryptedConfig,
     id: integrationId,
-    userId,
+    isManaged: true,
     name: teamName,
     type: "ai-gateway",
-    config: encryptedConfig,
-    isManaged: true,
+    userId,
   });
   return integrationId;
 }
@@ -126,8 +126,8 @@ async function deleteVercelApiKey(
   await fetch(
     `https://api.vercel.com/v1/api-keys/${apiKeyId}?teamId=${teamId}`,
     {
-      method: "DELETE",
       headers: { Authorization: `Bearer ${accessToken}` },
+      method: "DELETE",
     }
   );
 }
@@ -190,17 +190,17 @@ export async function POST(request: Request) {
     }
 
     const integrationId = await saveIntegration({
-      userId: session.user.id,
       apiKey: vercelApiKey.token,
       apiKeyId: vercelApiKey.id,
       teamId,
       teamName: teamName || "AI Gateway",
+      userId: session.user.id,
     });
 
     return Response.json({
-      success: true,
       hasManagedKey: true,
       managedIntegrationId: integrationId,
+      success: true,
     });
   } catch (e) {
     console.error("[ai-gateway] Error creating API key:", e);
@@ -282,5 +282,5 @@ export async function DELETE(request: Request) {
     .delete(integrations)
     .where(eq(integrations.id, managedIntegration.id));
 
-  return Response.json({ success: true, hasManagedKey: false });
+  return Response.json({ hasManagedKey: false, success: true });
 }

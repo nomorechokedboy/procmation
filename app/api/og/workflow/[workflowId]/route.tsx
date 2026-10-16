@@ -36,11 +36,11 @@ function calculateViewport(
 ) {
   if (nodes.length === 0) {
     return {
-      scale: 1,
-      offsetX: width / 2,
-      offsetY: height / 2,
       minX: 0,
       minY: 0,
+      offsetX: width / 2,
+      offsetY: height / 2,
+      scale: 1,
     };
   }
 
@@ -72,7 +72,7 @@ function calculateViewport(
   const offsetX = (width - scaledWidth) / 2 - minX * scale;
   const offsetY = (height - scaledHeight) / 2 - minY * scale;
 
-  return { scale, offsetX, offsetY, minX, minY };
+  return { minX, minY, offsetX, offsetY, scale };
 }
 
 // Transform position to viewport coordinates
@@ -174,13 +174,13 @@ export async function GET(
         const midY = (sourceCenter.y + targetCenter.y) / 2;
         edgeLines.push({
           id: edge.id,
-          x1: sourceCenter.x,
-          y1: sourceCenter.y,
-          x2: targetCenter.x,
-          y2: targetCenter.y,
           midX: sourceCenter.x,
           midY1: midY,
           midY2: midY,
+          x1: sourceCenter.x,
+          x2: targetCenter.x,
+          y1: sourceCenter.y,
+          y2: targetCenter.y,
         });
       }
     }
@@ -188,11 +188,11 @@ export async function GET(
     return new ImageResponse(
       <div
         style={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          position: "relative",
           backgroundColor: "#09090b",
+          display: "flex",
+          height: "100%",
+          position: "relative",
+          width: "100%",
         }}
       >
         {/* Dotted background using divs */}
@@ -200,13 +200,13 @@ export async function GET(
           <div
             key={`${dot.x}-${dot.y}`}
             style={{
-              position: "absolute",
+              backgroundColor: "rgba(255,255,255,0.08)",
+              borderRadius: 1,
+              height: 2,
               left: dot.x - 1,
+              position: "absolute",
               top: dot.y - 1,
               width: 2,
-              height: 2,
-              borderRadius: 1,
-              backgroundColor: "rgba(255,255,255,0.08)",
             }}
           />
         ))}
@@ -220,12 +220,12 @@ export async function GET(
             <div
               key={`${line.id}-v1`}
               style={{
-                position: "absolute",
+                backgroundColor: "rgba(255,255,255,0.2)",
+                height: segmentHeight1 || 1,
                 left: line.x1 - 1,
+                position: "absolute",
                 top: segmentTop1,
                 width: 2,
-                height: segmentHeight1 || 1,
-                backgroundColor: "rgba(255,255,255,0.2)",
               }}
             />
           );
@@ -244,12 +244,12 @@ export async function GET(
             <div
               key={`${line.id}-h`}
               style={{
-                position: "absolute",
+                backgroundColor: "rgba(255,255,255,0.2)",
+                height: 2,
                 left: segmentLeft,
+                position: "absolute",
                 top: line.midY1 - 1,
                 width: edgeWidth,
-                height: 2,
-                backgroundColor: "rgba(255,255,255,0.2)",
               }}
             />
           );
@@ -264,12 +264,12 @@ export async function GET(
             <div
               key={`${line.id}-v2`}
               style={{
-                position: "absolute",
+                backgroundColor: "rgba(255,255,255,0.2)",
+                height: segmentHeight2 || 1,
                 left: line.x2 - 1,
+                position: "absolute",
                 top: segmentTop2,
                 width: 2,
-                height: segmentHeight2 || 1,
-                backgroundColor: "rgba(255,255,255,0.2)",
               }}
             />
           );
@@ -291,29 +291,29 @@ export async function GET(
             <div
               key={node.id}
               style={{
-                position: "absolute",
-                left: pos.x + (size - displaySize) / 2,
-                top: pos.y + (size - displaySize) / 2,
-                width: displaySize,
-                height: displaySize,
-                borderRadius: isTrigger ? displaySize / 2 : 8,
+                alignItems: "center",
                 backgroundColor: "#171717",
                 border: `2px solid ${isTrigger ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.18)"}`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                borderRadius: isTrigger ? displaySize / 2 : 8,
                 boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
+                display: "flex",
+                height: displaySize,
+                justifyContent: "center",
+                left: pos.x + (size - displaySize) / 2,
+                position: "absolute",
+                top: pos.y + (size - displaySize) / 2,
+                width: displaySize,
               }}
             >
               {/* Inner indicator */}
               <div
                 style={{
-                  width: displaySize * 0.4,
-                  height: displaySize * 0.4,
-                  borderRadius: isTrigger ? displaySize * 0.2 : 4,
                   backgroundColor: isTrigger
                     ? "rgba(255,255,255,0.45)"
                     : "rgba(255,255,255,0.18)",
+                  borderRadius: isTrigger ? displaySize * 0.2 : 4,
+                  height: displaySize * 0.4,
+                  width: displaySize * 0.4,
                 }}
               />
             </div>
@@ -323,16 +323,16 @@ export async function GET(
         {/* Subtle vignette overlay */}
         <div
           style={{
-            position: "absolute",
-            inset: 0,
             background:
               "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.4) 100%)",
+            inset: 0,
+            position: "absolute",
           }}
         />
       </div>,
       {
-        width,
         height,
+        width,
       }
     );
   } catch (error) {

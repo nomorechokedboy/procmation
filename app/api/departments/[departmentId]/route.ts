@@ -35,7 +35,10 @@ export async function PATCH(
   }
 
   const { departmentId } = await params;
-  const body = (await request.json()) as { name?: string; parentId?: string | null };
+  const body = (await request.json()) as {
+    name?: string;
+    parentId?: string | null;
+  };
 
   const [current] = await db
     .select()
@@ -43,7 +46,10 @@ export async function PATCH(
     .where(eq(departments.id, departmentId))
     .limit(1);
   if (!current) {
-    return NextResponse.json({ error: "Department not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Department not found" },
+      { status: 404 }
+    );
   }
 
   const updates: { name?: string; parentId?: string | null } = {};
@@ -52,7 +58,9 @@ export async function PATCH(
     const name = body.name.trim();
     if (!name || name.length > MAX_NAME_LENGTH) {
       return NextResponse.json(
-        { error: `Name is required and must be at most ${MAX_NAME_LENGTH} characters` },
+        {
+          error: `Name is required and must be at most ${MAX_NAME_LENGTH} characters`,
+        },
         { status: 400 }
       );
     }
@@ -83,11 +91,17 @@ export async function PATCH(
         .where(eq(departments.id, body.parentId))
         .limit(1);
       if (!parent) {
-        return NextResponse.json({ error: "Parent department not found" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Parent department not found" },
+          { status: 400 }
+        );
       }
       if (await createsCycle(departmentId, body.parentId)) {
         return NextResponse.json(
-          { error: "A department cannot be placed under itself or its own sub-departments" },
+          {
+            error:
+              "A department cannot be placed under itself or its own sub-departments",
+          },
           { status: 400 }
         );
       }
@@ -126,13 +140,19 @@ export async function DELETE(
       .returning({ id: departments.id });
 
     if (deleted.length === 0) {
-      return NextResponse.json({ error: "Department not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Department not found" },
+        { status: 404 }
+      );
     }
     return NextResponse.json({ success: true });
   } catch (error) {
     if (pgErrorCode(error) === PG_FOREIGN_KEY_VIOLATION) {
       return NextResponse.json(
-        { error: "This department is used by a process, task or case and cannot be deleted" },
+        {
+          error:
+            "This department is used by a process, task or case and cannot be deleted",
+        },
         { status: 409 }
       );
     }

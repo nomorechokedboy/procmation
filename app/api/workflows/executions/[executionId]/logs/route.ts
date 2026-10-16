@@ -41,8 +41,8 @@ export async function GET(
 
     // Get logs
     const logs = await db.query.workflowExecutionLogs.findMany({
-      where: eq(workflowExecutionLogs.executionId, executionId),
       orderBy: [desc(workflowExecutionLogs.timestamp)],
+      where: eq(workflowExecutionLogs.executionId, executionId),
     });
 
     // Apply an additional layer of redaction to ensure no sensitive data is exposed

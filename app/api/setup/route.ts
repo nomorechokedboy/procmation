@@ -62,7 +62,7 @@ export async function POST(request: Request) {
         return false;
       }
 
-      await createCredentialUser(tx, { name, email, password, role: "admin" });
+      await createCredentialUser(tx, { email, name, password, role: "admin" });
       return true;
     });
 

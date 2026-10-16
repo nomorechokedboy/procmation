@@ -51,14 +51,14 @@ export function WorkflowContextMenu({
       const nodeId = menuState.nodeId;
       onClose();
       openOverlay(ConfirmOverlay, {
-        title: "Delete Step",
-        message:
-          "Are you sure you want to delete this node? This action cannot be undone.",
         confirmLabel: "Delete",
         confirmVariant: "destructive" as const,
+        message:
+          "Are you sure you want to delete this node? This action cannot be undone.",
         onConfirm: () => {
           deleteNode(nodeId);
         },
+        title: "Delete Step",
       });
     }
   }, [menuState, deleteNode, onClose, openOverlay]);
@@ -68,14 +68,14 @@ export function WorkflowContextMenu({
       const edgeId = menuState.edgeId;
       onClose();
       openOverlay(ConfirmOverlay, {
-        title: "Delete Connection",
-        message:
-          "Are you sure you want to delete this connection? This action cannot be undone.",
         confirmLabel: "Delete",
         confirmVariant: "destructive" as const,
+        message:
+          "Are you sure you want to delete this connection? This action cannot be undone.",
         onConfirm: () => {
           deleteEdge(edgeId);
         },
+        title: "Delete Connection",
       });
     }
   }, [menuState, deleteEdge, onClose, openOverlay]);
@@ -84,20 +84,20 @@ export function WorkflowContextMenu({
     if (menuState?.flowPosition) {
       const nodeHeight = 192;
       const newNode: WorkflowNode = {
+        data: {
+          config: {},
+          description: "",
+          label: "",
+          status: "idle",
+          type: "action",
+        },
         id: nanoid(),
-        type: "action",
         position: {
           x: menuState.flowPosition.x,
           y: menuState.flowPosition.y - nodeHeight / 2,
         },
-        data: {
-          label: "",
-          description: "",
-          type: "action",
-          config: {},
-          status: "idle",
-        },
         selected: true,
+        type: "action",
       };
       addNode(newNode);
       setSelectedNode(newNode.id);
@@ -240,9 +240,9 @@ export function useContextMenuHandlers(
     (event: React.MouseEvent, node: Node) => {
       event.preventDefault();
       setMenuState({
-        type: "node",
-        position: { x: event.clientX, y: event.clientY },
         nodeId: node.id,
+        position: { x: event.clientX, y: event.clientY },
+        type: "node",
       });
     },
     [setMenuState]
@@ -252,9 +252,9 @@ export function useContextMenuHandlers(
     (event: React.MouseEvent, edge: Edge) => {
       event.preventDefault();
       setMenuState({
-        type: "edge",
-        position: { x: event.clientX, y: event.clientY },
         edgeId: edge.id,
+        position: { x: event.clientX, y: event.clientY },
+        type: "edge",
       });
     },
     [setMenuState]
@@ -268,17 +268,17 @@ export function useContextMenuHandlers(
         y: event.clientY,
       });
       setMenuState({
-        type: "pane",
-        position: { x: event.clientX, y: event.clientY },
         flowPosition,
+        position: { x: event.clientX, y: event.clientY },
+        type: "pane",
       });
     },
     [screenToFlowPosition, setMenuState]
   );
 
   return {
-    onNodeContextMenu,
     onEdgeContextMenu,
+    onNodeContextMenu,
     onPaneContextMenu,
   };
 }

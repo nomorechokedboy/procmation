@@ -68,14 +68,14 @@ export async function GET(
     // For public workflows viewed by non-owners, sanitize sensitive data
     const responseData = {
       ...workflow,
+      createdAt: workflow.createdAt.toISOString(),
+      isOwner,
       nodes: isOwner
         ? workflow.nodes
         : sanitizeNodesForPublicView(
             workflow.nodes as Record<string, unknown>[]
           ),
-      createdAt: workflow.createdAt.toISOString(),
       updatedAt: workflow.updatedAt.toISOString(),
-      isOwner,
     };
 
     return NextResponse.json(responseData);
@@ -193,8 +193,8 @@ export async function PATCH(
     return NextResponse.json({
       ...updatedWorkflow,
       createdAt: updatedWorkflow.createdAt.toISOString(),
-      updatedAt: updatedWorkflow.updatedAt.toISOString(),
       isOwner: true,
+      updatedAt: updatedWorkflow.updatedAt.toISOString(),
     });
   } catch (error) {
     console.error("Failed to update workflow:", error);

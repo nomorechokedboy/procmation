@@ -44,23 +44,23 @@ export async function createCredentialUser(
   const userId = generateId();
 
   await executor.insert(users).values({
-    id: userId,
-    name: input.name.trim(),
+    createdAt: now,
     email: normalizeEmail(input.email),
     emailVerified: true,
+    id: userId,
+    name: input.name.trim(),
     role: input.role,
-    createdAt: now,
     updatedAt: now,
   });
 
   await executor.insert(accounts).values({
-    id: generateId(),
     accountId: userId,
-    providerId: "credential",
-    userId,
-    password: passwordHash,
     createdAt: now,
+    id: generateId(),
+    password: passwordHash,
+    providerId: "credential",
     updatedAt: now,
+    userId,
   });
 
   return userId;

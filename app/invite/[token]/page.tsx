@@ -28,7 +28,7 @@ export default function InvitePage() {
     api.invite
       .lookup(token)
       .then((data) =>
-        setInvite({ status: "valid", email: data.email, role: data.role })
+        setInvite({ email: data.email, role: data.role, status: "valid" })
       )
       .catch(() => setInvite({ status: "invalid" }));
   }, [token]);
@@ -108,7 +108,9 @@ export default function InvitePage() {
             type="password"
             value={password}
           />
-          <p className="text-muted-foreground text-xs">At least 8 characters.</p>
+          <p className="text-muted-foreground text-xs">
+            At least 8 characters.
+          </p>
         </div>
         {error ? <p className="text-destructive text-sm">{error}</p> : null}
         <Button className="w-full" disabled={loading} type="submit">

@@ -8,9 +8,9 @@ import httpRequestTemplate from "./codegen-templates/http-request";
 
 // System actions that don't have plugins
 const SYSTEM_CODEGEN_TEMPLATES: Record<string, string> = {
+  Condition: conditionTemplate,
   "Database Query": databaseQueryTemplate,
   "HTTP Request": httpRequestTemplate,
-  Condition: conditionTemplate,
 };
 
 import {
@@ -76,7 +76,7 @@ function processNewFormatID(trimmed: string, match: string): string {
   const nodeId = withoutAt.substring(0, colonIndex);
   const rest = withoutAt.substring(colonIndex + 1);
   const dotIndex = rest.indexOf(".");
-  const fieldPath = dotIndex !== -1 ? rest.substring(dotIndex + 1) : "";
+  const fieldPath = dotIndex === -1 ? "" : rest.substring(dotIndex + 1);
 
   const sanitizedNodeId = nodeId.replace(/[^a-zA-Z0-9]/g, "_");
 
@@ -476,23 +476,23 @@ export function generateWorkflowSDKCode(
     config: Record<string, unknown>
   ): string[] {
     const paramBuilders: Record<string, () => string[]> = {
-      "Send Email": () => buildEmailParams(config),
-      "Send Slack Message": () => buildSlackParams(config),
-      "Create Ticket": () => buildTicketParams(config),
-      "Generate Text": () => buildAITextParams(config),
-      "Generate Image": () => buildAIImageParams(config),
-      "Database Query": () => buildDatabaseParams(config),
-      "HTTP Request": () => buildHttpParams(config),
       Condition: () => buildConditionParams(config),
-      Scrape: () => buildFirecrawlParams(actionType, config),
-      Search: () => buildFirecrawlParams(actionType, config),
       "Create Chat": () => buildV0CreateChatParams(config),
-      "Send Message": () => buildV0SendMessageParams(config),
+      "Create Ticket": () => buildTicketParams(config),
+      "Create User": () => buildClerkCreateUserParams(config),
+      "Database Query": () => buildDatabaseParams(config),
+      "Delete User": () => buildClerkDeleteUserParams(config),
+      "Generate Image": () => buildAIImageParams(config),
+      "Generate Text": () => buildAITextParams(config),
       // Clerk
       "Get User": () => buildClerkGetUserParams(config),
-      "Create User": () => buildClerkCreateUserParams(config),
+      "HTTP Request": () => buildHttpParams(config),
+      Scrape: () => buildFirecrawlParams(actionType, config),
+      Search: () => buildFirecrawlParams(actionType, config),
+      "Send Email": () => buildEmailParams(config),
+      "Send Message": () => buildV0SendMessageParams(config),
+      "Send Slack Message": () => buildSlackParams(config),
       "Update User": () => buildClerkUpdateUserParams(config),
-      "Delete User": () => buildClerkDeleteUserParams(config),
     };
 
     const builder = paramBuilders[actionType];

@@ -48,10 +48,10 @@ export const openOverlayAtom = atom(
   (get, set, params: OpenOverlayParams) => {
     const id = generateOverlayId();
     const item: OverlayStackItem = {
-      id,
       component: params.component as ComponentType<OverlayComponentProps>,
-      props: (params.props ?? {}) as Record<string, unknown>,
+      id,
       options: params.options ?? {},
+      props: (params.props ?? {}) as Record<string, unknown>,
     };
     set(overlayStackAtom, [item]);
     return id;
@@ -75,10 +75,10 @@ export const pushOverlayAtom = atom(
   (get, set, params: OpenOverlayParams) => {
     const id = generateOverlayId();
     const item: OverlayStackItem = {
-      id,
       component: params.component as ComponentType<OverlayComponentProps>,
-      props: (params.props ?? {}) as Record<string, unknown>,
+      id,
       options: params.options ?? {},
+      props: (params.props ?? {}) as Record<string, unknown>,
     };
     set(overlayStackAtom, [...get(overlayStackAtom), item]);
     return id;
@@ -127,10 +127,10 @@ export const replaceOverlayAtom = atom(
     const stack = get(overlayStackAtom);
     const id = generateOverlayId();
     const item: OverlayStackItem = {
-      id,
       component: params.component as ComponentType<OverlayComponentProps>,
-      props: (params.props ?? {}) as Record<string, unknown>,
+      id,
       options: params.options ?? {},
+      props: (params.props ?? {}) as Record<string, unknown>,
     };
 
     if (stack.length === 0) {
@@ -175,7 +175,9 @@ export const closeAllOverlaysAtom = atom(null, (get, set) => {
 export const closeOverlayAtom = atom(null, (get, set, id: string) => {
   const stack = get(overlayStackAtom);
   const index = stack.findIndex((item) => item.id === id);
-  if (index === -1) return;
+  if (index === -1) {
+    return;
+  }
 
   // Call onClose for all items from this index onwards
   for (let i = index; i < stack.length; i++) {

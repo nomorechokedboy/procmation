@@ -18,16 +18,16 @@ import {
 // Helper function to create a default trigger node
 function createDefaultTriggerNode() {
   return {
-    id: nanoid(),
-    type: "trigger" as const,
-    position: { x: 0, y: 0 },
     data: {
-      label: "",
-      description: "",
-      type: "trigger" as const,
       config: { triggerType: "Manual" },
+      description: "",
+      label: "",
       status: "idle" as const,
+      type: "trigger" as const,
     },
+    id: nanoid(),
+    position: { x: 0, y: 0 },
+    type: "trigger" as const,
   };
 }
 
@@ -65,16 +65,16 @@ const Home = () => {
   // Initialize with a temporary "add" node on mount
   useEffect(() => {
     const addNodePlaceholder: WorkflowNode = {
-      id: "add-node-placeholder",
-      type: "add",
-      position: { x: 0, y: 0 },
       data: {
         label: "",
-        type: "add",
         onClick: handleAddNode,
+        type: "add",
       },
       draggable: false,
+      id: "add-node-placeholder",
+      position: { x: 0, y: 0 },
       selectable: false,
+      type: "add",
     };
     setNodes([addNodePlaceholder]);
     setEdges([]);
@@ -97,10 +97,10 @@ const Home = () => {
       try {
         // Create workflow with all real nodes
         const newWorkflow = await api.workflow.create({
-          name: "Untitled Workflow",
           description: "",
-          nodes: realNodes,
           edges,
+          name: "Untitled Workflow",
+          nodes: realNodes,
         });
 
         // Set flags to indicate we're coming from homepage (for sidebar animation)

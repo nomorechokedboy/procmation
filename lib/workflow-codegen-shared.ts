@@ -290,6 +290,10 @@ const SYSTEM_STEP_INFO: Record<
   string,
   { functionName: string; importPath: string }
 > = {
+  Condition: {
+    functionName: "conditionStep",
+    importPath: "./steps/condition-step",
+  },
   "Database Query": {
     functionName: "databaseQueryStep",
     importPath: "./steps/database-query-step",
@@ -297,10 +301,6 @@ const SYSTEM_STEP_INFO: Record<
   "HTTP Request": {
     functionName: "httpRequestStep",
     importPath: "./steps/http-request-step",
-  },
-  Condition: {
-    functionName: "conditionStep",
-    importPath: "./steps/condition-step",
   },
 };
 

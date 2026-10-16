@@ -1,13 +1,13 @@
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { readJsonObject } from "@/lib/api/read-json";
+import { db } from "@/lib/db";
 import { createCase, listCases } from "@/lib/db/bpma";
 import {
   CASE_PRIORITIES,
   CASE_STATUSES,
   MAX_CASE_TITLE_LENGTH,
 } from "@/lib/db/case-options";
-import { db } from "@/lib/db";
 import type { CasePriority, CaseStatus } from "@/lib/db/schema";
 import { processDefinitions } from "@/lib/db/schema";
 import { requireUser } from "@/lib/session";
@@ -37,10 +37,10 @@ export async function GET(request: Request) {
   }
 
   const rows = await listCases({
-    visibleTo: viewAll ? undefined : guard.user.id,
-    status: (status as CaseStatus | null) ?? undefined,
     priority: (priority as CasePriority | null) ?? undefined,
     processDefinitionId: params.get("processId") ?? undefined,
+    status: (status as CaseStatus | null) ?? undefined,
+    visibleTo: viewAll ? undefined : guard.user.id,
   });
 
   return NextResponse.json(rows);
@@ -55,7 +55,10 @@ export async function POST(request: Request) {
 
   const body = await readJsonObject(request);
   if (!body) {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 }
+    );
   }
 
   const title = typeof body.title === "string" ? body.title.trim() : "";
@@ -109,12 +112,12 @@ export async function POST(request: Request) {
   }
 
   const created = await createCase({
-    processDefinitionId: body.processDefinitionId,
-    title,
-    priority,
+    dueAt,
     initiatorId: guard.user.id,
     metadata: metadata as Record<string, unknown>,
-    dueAt,
+    priority,
+    processDefinitionId: body.processDefinitionId,
+    title,
   });
 
   return NextResponse.json(created, { status: 201 });

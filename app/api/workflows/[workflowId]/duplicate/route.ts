@@ -134,11 +134,11 @@ export async function POST(
     const [newWorkflow] = await db
       .insert(workflows)
       .values({
+        description: sourceWorkflow.description,
+        edges: newEdges,
         id: newWorkflowId,
         name: workflowName,
-        description: sourceWorkflow.description,
         nodes: newNodes,
-        edges: newEdges,
         userId: session.user.id,
         visibility: "private", // Duplicated workflows are always private
       })
@@ -147,8 +147,8 @@ export async function POST(
     return NextResponse.json({
       ...newWorkflow,
       createdAt: newWorkflow.createdAt.toISOString(),
-      updatedAt: newWorkflow.updatedAt.toISOString(),
       isOwner: true,
+      updatedAt: newWorkflow.updatedAt.toISOString(),
     });
   } catch (error) {
     console.error("Failed to duplicate workflow:", error);

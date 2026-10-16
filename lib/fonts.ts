@@ -4,15 +4,15 @@ import {
 } from "next/font/google";
 
 export const sans = createSans({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-  weight: "variable",
   display: "swap",
+  subsets: ["latin"],
+  variable: "--font-geist-sans",
+  weight: "variable",
 });
 
 export const mono = createMono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-  weight: "variable",
   display: "swap",
+  subsets: ["latin"],
+  variable: "--font-geist-mono",
+  weight: "variable",
 });

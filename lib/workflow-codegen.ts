@@ -112,7 +112,7 @@ export function generateWorkflowCode(
     const nodeId = withoutAt.substring(0, colonIndex);
     const rest = withoutAt.substring(colonIndex + 1);
     const dotIndex = rest.indexOf(".");
-    const fieldPath = dotIndex !== -1 ? rest.substring(dotIndex + 1) : "";
+    const fieldPath = dotIndex === -1 ? "" : rest.substring(dotIndex + 1);
 
     const varName = nodeIdToVarName.get(nodeId);
     if (!varName) {
@@ -161,7 +161,7 @@ export function generateWorkflowCode(
     const nodeId = withoutAt.substring(0, colonIndex);
     const rest = withoutAt.substring(colonIndex + 1);
     const dotIndex = rest.indexOf(".");
-    const fieldPath = dotIndex !== -1 ? rest.substring(dotIndex + 1) : "";
+    const fieldPath = dotIndex === -1 ? "" : rest.substring(dotIndex + 1);
 
     const varName = nodeIdToVarName.get(nodeId);
     if (!varName) {
@@ -636,13 +636,13 @@ export function generateWorkflowCode(
     key: string
   ): string {
     const fieldTypeFormatters: Record<string, () => string> = {
+      number: () => `${indent}  ${key}: ${value},`,
+      "schema-builder": () => `${indent}  ${key}: ${JSON.stringify(value)},`,
+      select: () => `${indent}  ${key}: "${value}",`,
       "template-input": () =>
         `${indent}  ${key}: ${formatTemplateValue(String(value))},`,
       "template-textarea": () =>
         `${indent}  ${key}: ${formatTemplateValue(String(value))},`,
-      number: () => `${indent}  ${key}: ${value},`,
-      select: () => `${indent}  ${key}: "${value}",`,
-      "schema-builder": () => `${indent}  ${key}: ${JSON.stringify(value)},`,
     };
 
     const formatter = fieldTypeFormatters[fieldType];

@@ -11,7 +11,7 @@ function generateApiKey(): { key: string; hash: string; prefix: string } {
   const key = `wfb_${randomPart}`;
   const hash = createHash("sha256").update(key).digest("hex");
   const prefix = key.slice(0, 11); // "wfb_" + first 7 chars
-  return { key, hash, prefix };
+  return { hash, key, prefix };
 }
 
 // GET - List all API keys for the current user
@@ -26,15 +26,15 @@ export async function GET(request: Request) {
     }
 
     const keys = await db.query.apiKeys.findMany({
-      where: eq(apiKeys.userId, session.user.id),
       columns: {
-        id: true,
-        name: true,
-        keyPrefix: true,
         createdAt: true,
+        id: true,
+        keyPrefix: true,
         lastUsedAt: true,
+        name: true,
       },
       orderBy: (table, { desc }) => [desc(table.createdAt)],
+      where: eq(apiKeys.userId, session.user.id),
     });
 
     return NextResponse.json(keys);
@@ -80,16 +80,16 @@ export async function POST(request: Request) {
     const [newKey] = await db
       .insert(apiKeys)
       .values({
-        userId: session.user.id,
-        name,
         keyHash: hash,
         keyPrefix: prefix,
+        name,
+        userId: session.user.id,
       })
       .returning({
-        id: apiKeys.id,
-        name: apiKeys.name,
-        keyPrefix: apiKeys.keyPrefix,
         createdAt: apiKeys.createdAt,
+        id: apiKeys.id,
+        keyPrefix: apiKeys.keyPrefix,
+        name: apiKeys.name,
       });
 
     // Return the full key only on creation (won't be shown again)

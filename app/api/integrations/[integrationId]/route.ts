@@ -49,11 +49,11 @@ export async function GET(
     }
 
     const response: GetIntegrationResponse = {
+      config: integration.config,
+      createdAt: integration.createdAt.toISOString(),
       id: integration.id,
       name: integration.name,
       type: integration.type,
-      config: integration.config,
-      createdAt: integration.createdAt.toISOString(),
       updatedAt: integration.updatedAt.toISOString(),
     };
 
@@ -62,8 +62,8 @@ export async function GET(
     console.error("Failed to get integration:", error);
     return NextResponse.json(
       {
-        error: "Failed to get integration",
         details: error instanceof Error ? error.message : "Unknown error",
+        error: "Failed to get integration",
       },
       { status: 500 }
     );
@@ -104,11 +104,11 @@ export async function PUT(
     }
 
     const response: GetIntegrationResponse = {
+      config: integration.config,
+      createdAt: integration.createdAt.toISOString(),
       id: integration.id,
       name: integration.name,
       type: integration.type,
-      config: integration.config,
-      createdAt: integration.createdAt.toISOString(),
       updatedAt: integration.updatedAt.toISOString(),
     };
 
@@ -117,8 +117,8 @@ export async function PUT(
     console.error("Failed to update integration:", error);
     return NextResponse.json(
       {
-        error: "Failed to update integration",
         details: error instanceof Error ? error.message : "Unknown error",
+        error: "Failed to update integration",
       },
       { status: 500 }
     );
@@ -157,8 +157,8 @@ export async function DELETE(
     console.error("Failed to delete integration:", error);
     return NextResponse.json(
       {
-        error: "Failed to delete integration",
         details: error instanceof Error ? error.message : "Unknown error",
+        error: "Failed to delete integration",
       },
       { status: 500 }
     );

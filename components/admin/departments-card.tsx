@@ -233,9 +233,7 @@ export function DepartmentsCard({
         </form>
 
         {departments.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            No departments yet.
-          </p>
+          <p className="text-muted-foreground text-sm">No departments yet.</p>
         ) : (
           <div className="divide-y">
             {departments.map((department) => (
@@ -294,8 +292,8 @@ export function DepartmentsCard({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete {deleting?.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              People in it will have no department, and its sub-departments
-              move to the top level. This cannot be undone.
+              People in it will have no department, and its sub-departments move
+              to the top level. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

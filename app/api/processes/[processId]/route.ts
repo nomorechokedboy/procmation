@@ -12,10 +12,13 @@ import { requireAdmin, requireUser } from "@/lib/session";
 
 const MAX_CATEGORY_LENGTH = 60;
 
-const ALLOWED_TRANSITIONS: Record<ProcessDefinitionStatus, ProcessDefinitionStatus[]> = {
+const ALLOWED_TRANSITIONS: Record<
+  ProcessDefinitionStatus,
+  ProcessDefinitionStatus[]
+> = {
+  archived: ["draft"],
   draft: ["published", "archived"],
   published: ["draft", "archived"],
-  archived: ["draft"],
 };
 
 async function loadSummary(processId: string) {
@@ -41,7 +44,10 @@ export async function GET(
   const process = await loadSummary(processId);
 
   // Members get the same answer for a missing process and an unpublished one
-  if (!process || (guard.user.role !== "admin" && process.status !== "published")) {
+  if (
+    !process ||
+    (guard.user.role !== "admin" && process.status !== "published")
+  ) {
     return NextResponse.json({ error: "Process not found" }, { status: 404 });
   }
 

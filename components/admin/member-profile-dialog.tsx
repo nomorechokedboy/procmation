@@ -39,9 +39,7 @@ export function MemberProfileDialog({
   onClose,
   onSaved,
 }: MemberProfileDialogProps) {
-  const [departmentId, setDepartmentId] = useState(
-    member.departmentId ?? NONE
-  );
+  const [departmentId, setDepartmentId] = useState(member.departmentId ?? NONE);
   const [managerId, setManagerId] = useState(member.managerId ?? NONE);
   const [jobTitle, setJobTitle] = useState(member.jobTitle ?? "");
   const [saving, setSaving] = useState(false);
@@ -52,8 +50,8 @@ export function MemberProfileDialog({
     try {
       await api.member.updateProfile(member.id, {
         departmentId: departmentId === NONE ? null : departmentId,
-        managerId: managerId === NONE ? null : managerId,
         jobTitle: jobTitle.trim() || null,
+        managerId: managerId === NONE ? null : managerId,
       });
       await onSaved();
       toast.success("Profile updated");
@@ -71,8 +69,8 @@ export function MemberProfileDialog({
           <DialogHeader>
             <DialogTitle>{member.name || member.email}</DialogTitle>
             <DialogDescription>
-              Department and manager decide who can be asked to approve
-              things for this person.
+              Department and manager decide who can be asked to approve things
+              for this person.
             </DialogDescription>
           </DialogHeader>
 

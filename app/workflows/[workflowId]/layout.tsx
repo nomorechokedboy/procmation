@@ -20,11 +20,11 @@ export async function generateMetadata({
 
   try {
     const workflow = await db.query.workflows.findFirst({
-      where: eq(workflows.id, workflowId),
       columns: {
         name: true,
         visibility: true,
       },
+      where: eq(workflows.id, workflowId),
     });
 
     if (workflow) {
@@ -47,28 +47,28 @@ export async function generateMetadata({
     : `${baseUrl}/og-default.png`;
 
   return {
-    title: `${title} | AI Workflow Builder`,
     description: `View and explore the "${title}" workflow built with AI Workflow Builder.`,
     openGraph: {
-      title: `${title} | AI Workflow Builder`,
       description: `View and explore the "${title}" workflow built with AI Workflow Builder.`,
-      type: "website",
-      url: workflowUrl,
-      siteName: "AI Workflow Builder",
       images: [
         {
+          alt: `${title} workflow visualization`,
+          height: 630,
           url: ogImageUrl,
           width: 1200,
-          height: 630,
-          alt: `${title} workflow visualization`,
         },
       ],
+      siteName: "AI Workflow Builder",
+      title: `${title} | AI Workflow Builder`,
+      type: "website",
+      url: workflowUrl,
     },
+    title: `${title} | AI Workflow Builder`,
     twitter: {
       card: "summary_large_image",
-      title: `${title} | AI Workflow Builder`,
       description: `View and explore the "${title}" workflow built with AI Workflow Builder.`,
       images: [ogImageUrl],
+      title: `${title} | AI Workflow Builder`,
     },
   };
 }

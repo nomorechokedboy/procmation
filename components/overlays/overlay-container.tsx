@@ -16,37 +16,24 @@ import { useOverlay } from "./overlay-provider";
 
 // iOS-like spring configuration
 const iosSpring = {
-  type: "spring",
-  stiffness: 400,
   damping: 35,
   mass: 0.8,
+  stiffness: 400,
+  type: "spring",
 } as const;
 
 // Softer spring for drawer
 const drawerSpring = {
-  type: "spring",
-  stiffness: 350,
   damping: 30,
   mass: 0.8,
+  stiffness: 350,
+  type: "spring",
 } as const;
 
 /**
  * Variants for the dialog container (fade in/out)
  */
 const containerVariants: Variants = {
-  hidden: {
-    opacity: 0,
-    scale: 0.95,
-  },
-  visible: {
-    opacity: 1,
-    scale: 1,
-    transition: {
-      type: "spring",
-      stiffness: 400,
-      damping: 30,
-    },
-  },
   exit: {
     opacity: 0,
     scale: 0.95,
@@ -55,29 +42,42 @@ const containerVariants: Variants = {
       ease: [0.4, 0, 1, 1],
     },
   },
+  hidden: {
+    opacity: 0,
+    scale: 0.95,
+  },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: {
+      damping: 30,
+      stiffness: 400,
+      type: "spring",
+    },
+  },
 };
 
 /**
  * Variants for drawer container
  */
 const drawerContainerVariants: Variants = {
-  hidden: {
-    y: "100%",
-    opacity: 0.5,
-  },
-  visible: {
-    y: 0,
-    opacity: 1,
-    transition: drawerSpring,
-  },
   exit: {
-    y: "100%",
     opacity: 0.5,
     transition: {
-      type: "spring",
-      stiffness: 500,
       damping: 40,
+      stiffness: 500,
+      type: "spring",
     },
+    y: "100%",
+  },
+  hidden: {
+    opacity: 0.5,
+    y: "100%",
+  },
+  visible: {
+    opacity: 1,
+    transition: drawerSpring,
+    y: 0,
   },
 };
 
@@ -88,8 +88,12 @@ function getOverlayXPosition(
   isCurrent: boolean,
   isPrevious: boolean
 ): "0%" | "-35%" | "100%" {
-  if (isCurrent) return "0%";
-  if (isPrevious) return "-35%";
+  if (isCurrent) {
+    return "0%";
+  }
+  if (isPrevious) {
+    return "-35%";
+  }
   return "100%";
 }
 
@@ -144,10 +148,10 @@ function DesktopOverlayContainer() {
 
   // DEBUG
   console.log("[DesktopOverlay]", {
-    isOpen,
-    stackLength: stack.length,
     frozenStackLength: frozenStackRef.current.length,
+    isOpen,
     renderStackLength: renderStack.length,
+    stackLength: stack.length,
   });
 
   // Measure content height when it changes, reset on fresh open
@@ -249,15 +253,15 @@ function DesktopOverlayContainer() {
                       const shouldSlideIn =
                         isCurrent && isPushing && renderStack.length > 1;
                       const initialValue = shouldSlideIn
-                        ? { x: "100%", scale: 1, opacity: 1 }
+                        ? { opacity: 1, scale: 1, x: "100%" }
                         : false;
 
                       return (
                         <motion.div
                           animate={{
-                            x: getOverlayXPosition(isCurrent, isPrevious),
-                            scale: isCurrent ? 1 : 0.94,
                             opacity: isCurrent ? 1 : 0,
+                            scale: isCurrent ? 1 : 0.94,
+                            x: getOverlayXPosition(isCurrent, isPrevious),
                           }}
                           aria-hidden={!isCurrent}
                           className={cn(
@@ -406,15 +410,15 @@ function MobileOverlayContainer() {
                   const shouldSlideIn =
                     isCurrent && isPushing && renderStack.length > 1;
                   const initialValue = shouldSlideIn
-                    ? { x: "100%", scale: 1, opacity: 1 }
+                    ? { opacity: 1, scale: 1, x: "100%" }
                     : false;
 
                   return (
                     <motion.div
                       animate={{
-                        x: getOverlayXPosition(isCurrent, isPrevious),
-                        scale: isCurrent ? 1 : 0.94,
                         opacity: isCurrent ? 1 : 0,
+                        scale: isCurrent ? 1 : 0.94,
+                        x: getOverlayXPosition(isCurrent, isPrevious),
                       }}
                       aria-hidden={!isCurrent}
                       className={cn(

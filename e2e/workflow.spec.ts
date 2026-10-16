@@ -3,8 +3,8 @@ import { expect, test } from "@playwright/test";
 const SELECTED_CLASS_REGEX = /selected/;
 
 const E2E_ADMIN = {
-  name: "E2E Admin",
   email: "e2e-admin@example.com",
+  name: "E2E Admin",
   password: "e2e-password-123",
 };
 

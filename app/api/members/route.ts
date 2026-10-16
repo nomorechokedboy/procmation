@@ -12,14 +12,14 @@ export async function GET(request: Request) {
 
   const rows = await db
     .select({
-      id: users.id,
-      name: users.name,
-      email: users.email,
-      role: users.role,
       createdAt: users.createdAt,
       departmentId: userProfiles.departmentId,
-      managerId: userProfiles.managerId,
+      email: users.email,
+      id: users.id,
       jobTitle: userProfiles.jobTitle,
+      managerId: userProfiles.managerId,
+      name: users.name,
+      role: users.role,
     })
     .from(users)
     .leftJoin(userProfiles, eq(userProfiles.userId, users.id))

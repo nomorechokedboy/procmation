@@ -56,10 +56,7 @@ export async function POST(
         .returning({ email: invitations.email, role: invitations.role });
 
       if (!claimed) {
-        throw new InviteError(
-          "This invitation is invalid or has expired",
-          410
-        );
+        throw new InviteError("This invitation is invalid or has expired", 410);
       }
 
       const [existingUser] = await tx
@@ -72,8 +69,8 @@ export async function POST(
       }
 
       await createCredentialUser(tx, {
-        name,
         email: claimed.email,
+        name,
         password,
         role: claimed.role,
       });
@@ -81,10 +78,13 @@ export async function POST(
       return claimed.email;
     });
 
-    return NextResponse.json({ success: true, email });
+    return NextResponse.json({ email, success: true });
   } catch (error) {
     if (error instanceof InviteError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status }
+      );
     }
     console.error("Failed to accept invitation:", error);
     return NextResponse.json(

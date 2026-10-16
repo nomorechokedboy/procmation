@@ -10,16 +10,16 @@ import { generateId } from "@/lib/utils/id";
 // Helper function to create a default trigger node
 function createDefaultTriggerNode() {
   return {
-    id: nanoid(),
-    type: "trigger" as const,
-    position: { x: 0, y: 0 },
     data: {
-      label: "",
-      description: "",
-      type: "trigger" as const,
       config: { triggerType: "Manual" },
+      description: "",
+      label: "",
       status: "idle" as const,
+      type: "trigger" as const,
     },
+    id: nanoid(),
+    position: { x: 0, y: 0 },
+    type: "trigger" as const,
   };
 }
 
@@ -76,11 +76,11 @@ export async function POST(request: Request) {
     const [newWorkflow] = await db
       .insert(workflows)
       .values({
+        description: body.description,
+        edges: body.edges,
         id: workflowId,
         name: workflowName,
-        description: body.description,
         nodes,
-        edges: body.edges,
         userId: session.user.id,
       })
       .returning();

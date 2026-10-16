@@ -71,10 +71,10 @@ export async function POST(request: Request) {
     const [created] = await db
       .insert(processDefinitions)
       .values({
-        workflowId: workflow.id,
         category,
-        startFormFields: fields.fields,
         createdBy: guard.user.id,
+        startFormFields: fields.fields,
+        workflowId: workflow.id,
       })
       .returning({ id: processDefinitions.id });
 

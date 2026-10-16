@@ -182,18 +182,18 @@ export function EditConnectionOverlay({
       setTestResult(null);
 
       const result = await api.integration.testCredentials({
-        type: integration.type,
         config,
+        type: integration.type,
       });
 
       if (result.status === "error") {
         push(ConfirmOverlay, {
-          title: "Connection Test Failed",
-          message: `The test failed: ${result.message}\n\nDo you want to save anyway?`,
           confirmLabel: "Save Anyway",
+          message: `The test failed: ${result.message}\n\nDo you want to save anyway?`,
           onConfirm: async () => {
             await doSave();
           },
+          title: "Connection Test Failed",
         });
         setSaving(false);
         return;
@@ -204,12 +204,12 @@ export function EditConnectionOverlay({
       const message =
         error instanceof Error ? error.message : "Failed to test connection";
       push(ConfirmOverlay, {
-        title: "Connection Test Failed",
-        message: `${message}\n\nDo you want to save anyway?`,
         confirmLabel: "Save Anyway",
+        message: `${message}\n\nDo you want to save anyway?`,
         onConfirm: async () => {
           await doSave();
         },
+        title: "Connection Test Failed",
       });
       setSaving(false);
     }
@@ -227,8 +227,8 @@ export function EditConnectionOverlay({
       if (hasNewConfig) {
         // Test new credentials
         result = await api.integration.testCredentials({
-          type: integration.type,
           config,
+          type: integration.type,
         });
       } else {
         // Test existing credentials
@@ -244,7 +244,7 @@ export function EditConnectionOverlay({
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Connection test failed";
-      setTestResult({ status: "error", message });
+      setTestResult({ message, status: "error" });
       toast.error(message);
     } finally {
       setTesting(false);
@@ -281,7 +281,9 @@ export function EditConnectionOverlay({
       );
     }
 
-    if (!formFields) return null;
+    if (!formFields) {
+      return null;
+    }
 
     return formFields.map((field) => {
       if (field.type === "password") {
@@ -334,19 +336,19 @@ export function EditConnectionOverlay({
     <Overlay
       actions={[
         {
-          label: "Delete",
-          variant: "ghost",
-          onClick: handleDelete,
           disabled: saving || testing,
+          label: "Delete",
+          onClick: handleDelete,
+          variant: "ghost",
         },
         {
-          label: "Test",
-          variant: "outline",
-          onClick: handleTest,
-          loading: testing,
           disabled: saving,
+          label: "Test",
+          loading: testing,
+          onClick: handleTest,
+          variant: "outline",
         },
-        { label: "Update", onClick: handleSave, loading: saving },
+        { label: "Update", loading: saving, onClick: handleSave },
       ]}
       overlayId={overlayId}
       title={`Edit ${getLabel(integration.type)}`}
@@ -412,12 +414,12 @@ export function DeleteConnectionOverlay({
   return (
     <Overlay
       actions={[
-        { label: "Cancel", variant: "outline", onClick: pop },
+        { label: "Cancel", onClick: pop, variant: "outline" },
         {
           label: "Delete",
-          variant: "destructive",
-          onClick: handleDelete,
           loading: deleting,
+          onClick: handleDelete,
+          variant: "destructive",
         },
       ]}
       overlayId={overlayId}

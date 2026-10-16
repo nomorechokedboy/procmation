@@ -31,7 +31,7 @@ function processNewFormatReference(
   const nodeId = withoutAt.substring(0, colonIndex);
   const rest = withoutAt.substring(colonIndex + 1);
   const dotIndex = rest.indexOf(".");
-  const fieldPath = dotIndex !== -1 ? rest.substring(dotIndex + 1) : "";
+  const fieldPath = dotIndex === -1 ? "" : rest.substring(dotIndex + 1);
 
   if (!fieldPath) {
     const nodeOutput = nodeOutputs[nodeId];
@@ -254,8 +254,6 @@ function findNodeOutputByLabel(
       return output;
     }
   }
-
-  return;
 }
 
 /**
@@ -482,8 +480,8 @@ export function getAvailableFields(nodeOutputs: NodeOutputs): Array<{
   for (const output of Object.values(nodeOutputs)) {
     // Add the whole node
     fields.push({
-      nodeLabel: output.label,
       field: "",
+      nodeLabel: output.label,
       path: `{{${output.label}}}`,
       sample: output.data,
     });
@@ -531,8 +529,8 @@ function extractFields(
     const fieldPath = `${currentPath}.${key}}}`;
 
     fields.push({
-      nodeLabel,
       field: key,
+      nodeLabel,
       path: fieldPath,
       sample: value,
     });
@@ -540,9 +538,9 @@ function extractFields(
     // Recurse for nested objects (but not arrays)
     if (value && typeof value === "object" && !Array.isArray(value)) {
       extractFields(value, nodeLabel, fields, {
+        currentDepth: currentDepth + 1,
         currentPath: `${currentPath}.${key}`,
         maxDepth,
-        currentDepth: currentDepth + 1,
       });
     }
   }

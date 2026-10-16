@@ -59,8 +59,8 @@ export function IntegrationsOverlay({ overlayId }: IntegrationsOverlayProps) {
       actions={[
         {
           label: "Add Connection",
-          variant: "outline",
           onClick: handleAddConnection,
+          variant: "outline",
         },
         { label: "Done", onClick: handleClose },
       ]}

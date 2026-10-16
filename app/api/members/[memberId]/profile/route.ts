@@ -61,7 +61,10 @@ export async function PATCH(
         .where(eq(departments.id, body.departmentId))
         .limit(1);
       if (!department) {
-        return NextResponse.json({ error: "Department not found" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Department not found" },
+          { status: 400 }
+        );
       }
     }
     updates.departmentId = body.departmentId;
@@ -81,7 +84,10 @@ export async function PATCH(
         .where(eq(users.id, body.managerId))
         .limit(1);
       if (!manager) {
-        return NextResponse.json({ error: "Manager not found" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Manager not found" },
+          { status: 400 }
+        );
       }
       if (await createsManagerCycle(memberId, body.managerId)) {
         return NextResponse.json(
@@ -97,7 +103,9 @@ export async function PATCH(
     const jobTitle = body.jobTitle?.trim() || null;
     if (jobTitle && jobTitle.length > MAX_JOB_TITLE_LENGTH) {
       return NextResponse.json(
-        { error: `Job title must be at most ${MAX_JOB_TITLE_LENGTH} characters` },
+        {
+          error: `Job title must be at most ${MAX_JOB_TITLE_LENGTH} characters`,
+        },
         { status: 400 }
       );
     }
@@ -112,8 +120,8 @@ export async function PATCH(
     .insert(userProfiles)
     .values({ userId: memberId, ...updates })
     .onConflictDoUpdate({
-      target: userProfiles.userId,
       set: { ...updates, updatedAt: new Date() },
+      target: userProfiles.userId,
     });
 
   return NextResponse.json({ success: true });

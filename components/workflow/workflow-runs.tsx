@@ -78,7 +78,6 @@ function getOutputDisplayValue(
   if (typeof value === "string" && value.length > 0) {
     return value;
   }
-  return;
 }
 
 // Fallback: detect if output is a base64 image (for legacy support)
@@ -118,8 +117,8 @@ function createExecutionLogsMap(logs: ExecutionLog[]): Record<
       nodeId: log.nodeId,
       nodeName: log.nodeName,
       nodeType: log.nodeType,
-      status: log.status,
       output: log.output,
+      status: log.status,
     };
   }
   return logsMap;
@@ -281,7 +280,7 @@ function OutputDisplay({
 
   // Get the effective built-in config (plugin config if not component, else auto-generated)
   const effectiveBuiltInConfig =
-    pluginConfig?.type !== "component" ? pluginConfig : builtInConfig;
+    pluginConfig?.type === "component" ? builtInConfig : pluginConfig;
 
   // Get display value for built-in types (image/video/url)
   const displayValue = effectiveBuiltInConfig
@@ -592,17 +591,17 @@ export function WorkflowRuns({
       }
     ): ExecutionLog[] =>
       logEntries.map((log) => ({
+        completedAt: log.completedAt ? new Date(log.completedAt) : null,
+        duration: log.duration,
+        error: log.error,
         id: log.id,
+        input: log.input,
         nodeId: log.nodeId,
         nodeName: log.nodeName,
         nodeType: log.nodeType,
-        status: log.status,
-        startedAt: new Date(log.startedAt),
-        completedAt: log.completedAt ? new Date(log.completedAt) : null,
-        duration: log.duration,
-        input: log.input,
         output: log.output,
-        error: log.error,
+        startedAt: new Date(log.startedAt),
+        status: log.status,
       })),
     []
   );

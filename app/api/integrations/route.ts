@@ -56,11 +56,11 @@ export async function GET(request: Request) {
     // Return integrations without config for security
     const response: GetIntegrationsResponse = integrations.map(
       (integration) => ({
+        createdAt: integration.createdAt.toISOString(),
         id: integration.id,
+        isManaged: integration.isManaged ?? false,
         name: integration.name,
         type: integration.type,
-        isManaged: integration.isManaged ?? false,
-        createdAt: integration.createdAt.toISOString(),
         updatedAt: integration.updatedAt.toISOString(),
       })
     );
@@ -70,8 +70,8 @@ export async function GET(request: Request) {
     console.error("Failed to get integrations:", error);
     return NextResponse.json(
       {
-        error: "Failed to get integrations",
         details: error instanceof Error ? error.message : "Unknown error",
+        error: "Failed to get integrations",
       },
       { status: 500 }
     );
@@ -109,10 +109,10 @@ export async function POST(request: Request) {
     );
 
     const response: CreateIntegrationResponse = {
+      createdAt: integration.createdAt.toISOString(),
       id: integration.id,
       name: integration.name,
       type: integration.type,
-      createdAt: integration.createdAt.toISOString(),
       updatedAt: integration.updatedAt.toISOString(),
     };
 
@@ -121,8 +121,8 @@ export async function POST(request: Request) {
     console.error("Failed to create integration:", error);
     return NextResponse.json(
       {
-        error: "Failed to create integration",
         details: error instanceof Error ? error.message : "Unknown error",
+        error: "Failed to create integration",
       },
       { status: 500 }
     );

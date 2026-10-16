@@ -35,7 +35,10 @@ export async function POST(request: Request, { params }: Params) {
 
   const body = await readJsonObject(request);
   if (!body) {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 }
+    );
   }
 
   let outcome: string | null = null;
@@ -59,9 +62,9 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const result = await completeTask({
-    task,
     completedById: guard.user.id,
     outcome,
+    task,
     values: validated.values,
   });
   if (!result.ok) {

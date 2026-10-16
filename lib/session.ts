@@ -28,8 +28,8 @@ export async function requireUser(request: Request): Promise<GuardResult> {
   return {
     ok: true,
     user: {
-      id: session.user.id,
       email: session.user.email,
+      id: session.user.id,
       name: session.user.name,
       role,
     },

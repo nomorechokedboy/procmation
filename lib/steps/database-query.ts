@@ -34,9 +34,9 @@ function validateInput(input: DatabaseQueryInput): string | null {
 
 function createDatabaseClient(databaseUrl: string): postgres.Sql {
   return postgres(databaseUrl, {
-    max: 1,
     connect_timeout: 10,
     idle_timeout: 20,
+    max: 1,
   });
 }
 
@@ -89,7 +89,7 @@ async function databaseQuery(
 ): Promise<DatabaseQueryResult> {
   const validationError = validateInput(input);
   if (validationError) {
-    return { success: false, error: validationError };
+    return { error: validationError, success: false };
   }
 
   const credentials = input.integrationId
@@ -100,9 +100,9 @@ async function databaseQuery(
 
   if (!databaseUrl) {
     return {
-      success: false,
       error:
         "DATABASE_URL is not configured. Please add it in Project Integrations.",
+      success: false,
     };
   }
 
@@ -115,15 +115,15 @@ async function databaseQuery(
     await client.end();
 
     return {
-      success: true,
-      rows: result,
       count: Array.isArray(result) ? result.length : 0,
+      rows: result,
+      success: true,
     };
   } catch (error) {
     await cleanupClient(client);
     return {
-      success: false,
       error: `Database query failed: ${getDatabaseErrorMessage(error)}`,
+      success: false,
     };
   }
 }

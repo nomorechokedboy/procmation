@@ -70,10 +70,10 @@ export async function POST(request: Request) {
     const testResult = await testFn(credentials);
 
     const result: TestConnectionResult = {
-      status: testResult.success ? "success" : "error",
       message: testResult.success
         ? "Connection successful"
         : testResult.error || "Connection failed",
+      status: testResult.success ? "success" : "error",
     };
 
     return NextResponse.json(result);
@@ -81,9 +81,9 @@ export async function POST(request: Request) {
     console.error("Failed to test connection:", error);
     return NextResponse.json(
       {
-        status: "error",
         message:
           error instanceof Error ? error.message : "Failed to test connection",
+        status: "error",
       },
       { status: 500 }
     );
@@ -98,27 +98,27 @@ async function testDatabaseConnection(
   try {
     if (!databaseUrl) {
       return {
-        status: "error",
         message: "Connection failed",
+        status: "error",
       };
     }
 
     connection = postgres(databaseUrl, {
-      max: 1,
-      idle_timeout: 5,
       connect_timeout: 5,
+      idle_timeout: 5,
+      max: 1,
     });
 
     await connection`SELECT 1`;
 
     return {
-      status: "success",
       message: "Connection successful",
+      status: "success",
     };
   } catch {
     return {
-      status: "error",
       message: "Connection failed",
+      status: "error",
     };
   } finally {
     if (connection) {

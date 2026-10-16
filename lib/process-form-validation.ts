@@ -26,9 +26,11 @@ export function slugifyFieldKey(label: string): string {
 function validateOptions(
   options: unknown,
   label: string
-): { ok: true; options: { label: string; value: string }[] } | { ok: false; error: string } {
+):
+  | { ok: true; options: { label: string; value: string }[] }
+  | { ok: false; error: string } {
   if (!Array.isArray(options) || options.length === 0) {
-    return { ok: false, error: `"${label}" needs at least one option` };
+    return { error: `"${label}" needs at least one option`, ok: false };
   }
 
   const seen = new Set<string>();
@@ -39,12 +41,15 @@ function validateOptions(
     const optionValue =
       typeof option?.value === "string" ? option.value.trim() : "";
     if (!(optionLabel && optionValue)) {
-      return { ok: false, error: `Options of "${label}" need a label and a value` };
+      return {
+        error: `Options of "${label}" need a label and a value`,
+        ok: false,
+      };
     }
     if (seen.has(optionValue)) {
       return {
-        ok: false,
         error: `"${label}" has the option value "${optionValue}" more than once`,
+        ok: false,
       };
     }
     seen.add(optionValue);
@@ -59,10 +64,10 @@ function validateOptions(
  */
 export function validateFormFields(value: unknown): ValidationResult {
   if (!Array.isArray(value)) {
-    return { ok: false, error: "Form fields must be a list" };
+    return { error: "Form fields must be a list", ok: false };
   }
   if (value.length > MAX_FIELDS) {
-    return { ok: false, error: `A form can have at most ${MAX_FIELDS} fields` };
+    return { error: `A form can have at most ${MAX_FIELDS} fields`, ok: false };
   }
 
   const keys = new Set<string>();
@@ -74,23 +79,26 @@ export function validateFormFields(value: unknown): ValidationResult {
     const type = raw?.type as FormFieldType;
 
     if (!label) {
-      return { ok: false, error: "Every field needs a label" };
+      return { error: "Every field needs a label", ok: false };
     }
     if (label.length > 120) {
-      return { ok: false, error: `Label "${label.slice(0, 20)}..." is too long` };
+      return {
+        error: `Label "${label.slice(0, 20)}..." is too long`,
+        ok: false,
+      };
     }
     if (!KEY_PATTERN.test(key)) {
       return {
-        ok: false,
         error: `"${label}" has an invalid key. Use lowercase letters, numbers and underscores, starting with a letter`,
+        ok: false,
       };
     }
     if (keys.has(key)) {
-      return { ok: false, error: `Two fields use the key "${key}"` };
+      return { error: `Two fields use the key "${key}"`, ok: false };
     }
     keys.add(key);
     if (!FIELD_TYPES.includes(type)) {
-      return { ok: false, error: `"${label}" has an unknown field type` };
+      return { error: `"${label}" has an unknown field type`, ok: false };
     }
 
     const field: FormField = { key, label, type };
@@ -110,7 +118,7 @@ export function validateFormFields(value: unknown): ValidationResult {
     fields.push(field);
   }
 
-  return { ok: true, fields };
+  return { fields, ok: true };
 }
 
 const MAX_TEXT_VALUE_LENGTH = 5000;
@@ -164,7 +172,7 @@ export function validateFormValues(
   input: unknown
 ): ValuesResult {
   if (!input || typeof input !== "object" || Array.isArray(input)) {
-    return { ok: false, error: "Values must be an object" };
+    return { error: "Values must be an object", ok: false };
   }
 
   const submitted = input as Record<string, unknown>;
@@ -175,17 +183,17 @@ export function validateFormValues(
 
     if (isBlank(value)) {
       if (field.required) {
-        return { ok: false, error: `"${field.label}" is required` };
+        return { error: `"${field.label}" is required`, ok: false };
       }
       continue;
     }
 
     const problem = validateFieldValue(field, value);
     if (problem) {
-      return { ok: false, error: problem };
+      return { error: problem, ok: false };
     }
     if (field.required && field.type === "checkbox" && value !== true) {
-      return { ok: false, error: `"${field.label}" is required` };
+      return { error: `"${field.label}" is required`, ok: false };
     }
     values[field.key] = value;
   }

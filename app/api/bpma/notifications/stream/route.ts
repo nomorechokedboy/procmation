@@ -18,6 +18,9 @@ export async function GET(request: Request) {
   let cleanup = () => {};
 
   const stream = new ReadableStream<Uint8Array>({
+    cancel() {
+      cleanup();
+    },
     start(controller) {
       const unsubscribe = subscribeToNotifications(guard.user.id, controller);
       const heartbeat = setInterval(() => {
@@ -46,16 +49,13 @@ export async function GET(request: Request) {
       controller.enqueue(encoder.encode(": connected\n\n"));
       request.signal.addEventListener("abort", cleanup);
     },
-    cancel() {
-      cleanup();
-    },
   });
 
   return new Response(stream, {
     headers: {
-      "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
+      "Content-Type": "text/event-stream",
       "X-Accel-Buffering": "no",
     },
   });

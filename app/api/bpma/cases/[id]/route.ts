@@ -1,6 +1,7 @@
 import { inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { readJsonObject } from "@/lib/api/read-json";
+import { db } from "@/lib/db";
 import {
   type CasePatch,
   canViewCase,
@@ -13,7 +14,6 @@ import {
   CASE_STATUSES,
   MAX_CASE_TITLE_LENGTH,
 } from "@/lib/db/case-options";
-import { db } from "@/lib/db";
 import type { CasePriority, CaseStatus } from "@/lib/db/schema";
 import { users } from "@/lib/db/schema";
 import { requireUser } from "@/lib/session";
@@ -49,21 +49,21 @@ function parsePatch(
     const title = typeof body.title === "string" ? body.title.trim() : "";
     if (!title || title.length > MAX_CASE_TITLE_LENGTH) {
       return {
-        ok: false,
         error: `Title must be 1 to ${MAX_CASE_TITLE_LENGTH} characters`,
+        ok: false,
       };
     }
     patch.title = title;
   }
   if (body.status !== undefined) {
     if (!CASE_STATUSES.includes(body.status as CaseStatus)) {
-      return { ok: false, error: "Unknown status" };
+      return { error: "Unknown status", ok: false };
     }
     patch.status = body.status as CaseStatus;
   }
   if (body.priority !== undefined) {
     if (!CASE_PRIORITIES.includes(body.priority as CasePriority)) {
-      return { ok: false, error: "Unknown priority" };
+      return { error: "Unknown priority", ok: false };
     }
     patch.priority = body.priority as CasePriority;
   }
@@ -73,7 +73,7 @@ function parsePatch(
       typeof body.metadata !== "object" ||
       Array.isArray(body.metadata)
     ) {
-      return { ok: false, error: "Metadata must be an object" };
+      return { error: "Metadata must be an object", ok: false };
     }
     patch.metadata = body.metadata as Record<string, unknown>;
   }
@@ -83,7 +83,7 @@ function parsePatch(
     } else {
       const due = new Date(String(body.dueAt));
       if (Number.isNaN(due.getTime())) {
-        return { ok: false, error: "Invalid due date" };
+        return { error: "Invalid due date", ok: false };
       }
       patch.dueAt = due;
     }
@@ -93,7 +93,7 @@ function parsePatch(
       !Array.isArray(body.participants) ||
       body.participants.some((item) => typeof item !== "string")
     ) {
-      return { ok: false, error: "Participants must be a list of user ids" };
+      return { error: "Participants must be a list of user ids", ok: false };
     }
     patch.participants = [...new Set(body.participants as string[])];
   }
@@ -119,7 +119,10 @@ export async function PATCH(request: Request, { params }: Params) {
 
   const body = await readJsonObject(request);
   if (!body) {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 }
+    );
   }
 
   const parsed = parsePatch(body);

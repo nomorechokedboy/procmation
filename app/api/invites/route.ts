@@ -27,12 +27,12 @@ export async function GET(request: Request) {
 
   const rows = await db
     .select({
-      id: invitations.id,
-      email: invitations.email,
-      role: invitations.role,
-      expiresAt: invitations.expiresAt,
       acceptedAt: invitations.acceptedAt,
       createdAt: invitations.createdAt,
+      email: invitations.email,
+      expiresAt: invitations.expiresAt,
+      id: invitations.id,
+      role: invitations.role,
     })
     .from(invitations)
     .orderBy(desc(invitations.createdAt));
@@ -51,7 +51,10 @@ export async function POST(request: Request) {
   const role = body.role ?? "member";
 
   if (!email.includes("@")) {
-    return NextResponse.json({ error: "A valid email is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "A valid email is required" },
+      { status: 400 }
+    );
   }
   if (!ROLES.includes(role)) {
     return NextResponse.json({ error: "Invalid role" }, { status: 400 });
@@ -81,19 +84,19 @@ export async function POST(request: Request) {
       .insert(invitations)
       .values({
         email,
+        expiresAt: new Date(Date.now() + INVITE_TTL_MS),
+        invitedBy: guard.user.id,
         role,
         tokenHash,
-        invitedBy: guard.user.id,
-        expiresAt: new Date(Date.now() + INVITE_TTL_MS),
       })
-      .returning({ id: invitations.id, expiresAt: invitations.expiresAt });
+      .returning({ expiresAt: invitations.expiresAt, id: invitations.id });
   });
 
   return NextResponse.json({
-    id: invitation.id,
     email,
-    role,
     expiresAt: invitation.expiresAt,
+    id: invitation.id,
     inviteUrl: `${getAppOrigin(request)}/invite/${token}`,
+    role,
   });
 }

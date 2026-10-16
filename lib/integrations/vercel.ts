@@ -164,8 +164,8 @@ export async function listProjects(
   try {
     if (!params.apiToken) {
       return {
-        status: "error",
         error: "Vercel API token not configured",
+        status: "error",
       };
     }
 
@@ -177,13 +177,13 @@ export async function listProjects(
     );
 
     return {
-      status: "success",
       projects: data.projects,
+      status: "success",
     };
   } catch (error) {
     return {
-      status: "error",
       error: error instanceof Error ? error.message : "Unknown error",
+      status: "error",
     };
   }
 }
@@ -197,8 +197,8 @@ export async function getProject(
   try {
     if (!params.apiToken) {
       return {
-        status: "error",
         error: "Vercel API token not configured",
+        status: "error",
       };
     }
 
@@ -210,13 +210,13 @@ export async function getProject(
     );
 
     return {
-      status: "success",
       project,
+      status: "success",
     };
   } catch (error) {
     return {
-      status: "error",
       error: error instanceof Error ? error.message : "Unknown error",
+      status: "error",
     };
   }
 }
@@ -230,8 +230,8 @@ export async function listDeployments(
   try {
     if (!params.apiToken) {
       return {
-        status: "error",
         error: "Vercel API token not configured",
+        status: "error",
       };
     }
 
@@ -244,13 +244,13 @@ export async function listDeployments(
     );
 
     return {
-      status: "success",
       deployments: data.deployments,
+      status: "success",
     };
   } catch (error) {
     return {
-      status: "error",
       error: error instanceof Error ? error.message : "Unknown error",
+      status: "error",
     };
   }
 }
@@ -265,17 +265,17 @@ export async function triggerDeployment(
   try {
     if (!params.apiToken) {
       return {
-        status: "error",
         error: "Vercel API token not configured",
+        status: "error",
       };
     }
 
     // First, get the latest deployment to redeploy
     const deploymentsResult = await listDeployments({
-      projectId: params.projectId,
       apiToken: params.apiToken,
-      teamId: params.teamId,
       limit: 1,
+      projectId: params.projectId,
+      teamId: params.teamId,
     });
 
     if (
@@ -283,8 +283,8 @@ export async function triggerDeployment(
       !deploymentsResult.deployments?.length
     ) {
       return {
-        status: "error",
         error: deploymentsResult.error || "No deployments found to redeploy",
+        status: "error",
       };
     }
 
@@ -295,24 +295,24 @@ export async function triggerDeployment(
       "/v13/deployments",
       params.apiToken,
       {
-        method: "POST",
         body: JSON.stringify({
-          name: latestDeployment.name,
           deploymentId: latestDeployment.uid,
+          name: latestDeployment.name,
           target: params.target || "production",
         }),
+        method: "POST",
       },
       params.teamId
     );
 
     return {
-      status: "success",
       deployment,
+      status: "success",
     };
   } catch (error) {
     return {
-      status: "error",
       error: error instanceof Error ? error.message : "Unknown error",
+      status: "error",
     };
   }
 }
@@ -326,8 +326,8 @@ export async function createProject(
   try {
     if (!params.apiToken) {
       return {
-        status: "error",
         error: "Vercel API token not configured",
+        status: "error",
       };
     }
 
@@ -354,20 +354,20 @@ export async function createProject(
       "/v9/projects",
       params.apiToken,
       {
-        method: "POST",
         body: JSON.stringify(projectData),
+        method: "POST",
       },
       params.teamId
     );
 
     return {
-      status: "success",
       project,
+      status: "success",
     };
   } catch (error) {
     return {
-      status: "error",
       error: error instanceof Error ? error.message : "Unknown error",
+      status: "error",
     };
   }
 }
@@ -391,8 +391,8 @@ export async function getDecryptedEnvironmentVariable(
   try {
     if (!params.apiToken) {
       return {
-        status: "error",
         error: "Vercel API token not configured",
+        status: "error",
       };
     }
 
@@ -405,21 +405,21 @@ export async function getDecryptedEnvironmentVariable(
     );
 
     return {
-      status: "success",
       env: {
         id: env.id || "",
         key: env.key || "",
-        value: env.value || "",
-        type:
-          (env.type as "plain" | "secret" | "encrypted" | "system") || "plain",
         target:
           (env.target as Array<"production" | "preview" | "development">) || [],
+        type:
+          (env.type as "plain" | "secret" | "encrypted" | "system") || "plain",
+        value: env.value || "",
       },
+      status: "success",
     };
   } catch (error) {
     return {
-      status: "error",
       error: error instanceof Error ? error.message : "Unknown error",
+      status: "error",
     };
   }
 }
@@ -443,8 +443,8 @@ export async function getEnvironmentVariables(
   try {
     if (!params.apiToken) {
       return {
-        status: "error",
         error: "Vercel API token not configured",
+        status: "error",
       };
     }
 
@@ -454,9 +454,9 @@ export async function getEnvironmentVariables(
 
     // Use SDK to get environment variables
     const response = await vercel.projects.filterProjectEnvs({
+      decrypt: params.decrypt ? "true" : undefined,
       idOrName: params.projectId,
       teamId: params.teamId,
-      decrypt: params.decrypt ? "true" : undefined,
     });
 
     // Response can have envs as an array or object property
@@ -464,8 +464,8 @@ export async function getEnvironmentVariables(
 
     if (!envList || envList.length === 0) {
       return {
-        status: "success",
         envs: [],
+        status: "success",
       };
     }
 
@@ -474,10 +474,10 @@ export async function getEnvironmentVariables(
       envList.map(async (env) => {
         if (params.decrypt && env.type === "encrypted" && env.id) {
           const decryptedResult = await getDecryptedEnvironmentVariable({
-            projectId: params.projectId,
             apiToken: params.apiToken,
-            teamId: params.teamId,
             envId: env.id,
+            projectId: params.projectId,
+            teamId: params.teamId,
           });
 
           if (
@@ -495,21 +495,21 @@ export async function getEnvironmentVariables(
     );
 
     return {
-      status: "success",
       envs: envsWithDecryption.map((env) => ({
         id: env.id || "",
         key: env.key || "",
-        value: env.value || "",
-        type:
-          (env.type as "plain" | "secret" | "encrypted" | "system") || "plain",
         target:
           (env.target as Array<"production" | "preview" | "development">) || [],
+        type:
+          (env.type as "plain" | "secret" | "encrypted" | "system") || "plain",
+        value: env.value || "",
       })),
+      status: "success",
     };
   } catch (error) {
     return {
-      status: "error",
       error: error instanceof Error ? error.message : "Unknown error",
+      status: "error",
     };
   }
 }
@@ -543,8 +543,8 @@ export async function setEnvironmentVariable(
   try {
     if (!params.apiToken) {
       return {
-        status: "error",
         error: "Vercel API token not configured",
+        status: "error",
       };
     }
 
@@ -557,16 +557,16 @@ export async function setEnvironmentVariable(
 
     if (!response.created) {
       return {
-        status: "error",
         error: "Failed to create environment variable",
+        status: "error",
       };
     }
 
     return formatEnvResponse(response.created);
   } catch (error) {
     return {
-      status: "error",
       error: error instanceof Error ? error.message : "Unknown error",
+      status: "error",
     };
   }
 }
@@ -585,8 +585,8 @@ async function deleteExistingEnv(
     const existingEnv = envList.find((e) => e.key === params.key);
     if (existingEnv?.id) {
       await vercel.projects.removeProjectEnv({
-        idOrName: params.projectId,
         id: existingEnv.id,
+        idOrName: params.projectId,
         teamId: params.teamId,
       });
     }
@@ -599,14 +599,14 @@ async function createNewEnv(
 ) {
   return await vercel.projects.createProjectEnv({
     idOrName: params.projectId,
-    teamId: params.teamId,
-    upsert: "true",
     requestBody: {
       key: params.key,
-      value: params.value,
       target: params.target || ["production", "preview", "development"],
       type: params.type || "encrypted",
+      value: params.value,
     },
+    teamId: params.teamId,
+    upsert: "true",
   });
 }
 
@@ -615,14 +615,14 @@ function formatEnvResponse(created: unknown) {
   const typedEnv = createdEnv as VercelEnvVariable;
 
   return {
-    status: "success" as const,
     env: {
       id: typedEnv.id || "",
       key: typedEnv.key || "",
-      value: typedEnv.value || "",
-      type: typedEnv.type || "secret",
       target: typedEnv.target || [],
+      type: typedEnv.type || "secret",
+      value: typedEnv.value || "",
     },
+    status: "success" as const,
   };
 }
 
@@ -645,8 +645,8 @@ export async function deleteEnvironmentVariable(
   try {
     if (!params.apiToken) {
       return {
-        status: "error",
         error: "Vercel API token not configured",
+        status: "error",
       };
     }
 
@@ -664,8 +664,8 @@ export async function deleteEnvironmentVariable(
     };
   } catch (error) {
     return {
-      status: "error",
       error: error instanceof Error ? error.message : "Unknown error",
+      status: "error",
     };
   }
 }

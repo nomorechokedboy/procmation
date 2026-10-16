@@ -228,7 +228,9 @@ export default function MembersPage() {
                   const details = [
                     member.jobTitle,
                     department?.name,
-                    manager ? `Reports to ${manager.name || manager.email}` : null,
+                    manager
+                      ? `Reports to ${manager.name || manager.email}`
+                      : null,
                   ].filter(Boolean);
                   return (
                     <div

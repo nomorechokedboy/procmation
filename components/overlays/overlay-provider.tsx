@@ -55,10 +55,10 @@ export function OverlayProvider({ children }: OverlayProviderProps) {
     ): string => {
       const id = generateOverlayId();
       const item: OverlayStackItem = {
-        id,
         component: component as ComponentType<OverlayComponentProps>,
-        props: (props ?? {}) as Record<string, unknown>,
+        id,
         options: options ?? {},
+        props: (props ?? {}) as Record<string, unknown>,
       };
       setStack([item]);
       return id;
@@ -74,10 +74,10 @@ export function OverlayProvider({ children }: OverlayProviderProps) {
     ): string => {
       const id = generateOverlayId();
       const item: OverlayStackItem = {
-        id,
         component: component as ComponentType<OverlayComponentProps>,
-        props: (props ?? {}) as Record<string, unknown>,
+        id,
         options: options ?? {},
+        props: (props ?? {}) as Record<string, unknown>,
       };
       setStack((prev) => [...prev, item]);
       return id;
@@ -108,10 +108,10 @@ export function OverlayProvider({ children }: OverlayProviderProps) {
     ): string => {
       const id = generateOverlayId();
       const item: OverlayStackItem = {
-        id,
         component: component as ComponentType<OverlayComponentProps>,
-        props: (props ?? {}) as Record<string, unknown>,
+        id,
         options: options ?? {},
+        props: (props ?? {}) as Record<string, unknown>,
       };
       setStack((prev) => {
         if (prev.length === 0) {
@@ -140,7 +140,9 @@ export function OverlayProvider({ children }: OverlayProviderProps) {
   const close = useCallback((id: string) => {
     setStack((prev) => {
       const index = prev.findIndex((item) => item.id === id);
-      if (index === -1) return prev;
+      if (index === -1) {
+        return prev;
+      }
 
       // Call onClose for all items from this index onwards
       for (let i = index; i < prev.length; i++) {
@@ -152,15 +154,15 @@ export function OverlayProvider({ children }: OverlayProviderProps) {
 
   const value = useMemo<OverlayContextValue>(
     () => ({
-      stack,
-      open,
-      push,
-      pop,
-      replace,
-      closeAll,
       close,
-      hasOverlays: stack.length > 0,
+      closeAll,
       depth: stack.length,
+      hasOverlays: stack.length > 0,
+      open,
+      pop,
+      push,
+      replace,
+      stack,
     }),
     [stack, open, push, pop, replace, closeAll, close]
   );
@@ -200,10 +202,10 @@ export function useOverlayPosition(overlayId: string) {
   const index = effectiveStack.findIndex((item) => item.id === overlayId);
 
   return {
+    depth: effectiveStack.length,
     index,
     isFirst: index === 0,
     isLast: index === effectiveStack.length - 1,
-    depth: effectiveStack.length,
     showBackButton: index > 0,
   };
 }

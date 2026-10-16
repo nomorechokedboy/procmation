@@ -17,12 +17,12 @@ import { slugifyFieldKey } from "@/lib/process-form-validation";
 import type { FormField, FormFieldType } from "@/lib/types/process-form";
 
 const TYPE_LABELS: Record<FormFieldType, string> = {
+  checkbox: "Yes / no",
+  date: "Date",
+  number: "Number",
+  select: "Dropdown",
   text: "Short text",
   textarea: "Long text",
-  number: "Number",
-  date: "Date",
-  select: "Dropdown",
-  checkbox: "Yes / no",
 };
 
 type Row = {
@@ -79,7 +79,9 @@ function OptionsInput({
   onChange: (options: { label: string; value: string }[]) => void;
 }) {
   // Keep the raw text so typing a trailing comma is not swallowed
-  const [text, setText] = useState(options.map((option) => option.label).join(", "));
+  const [text, setText] = useState(
+    options.map((option) => option.label).join(", ")
+  );
 
   return (
     <Input
@@ -101,9 +103,9 @@ export function FormFieldsEditor({
   const [nextUid, setNextUid] = useState(initialFields.length);
   const [rows, setRows] = useState<Row[]>(
     initialFields.map((field, index) => ({
-      uid: index,
       field,
       keyLocked: true,
+      uid: index,
     }))
   );
 
@@ -137,7 +139,7 @@ export function FormFieldsEditor({
     commit(
       rows.map((item) =>
         item.uid === row.uid
-          ? { ...item, field: { ...item.field, label, key } }
+          ? { ...item, field: { ...item.field, key, label } }
           : item
       )
     );
@@ -147,9 +149,13 @@ export function FormFieldsEditor({
     commit([
       ...rows,
       {
-        uid: nextUid,
-        field: { key: uniqueKey("field", rows, nextUid), label: "", type: "text" },
+        field: {
+          key: uniqueKey("field", rows, nextUid),
+          label: "",
+          type: "text",
+        },
         keyLocked: false,
+        uid: nextUid,
       },
     ]);
     setNextUid(nextUid + 1);
@@ -236,7 +242,9 @@ export function FormFieldsEditor({
               </Button>
               <Button
                 aria-label="Remove field"
-                onClick={() => commit(rows.filter((item) => item.uid !== row.uid))}
+                onClick={() =>
+                  commit(rows.filter((item) => item.uid !== row.uid))
+                }
                 size="icon"
                 type="button"
                 variant="ghost"

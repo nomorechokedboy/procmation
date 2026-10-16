@@ -17,17 +17,17 @@ import { mono, sans } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "AI Workflow Builder - Visual Workflow Automation",
   description:
     "Build powerful AI-driven workflow automations with a visual, node-based editor. Built with Next.js and React Flow.",
+  title: "AI Workflow Builder - Visual Workflow Automation",
 };
 
 export const viewport: Viewport = {
-  width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
+  width: "device-width",
 };
 
 type RootLayoutProps = {

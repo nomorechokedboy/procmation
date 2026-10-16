@@ -55,20 +55,20 @@ import {
 
 const nodeTemplates = [
   {
-    type: "trigger" as WorkflowNodeType,
-    label: "",
+    defaultConfig: { triggerType: "Manual" },
     description: "",
     displayLabel: "Trigger",
     icon: PlayCircle,
-    defaultConfig: { triggerType: "Manual" },
+    label: "",
+    type: "trigger" as WorkflowNodeType,
   },
   {
-    type: "action" as WorkflowNodeType,
-    label: "",
+    defaultConfig: {},
     description: "",
     displayLabel: "Action",
     icon: Zap,
-    defaultConfig: {},
+    label: "",
+    type: "action" as WorkflowNodeType,
   },
 ];
 
@@ -168,7 +168,7 @@ export function WorkflowCanvas() {
 
     // Use fitView after a brief delay to ensure React Flow and nodes are ready
     setTimeout(() => {
-      fitView({ maxZoom: 1, minZoom: 0.5, padding: 0.2, duration: 0 });
+      fitView({ duration: 0, maxZoom: 1, minZoom: 0.5, padding: 0.2 });
       fittedViewForWorkflowRef.current = currentWorkflowId;
       viewportInitialized.current = true;
       // Show canvas immediately so width animation can be seen
@@ -193,7 +193,7 @@ export function WorkflowCanvas() {
       hadRealNodesRef.current = true;
       // Fit view to center the new node
       setTimeout(() => {
-        fitView({ maxZoom: 1, minZoom: 0.5, padding: 0.2, duration: 0 });
+        fitView({ duration: 0, maxZoom: 1, minZoom: 0.5, padding: 0.2 });
         viewportInitialized.current = true;
         setIsCanvasReady(true);
       }, 0);
@@ -209,7 +209,7 @@ export function WorkflowCanvas() {
       // Check for Cmd+/ (Mac) or Ctrl+/ (Windows/Linux)
       if ((event.metaKey || event.ctrlKey) && event.key === "/") {
         event.preventDefault();
-        fitView({ padding: 0.2, duration: 300 });
+        fitView({ duration: 300, padding: 0.2 });
       }
     };
 
@@ -221,9 +221,9 @@ export function WorkflowCanvas() {
 
   const nodeTypes = useMemo(
     () => ({
-      trigger: TriggerNode,
       action: ActionNode,
       add: AddNode,
+      trigger: TriggerNode,
     }),
     []
   );
@@ -346,8 +346,8 @@ export function WorkflowCanvas() {
         const targetId = fromSource ? targetNodeId : connectingId;
         onConnect({
           source: sourceId,
-          target: targetId,
           sourceHandle: null,
+          target: targetId,
           targetHandle: null,
         });
       }
@@ -386,17 +386,17 @@ export function WorkflowCanvas() {
       position.y -= nodeHeight / 2;
 
       const newNode: WorkflowNode = {
-        id: nanoid(),
-        type: actionTemplate.type,
-        position,
         data: {
-          label: actionTemplate.label,
-          description: actionTemplate.description,
-          type: actionTemplate.type,
           config: actionTemplate.defaultConfig,
+          description: actionTemplate.description,
+          label: actionTemplate.label,
           status: "idle",
+          type: actionTemplate.type,
         },
+        id: nanoid(),
+        position,
         selected: true,
+        type: actionTemplate.type,
       };
 
       addNode(newNode);
@@ -526,10 +526,10 @@ export function WorkflowCanvas() {
       data-testid="workflow-canvas"
       style={{
         opacity: isCanvasReady ? 1 : 0,
-        width: rightPanelWidth ? `calc(100% - ${rightPanelWidth})` : "100%",
         transition: isPanelAnimating
           ? "width 300ms ease-out, opacity 300ms"
           : "opacity 300ms",
+        width: rightPanelWidth ? `calc(100% - ${rightPanelWidth})` : "100%",
       }}
     >
       {/* Toolbar */}

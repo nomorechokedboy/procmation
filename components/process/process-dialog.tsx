@@ -21,11 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  api,
-  type ProcessSummary,
-  type SavedWorkflow,
-} from "@/lib/api-client";
+import { api, type ProcessSummary, type SavedWorkflow } from "@/lib/api-client";
 import { validateFormFields } from "@/lib/process-form-validation";
 import type { FormField } from "@/lib/types/process-form";
 
@@ -71,9 +67,9 @@ export function ProcessDialog(props: ProcessDialogProps) {
     try {
       if (props.mode === "create") {
         await api.process.create({
-          workflowId,
           category: category.trim() || null,
           startFormFields: validation.fields,
+          workflowId,
         });
         toast.success("Process created as a draft");
       } else {
@@ -149,10 +145,7 @@ export function ProcessDialog(props: ProcessDialogProps) {
             <p className="text-muted-foreground text-xs">
               What the requester fills in to start this process.
             </p>
-            <FormFieldsEditor
-              initialFields={fields}
-              onChange={setFields}
-            />
+            <FormFieldsEditor initialFields={fields} onChange={setFields} />
           </div>
 
           {error ? <p className="text-destructive text-sm">{error}</p> : null}

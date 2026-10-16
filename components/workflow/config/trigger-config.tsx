@@ -30,7 +30,7 @@ export function TriggerConfig({
   workflowId,
 }: TriggerConfigProps) {
   const webhookUrl = workflowId
-    ? `${typeof window !== "undefined" ? window.location.origin : ""}/api/workflows/${workflowId}/webhook`
+    ? `${typeof window === "undefined" ? "" : window.location.origin}/api/workflows/${workflowId}/webhook`
     : "";
 
   const handleCopyWebhookUrl = () => {
@@ -127,11 +127,11 @@ export function TriggerConfig({
                   onUpdateConfig("webhookMockRequest", value || "")
                 }
                 options={{
-                  minimap: { enabled: false },
-                  lineNumbers: "on",
-                  scrollBeyondLastLine: false,
                   fontSize: 12,
+                  lineNumbers: "on",
+                  minimap: { enabled: false },
                   readOnly: disabled,
+                  scrollBeyondLastLine: false,
                   wordWrap: "on",
                 }}
                 value={(config?.webhookMockRequest as string) || ""}

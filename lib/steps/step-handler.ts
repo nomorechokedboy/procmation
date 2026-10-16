@@ -48,10 +48,10 @@ async function logStepStart(
 
     const result = await logStepStartDb({
       executionId: context.executionId,
+      input: redactedInput,
       nodeId: context.nodeId,
       nodeName: context.nodeName,
       nodeType: context.nodeType,
-      input: redactedInput,
     });
 
     return result;
@@ -78,11 +78,11 @@ async function logStepComplete(
     const redactedOutput = redactSensitiveData(output);
 
     await logStepCompleteDb({
+      error,
       logId: logInfo.logId,
+      output: redactedOutput,
       startTime: logInfo.startTime,
       status,
-      output: redactedOutput,
-      error,
     });
   } catch (err) {
     console.error("[stepHandler] Failed to log completion:", err);
@@ -122,11 +122,11 @@ export async function logWorkflowComplete(options: {
     const redactedOutput = redactSensitiveData(options.output);
 
     await logWorkflowCompleteDb({
-      executionId: options.executionId,
-      status: options.status,
-      output: redactedOutput,
       error: options.error,
+      executionId: options.executionId,
+      output: redactedOutput,
       startTime: options.startTime,
+      status: options.status,
     });
   } catch (err) {
     console.error("[stepHandler] Failed to log workflow completion:", err);

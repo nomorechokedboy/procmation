@@ -15,9 +15,9 @@ export async function GET(request: Request) {
   const rows = await db
     .select({
       id: departments.id,
+      memberCount: sql<number>`count(${userProfiles.userId})::int`,
       name: departments.name,
       parentId: departments.parentId,
-      memberCount: sql<number>`count(${userProfiles.userId})::int`,
     })
     .from(departments)
     .leftJoin(userProfiles, eq(userProfiles.departmentId, departments.id))
@@ -33,12 +33,17 @@ export async function POST(request: Request) {
     return guard.response;
   }
 
-  const body = (await request.json()) as { name?: string; parentId?: string | null };
+  const body = (await request.json()) as {
+    name?: string;
+    parentId?: string | null;
+  };
   const name = body.name?.trim() ?? "";
 
   if (!name || name.length > MAX_NAME_LENGTH) {
     return NextResponse.json(
-      { error: `Name is required and must be at most ${MAX_NAME_LENGTH} characters` },
+      {
+        error: `Name is required and must be at most ${MAX_NAME_LENGTH} characters`,
+      },
       { status: 400 }
     );
   }
@@ -50,7 +55,10 @@ export async function POST(request: Request) {
       .where(eq(departments.id, body.parentId))
       .limit(1);
     if (!parent) {
-      return NextResponse.json({ error: "Parent department not found" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Parent department not found" },
+        { status: 400 }
+      );
     }
   }
 

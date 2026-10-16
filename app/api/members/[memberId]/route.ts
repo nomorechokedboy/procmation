@@ -38,7 +38,7 @@ export async function PATCH(
       .limit(1);
 
     if (target.length === 0) {
-      return { status: 404, error: "Member not found" } as const;
+      return { error: "Member not found", status: 404 } as const;
     }
 
     const isLastAdmin =
@@ -47,8 +47,8 @@ export async function PATCH(
       admins[0].id === memberId;
     if (role !== "admin" && isLastAdmin) {
       return {
-        status: 409,
         error: "There must be at least one admin",
+        status: 409,
       } as const;
     }
 

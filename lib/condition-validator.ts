@@ -112,8 +112,8 @@ function checkDangerousPatterns(expression: string): ValidationResult {
       pattern.lastIndex = 0;
       const match = expression.match(pattern);
       return {
-        valid: false,
         error: `Condition contains disallowed syntax: "${match?.[0] || "unknown"}"`,
+        valid: false,
       };
     }
   }
@@ -142,16 +142,16 @@ function checkBracketExpressions(expression: string): ValidationResult {
     // Check if the part before the bracket is a valid variable (__v0, __v1, etc.)
     if (!VALID_BRACKET_ACCESS_PATTERN.test(beforeBracket)) {
       return {
-        valid: false,
         error: `Bracket notation is only allowed on workflow variables. Found: "${beforeBracket}[...]"`,
+        valid: false,
       };
     }
 
     // Check if the content inside brackets is safe (number or string literal)
     if (!VALID_BRACKET_CONTENT_PATTERN.test(insideBracket)) {
       return {
-        valid: false,
         error: `Invalid bracket content: "[${insideBracket}]". Only numeric indices or string literals are allowed.`,
+        valid: false,
       };
     }
   }
@@ -162,9 +162,9 @@ function checkBracketExpressions(expression: string): ValidationResult {
   standaloneArrayPattern.lastIndex = 0;
   if (standaloneArrayPattern.test(expression)) {
     return {
-      valid: false,
       error:
         "Array literals are not allowed in conditions. Use workflow variables instead.",
+      valid: false,
     };
   }
 
@@ -188,8 +188,8 @@ function checkMethodCalls(expression: string): ValidationResult {
     const methodName = match[1];
     if (!ALLOWED_METHODS.has(methodName)) {
       return {
-        valid: false,
         error: `Method "${methodName}" is not allowed in conditions. Allowed methods: ${Array.from(ALLOWED_METHODS).join(", ")}`,
+        valid: false,
       };
     }
   }
@@ -211,12 +211,12 @@ function checkParentheses(expression: string): ValidationResult {
       parenDepth -= 1;
     }
     if (parenDepth < 0) {
-      return { valid: false, error: "Unbalanced parentheses in condition" };
+      return { error: "Unbalanced parentheses in condition", valid: false };
     }
   }
 
   if (parenDepth !== 0) {
-    return { valid: false, error: "Unbalanced parentheses in condition" };
+    return { error: "Unbalanced parentheses in condition", valid: false };
   }
 
   return { valid: true };
@@ -259,8 +259,8 @@ function checkUnauthorizedIdentifiers(expression: string): ValidationResult {
     // Check if it looks like an unauthorized identifier
     if (IDENTIFIER_TOKEN_PATTERN.test(token) && !token.startsWith("__v")) {
       return {
-        valid: false,
         error: `Unknown identifier "${token}" in condition. Use template variables like {{@nodeId:Label.field}} to reference workflow data.`,
+        valid: false,
       };
     }
   }
@@ -279,7 +279,7 @@ export function validateConditionExpression(
 ): ValidationResult {
   // Empty expressions are invalid
   if (!expression || expression.trim() === "") {
-    return { valid: false, error: "Condition expression cannot be empty" };
+    return { error: "Condition expression cannot be empty", valid: false };
   }
 
   // Check for dangerous patterns
@@ -323,7 +323,7 @@ export function preValidateConditionExpression(
   expression: string
 ): ValidationResult {
   if (!expression || typeof expression !== "string") {
-    return { valid: false, error: "Condition must be a non-empty string" };
+    return { error: "Condition must be a non-empty string", valid: false };
   }
 
   // Check for obviously dangerous patterns before any processing
@@ -345,8 +345,8 @@ export function preValidateConditionExpression(
   for (const keyword of dangerousKeywords) {
     if (lowerExpression.includes(keyword.toLowerCase())) {
       return {
-        valid: false,
         error: `Condition contains disallowed keyword: "${keyword}"`,
+        valid: false,
       };
     }
   }

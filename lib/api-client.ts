@@ -193,12 +193,12 @@ function handleUpdateNode(
 }
 
 const operationHandlers: Record<string, OperationHandler> = {
-  setName: handleSetName,
-  setDescription: handleSetDescription,
-  addNode: handleAddNode,
   addEdge: handleAddEdge,
-  removeNode: handleRemoveNode,
+  addNode: handleAddNode,
   removeEdge: handleRemoveEdge,
+  removeNode: handleRemoveNode,
+  setDescription: handleSetDescription,
+  setName: handleSetName,
   updateNode: handleUpdateNode,
 };
 
@@ -267,8 +267,8 @@ export const aiApi = {
     }
   ) =>
     apiCall<WorkflowData>("/api/ai/generate", {
+      body: JSON.stringify({ existingWorkflow, prompt }),
       method: "POST",
-      body: JSON.stringify({ prompt, existingWorkflow }),
     }),
   generateStream: async (
     prompt: string,
@@ -280,11 +280,11 @@ export const aiApi = {
     }
   ): Promise<WorkflowData> => {
     const response = await fetch("/api/ai/generate", {
-      method: "POST",
+      body: JSON.stringify({ existingWorkflow, prompt }),
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ prompt, existingWorkflow }),
+      method: "POST",
     });
 
     if (!response.ok) {
@@ -301,11 +301,11 @@ export const aiApi = {
       buffer: "",
       currentData: existingWorkflow
         ? {
-            nodes: existingWorkflow.nodes || [],
             edges: existingWorkflow.edges || [],
             name: existingWorkflow.name,
+            nodes: existingWorkflow.nodes || [],
           }
-        : { nodes: [], edges: [] },
+        : { edges: [], nodes: [] },
     };
 
     try {
@@ -369,14 +369,6 @@ export type AiGatewayTeamsResponse = {
 
 // Integration API
 export const integrationApi = {
-  // List all integrations
-  getAll: (type?: IntegrationType) =>
-    apiCall<Integration[]>(`/api/integrations${type ? `?type=${type}` : ""}`),
-
-  // Get single integration with config
-  get: (id: string) =>
-    apiCall<IntegrationWithConfig>(`/api/integrations/${id}`),
-
   // Create integration
   create: (data: {
     name: string;
@@ -384,15 +376,8 @@ export const integrationApi = {
     config: IntegrationConfig;
   }) =>
     apiCall<Integration>("/api/integrations", {
+      body: JSON.stringify(data),
       method: "POST",
-      body: JSON.stringify(data),
-    }),
-
-  // Update integration
-  update: (id: string, data: { name?: string; config?: IntegrationConfig }) =>
-    apiCall<IntegrationWithConfig>(`/api/integrations/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(data),
     }),
 
   // Delete integration
@@ -400,6 +385,13 @@ export const integrationApi = {
     apiCall<{ success: boolean }>(`/api/integrations/${id}`, {
       method: "DELETE",
     }),
+
+  // Get single integration with config
+  get: (id: string) =>
+    apiCall<IntegrationWithConfig>(`/api/integrations/${id}`),
+  // List all integrations
+  getAll: (type?: IntegrationType) =>
+    apiCall<Integration[]>(`/api/integrations${type ? `?type=${type}` : ""}`),
 
   // Test existing integration connection
   testConnection: (integrationId: string) =>
@@ -418,10 +410,17 @@ export const integrationApi = {
     apiCall<{ status: "success" | "error"; message: string }>(
       "/api/integrations/test",
       {
-        method: "POST",
         body: JSON.stringify(data),
+        method: "POST",
       }
     ),
+
+  // Update integration
+  update: (id: string, data: { name?: string; config?: IntegrationConfig }) =>
+    apiCall<IntegrationWithConfig>(`/api/integrations/${id}`, {
+      body: JSON.stringify(data),
+      method: "PUT",
+    }),
 };
 
 // User API
@@ -438,31 +437,62 @@ export const userApi = {
 
   update: (data: { name?: string; email?: string }) =>
     apiCall<{ success: boolean }>("/api/user", {
-      method: "PATCH",
       body: JSON.stringify(data),
+      method: "PATCH",
     }),
 };
 
 // Workflow API
 export const workflowApi = {
-  // Get all workflows
-  getAll: () => apiCall<SavedWorkflow[]>("/api/workflows"),
+  // Auto-save with debouncing (kept for backwards compatibility)
+  autoSaveCurrent: (() => {
+    let autosaveTimeout: NodeJS.Timeout | null = null;
+    const AUTOSAVE_DELAY = 2000;
 
-  // Get a specific workflow
-  getById: (id: string) => apiCall<SavedWorkflow>(`/api/workflows/${id}`),
+    return (nodes: WorkflowNode[], edges: WorkflowEdge[]): void => {
+      if (autosaveTimeout) {
+        clearTimeout(autosaveTimeout);
+      }
+
+      autosaveTimeout = setTimeout(() => {
+        workflowApi.saveCurrent(nodes, edges).catch((error) => {
+          console.error("Auto-save failed:", error);
+        });
+      }, AUTOSAVE_DELAY);
+    };
+  })(),
+
+  // Auto-save specific workflow with debouncing
+  autoSaveWorkflow: (() => {
+    let autosaveTimeout: NodeJS.Timeout | null = null;
+    const AUTOSAVE_DELAY = 2000;
+
+    return (
+      id: string,
+      data: Partial<WorkflowData>,
+      debounce = true
+    ): Promise<SavedWorkflow> | undefined => {
+      if (!debounce) {
+        return workflowApi.update(id, data);
+      }
+
+      if (autosaveTimeout) {
+        clearTimeout(autosaveTimeout);
+      }
+
+      autosaveTimeout = setTimeout(() => {
+        workflowApi.update(id, data).catch((error) => {
+          console.error("Auto-save failed:", error);
+        });
+      }, AUTOSAVE_DELAY);
+    };
+  })(),
 
   // Create a new workflow
   create: (workflow: Omit<WorkflowData, "id">) =>
     apiCall<SavedWorkflow>("/api/workflows/create", {
+      body: JSON.stringify(workflow),
       method: "POST",
-      body: JSON.stringify(workflow),
-    }),
-
-  // Update a workflow
-  update: (id: string, workflow: Partial<WorkflowData>) =>
-    apiCall<SavedWorkflow>(`/api/workflows/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify(workflow),
     }),
 
   // Delete a workflow
@@ -471,20 +501,27 @@ export const workflowApi = {
       method: "DELETE",
     }),
 
+  // Delete executions
+  deleteExecutions: (id: string) =>
+    apiCall<{ success: boolean; deletedCount: number }>(
+      `/api/workflows/${id}/executions`,
+      {
+        method: "DELETE",
+      }
+    ),
+
+  // Download workflow
+  download: (id: string) =>
+    apiCall<{
+      success: boolean;
+      files?: Record<string, string>;
+      error?: string;
+    }>(`/api/workflows/${id}/download`),
+
   // Duplicate a workflow
   duplicate: (id: string) =>
     apiCall<SavedWorkflow>(`/api/workflows/${id}/duplicate`, {
       method: "POST",
-    }),
-
-  // Get current workflow state
-  getCurrent: () => apiCall<WorkflowData>("/api/workflows/current"),
-
-  // Save current workflow state
-  saveCurrent: (nodes: WorkflowNode[], edges: WorkflowEdge[]) =>
-    apiCall<WorkflowData>("/api/workflows/current", {
-      method: "POST",
-      body: JSON.stringify({ nodes, edges }),
     }),
 
   // Execute workflow
@@ -496,19 +533,14 @@ export const workflowApi = {
       error?: string;
       duration?: number;
     }>(`/api/workflow/${id}/execute`, {
-      method: "POST",
       body: JSON.stringify({ input }),
-    }),
-
-  // Trigger workflow via webhook
-  triggerWebhook: (id: string, input: Record<string, unknown> = {}) =>
-    apiCall<{
-      executionId: string;
-      status: string;
-    }>(`/api/workflows/${id}/webhook`, {
       method: "POST",
-      body: JSON.stringify(input),
     }),
+  // Get all workflows
+  getAll: () => apiCall<SavedWorkflow[]>("/api/workflows"),
+
+  // Get a specific workflow
+  getById: (id: string) => apiCall<SavedWorkflow>(`/api/workflows/${id}`),
 
   // Get workflow code
   getCode: (id: string) =>
@@ -516,31 +548,8 @@ export const workflowApi = {
       `/api/workflows/${id}/code`
     ),
 
-  // Get executions
-  getExecutions: (id: string) =>
-    apiCall<
-      Array<{
-        id: string;
-        workflowId: string;
-        userId: string;
-        status: string;
-        input: unknown;
-        output: unknown;
-        error: string | null;
-        startedAt: Date;
-        completedAt: Date | null;
-        duration: string | null;
-      }>
-    >(`/api/workflows/${id}/executions`),
-
-  // Delete executions
-  deleteExecutions: (id: string) =>
-    apiCall<{ success: boolean; deletedCount: number }>(
-      `/api/workflows/${id}/executions`,
-      {
-        method: "DELETE",
-      }
-    ),
+  // Get current workflow state
+  getCurrent: () => apiCall<WorkflowData>("/api/workflows/current"),
 
   // Get execution logs
   getExecutionLogs: (executionId: string) =>
@@ -589,73 +598,61 @@ export const workflowApi = {
       }>;
     }>(`/api/workflows/executions/${executionId}/status`),
 
-  // Download workflow
-  download: (id: string) =>
+  // Get executions
+  getExecutions: (id: string) =>
+    apiCall<
+      Array<{
+        id: string;
+        workflowId: string;
+        userId: string;
+        status: string;
+        input: unknown;
+        output: unknown;
+        error: string | null;
+        startedAt: Date;
+        completedAt: Date | null;
+        duration: string | null;
+      }>
+    >(`/api/workflows/${id}/executions`),
+
+  // Save current workflow state
+  saveCurrent: (nodes: WorkflowNode[], edges: WorkflowEdge[]) =>
+    apiCall<WorkflowData>("/api/workflows/current", {
+      body: JSON.stringify({ edges, nodes }),
+      method: "POST",
+    }),
+
+  // Trigger workflow via webhook
+  triggerWebhook: (id: string, input: Record<string, unknown> = {}) =>
     apiCall<{
-      success: boolean;
-      files?: Record<string, string>;
-      error?: string;
-    }>(`/api/workflows/${id}/download`),
+      executionId: string;
+      status: string;
+    }>(`/api/workflows/${id}/webhook`, {
+      body: JSON.stringify(input),
+      method: "POST",
+    }),
 
-  // Auto-save with debouncing (kept for backwards compatibility)
-  autoSaveCurrent: (() => {
-    let autosaveTimeout: NodeJS.Timeout | null = null;
-    const AUTOSAVE_DELAY = 2000;
-
-    return (nodes: WorkflowNode[], edges: WorkflowEdge[]): void => {
-      if (autosaveTimeout) {
-        clearTimeout(autosaveTimeout);
-      }
-
-      autosaveTimeout = setTimeout(() => {
-        workflowApi.saveCurrent(nodes, edges).catch((error) => {
-          console.error("Auto-save failed:", error);
-        });
-      }, AUTOSAVE_DELAY);
-    };
-  })(),
-
-  // Auto-save specific workflow with debouncing
-  autoSaveWorkflow: (() => {
-    let autosaveTimeout: NodeJS.Timeout | null = null;
-    const AUTOSAVE_DELAY = 2000;
-
-    return (
-      id: string,
-      data: Partial<WorkflowData>,
-      debounce = true
-    ): Promise<SavedWorkflow> | undefined => {
-      if (!debounce) {
-        return workflowApi.update(id, data);
-      }
-
-      if (autosaveTimeout) {
-        clearTimeout(autosaveTimeout);
-      }
-
-      autosaveTimeout = setTimeout(() => {
-        workflowApi.update(id, data).catch((error) => {
-          console.error("Auto-save failed:", error);
-        });
-      }, AUTOSAVE_DELAY);
-    };
-  })(),
+  // Update a workflow
+  update: (id: string, workflow: Partial<WorkflowData>) =>
+    apiCall<SavedWorkflow>(`/api/workflows/${id}`, {
+      body: JSON.stringify(workflow),
+      method: "PATCH",
+    }),
 };
 
 // AI Gateway API (User Keys feature)
 export const aiGatewayApi = {
+  // Grant consent and create managed API key
+  consent: (teamId: string, teamName: string) =>
+    apiCall<AiGatewayConsentResponse>("/api/ai-gateway/consent", {
+      body: JSON.stringify({ teamId, teamName }),
+      method: "POST",
+    }),
   // Get status (whether feature is enabled, user has managed key, etc.)
   getStatus: () => apiCall<AiGatewayStatusResponse>("/api/ai-gateway/status"),
 
   // Get available Vercel teams
   getTeams: () => apiCall<AiGatewayTeamsResponse>("/api/ai-gateway/teams"),
-
-  // Grant consent and create managed API key
-  consent: (teamId: string, teamName: string) =>
-    apiCall<AiGatewayConsentResponse>("/api/ai-gateway/consent", {
-      method: "POST",
-      body: JSON.stringify({ teamId, teamName }),
-    }),
 
   // Revoke consent and delete managed API key
   revokeConsent: () =>
@@ -716,17 +713,23 @@ export type InvitationSummary = {
 };
 
 export const setupApi = {
-  getStatus: () => apiCall<{ needsSetup: boolean }>("/api/setup"),
-
   createAdmin: (data: { name: string; email: string; password: string }) =>
     apiCall<{ success: boolean }>("/api/setup", {
-      method: "POST",
       body: JSON.stringify(data),
+      method: "POST",
     }),
+  getStatus: () => apiCall<{ needsSetup: boolean }>("/api/setup"),
 };
 
 export const inviteApi = {
-  list: () => apiCall<InvitationSummary[]>("/api/invites"),
+  accept: (token: string, data: { name: string; password: string }) =>
+    apiCall<{ success: boolean; email: string }>(
+      `/api/invite/${token}/accept`,
+      {
+        body: JSON.stringify(data),
+        method: "POST",
+      }
+    ),
 
   create: (data: { email: string; role: UserRole }) =>
     apiCall<{
@@ -736,26 +739,18 @@ export const inviteApi = {
       expiresAt: string;
       inviteUrl: string;
     }>("/api/invites", {
-      method: "POST",
       body: JSON.stringify(data),
+      method: "POST",
     }),
+  list: () => apiCall<InvitationSummary[]>("/api/invites"),
+
+  lookup: (token: string) =>
+    apiCall<{ email: string; role: UserRole }>(`/api/invite/${token}`),
 
   revoke: (inviteId: string) =>
     apiCall<{ success: boolean }>(`/api/invites/${inviteId}`, {
       method: "DELETE",
     }),
-
-  lookup: (token: string) =>
-    apiCall<{ email: string; role: UserRole }>(`/api/invite/${token}`),
-
-  accept: (token: string, data: { name: string; password: string }) =>
-    apiCall<{ success: boolean; email: string }>(
-      `/api/invite/${token}/accept`,
-      {
-        method: "POST",
-        body: JSON.stringify(data),
-      }
-    ),
 };
 
 export const memberApi = {
@@ -763,25 +758,29 @@ export const memberApi = {
 
   updateProfile: (memberId: string, data: MemberProfileUpdate) =>
     apiCall<{ success: boolean }>(`/api/members/${memberId}/profile`, {
-      method: "PATCH",
       body: JSON.stringify(data),
+      method: "PATCH",
     }),
 
   updateRole: (memberId: string, role: UserRole) =>
     apiCall<{ success: boolean }>(`/api/members/${memberId}`, {
-      method: "PATCH",
       body: JSON.stringify({ role }),
+      method: "PATCH",
     }),
 };
 
 export const departmentApi = {
-  list: () => apiCall<Department[]>("/api/departments"),
-
   create: (data: { name: string; parentId?: string | null }) =>
     apiCall<Omit<Department, "memberCount">>("/api/departments", {
-      method: "POST",
       body: JSON.stringify(data),
+      method: "POST",
     }),
+
+  delete: (departmentId: string) =>
+    apiCall<{ success: boolean }>(`/api/departments/${departmentId}`, {
+      method: "DELETE",
+    }),
+  list: () => apiCall<Department[]>("/api/departments"),
 
   update: (
     departmentId: string,
@@ -790,32 +789,26 @@ export const departmentApi = {
     apiCall<Omit<Department, "memberCount">>(
       `/api/departments/${departmentId}`,
       {
-        method: "PATCH",
         body: JSON.stringify(data),
+        method: "PATCH",
       }
     ),
-
-  delete: (departmentId: string) =>
-    apiCall<{ success: boolean }>(`/api/departments/${departmentId}`, {
-      method: "DELETE",
-    }),
 };
 
 export const processApi = {
-  list: () => apiCall<ProcessSummary[]>("/api/processes"),
-
-  get: (processId: string) =>
-    apiCall<ProcessSummary>(`/api/processes/${processId}`),
-
   create: (data: {
     workflowId: string;
     category?: string | null;
     startFormFields?: FormField[];
   }) =>
     apiCall<ProcessSummary>("/api/processes", {
-      method: "POST",
       body: JSON.stringify(data),
+      method: "POST",
     }),
+
+  get: (processId: string) =>
+    apiCall<ProcessSummary>(`/api/processes/${processId}`),
+  list: () => apiCall<ProcessSummary[]>("/api/processes"),
 
   update: (
     processId: string,
@@ -826,8 +819,8 @@ export const processApi = {
     }
   ) =>
     apiCall<ProcessSummary>(`/api/processes/${processId}`, {
-      method: "PATCH",
       body: JSON.stringify(data),
+      method: "PATCH",
     }),
 };
 
@@ -852,6 +845,19 @@ export type CaseDetail = {
 };
 
 export const caseApi = {
+  create: (data: {
+    processDefinitionId: string;
+    title: string;
+    priority?: CasePriority;
+    dueAt?: string | null;
+    metadata?: Record<string, unknown>;
+  }) =>
+    apiCall<CaseRecord>("/api/bpma/cases", {
+      body: JSON.stringify(data),
+      method: "POST",
+    }),
+
+  get: (caseId: string) => apiCall<CaseDetail>(`/api/bpma/cases/${caseId}`),
   list: (filters?: {
     all?: boolean;
     status?: CaseStatus;
@@ -875,20 +881,6 @@ export const caseApi = {
     return apiCall<CaseRecord[]>(`/api/bpma/cases${query ? `?${query}` : ""}`);
   },
 
-  get: (caseId: string) => apiCall<CaseDetail>(`/api/bpma/cases/${caseId}`),
-
-  create: (data: {
-    processDefinitionId: string;
-    title: string;
-    priority?: CasePriority;
-    dueAt?: string | null;
-    metadata?: Record<string, unknown>;
-  }) =>
-    apiCall<CaseRecord>("/api/bpma/cases", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
-
   update: (
     caseId: string,
     data: {
@@ -901,32 +893,31 @@ export const caseApi = {
     }
   ) =>
     apiCall<CaseRecord>(`/api/bpma/cases/${caseId}`, {
-      method: "PATCH",
       body: JSON.stringify(data),
+      method: "PATCH",
     }),
 };
 
 export const taskApi = {
-  list: (status?: TaskStatus) =>
-    apiCall<TaskRecord[]>(
-      `/api/bpma/tasks${status ? `?status=${status}` : ""}`
-    ),
-
-  get: (taskId: string) => apiCall<TaskRecord>(`/api/bpma/tasks/${taskId}`),
-
   complete: (
     taskId: string,
     data: { outcome?: string; values?: Record<string, unknown> }
   ) =>
     apiCall<TaskRecord>(`/api/bpma/tasks/${taskId}/complete`, {
-      method: "POST",
       body: JSON.stringify(data),
+      method: "POST",
     }),
+
+  get: (taskId: string) => apiCall<TaskRecord>(`/api/bpma/tasks/${taskId}`),
+  list: (status?: TaskStatus) =>
+    apiCall<TaskRecord[]>(
+      `/api/bpma/tasks${status ? `?status=${status}` : ""}`
+    ),
 
   reassign: (taskId: string, assigneeId: string) =>
     apiCall<TaskRecord>(`/api/bpma/tasks/${taskId}/reassign`, {
-      method: "POST",
       body: JSON.stringify({ assigneeId }),
+      method: "POST",
     }),
 };
 
@@ -940,21 +931,22 @@ export const notificationApi = {
       params.set("limit", String(options.limit));
     }
     const query = params.toString();
-    return apiCall<{ notifications: NotificationRecord[]; unreadCount: number }>(
-      `/api/bpma/notifications${query ? `?${query}` : ""}`
-    );
+    return apiCall<{
+      notifications: NotificationRecord[];
+      unreadCount: number;
+    }>(`/api/bpma/notifications${query ? `?${query}` : ""}`);
   },
-
-  markRead: (ids: string[]) =>
-    apiCall<{ success: boolean }>("/api/bpma/notifications", {
-      method: "PATCH",
-      body: JSON.stringify({ ids }),
-    }),
 
   markAllRead: () =>
     apiCall<{ success: boolean }>("/api/bpma/notifications", {
-      method: "PATCH",
       body: JSON.stringify({ all: true }),
+      method: "PATCH",
+    }),
+
+  markRead: (ids: string[]) =>
+    apiCall<{ success: boolean }>("/api/bpma/notifications", {
+      body: JSON.stringify({ ids }),
+      method: "PATCH",
     }),
 };
 

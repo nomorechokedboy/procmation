@@ -16,14 +16,14 @@ import {
 
 // Construct schema object for drizzle adapter
 const schema = {
-  user: users,
-  session: sessions,
   account: accounts,
+  session: sessions,
+  user: users,
   verification: verifications,
-  workflows,
-  workflowExecutions,
   workflowExecutionLogs,
+  workflowExecutions,
   workflowExecutionsRelations,
+  workflows,
 };
 
 // Determine the base URL for authentication
@@ -57,20 +57,11 @@ const plugins = [
         genericOAuth({
           config: [
             {
-              providerId: "vercel",
+              authorizationUrl: "https://vercel.com/oauth/authorize",
               clientId: process.env.VERCEL_CLIENT_ID,
               clientSecret: process.env.VERCEL_CLIENT_SECRET || "",
-              authorizationUrl: "https://vercel.com/oauth/authorize",
-              tokenUrl: "https://api.vercel.com/login/oauth/token",
-              userInfoUrl: "https://api.vercel.com/login/oauth/userinfo",
-              // Include read-write:team scope when AI Gateway User Keys is enabled
-              // This grants APIKey and APIKeyAiGateway permissions for creating user keys
-              scopes: isAiGatewayManagedKeysEnabled()
-                ? ["openid", "email", "profile", "read-write:team"]
-                : ["openid", "email", "profile"],
-              discoveryUrl: undefined,
-              pkce: true,
               disableSignUp: true,
+              discoveryUrl: undefined,
               getUserInfo: async (tokens) => {
                 const response = await fetch(
                   "https://api.vercel.com/login/oauth/userinfo",
@@ -83,13 +74,22 @@ const plugins = [
                 const profile = await response.json();
                 console.log("[Vercel OAuth] userinfo response:", profile);
                 return {
-                  id: profile.sub,
                   email: profile.email,
-                  name: profile.name ?? profile.preferred_username,
                   emailVerified: profile.email_verified ?? true,
+                  id: profile.sub,
                   image: profile.picture,
+                  name: profile.name ?? profile.preferred_username,
                 };
               },
+              pkce: true,
+              providerId: "vercel",
+              // Include read-write:team scope when AI Gateway User Keys is enabled
+              // This grants APIKey and APIKeyAiGateway permissions for creating user keys
+              scopes: isAiGatewayManagedKeysEnabled()
+                ? ["openid", "email", "profile", "read-write:team"]
+                : ["openid", "email", "profile"],
+              tokenUrl: "https://api.vercel.com/login/oauth/token",
+              userInfoUrl: "https://api.vercel.com/login/oauth/userinfo",
             },
           ],
         }),
@@ -105,32 +105,32 @@ export const auth = betterAuth({
   }),
   // Invite-only: accounts are created by the setup flow or by accepting an invitation
   emailAndPassword: {
-    enabled: true,
     disableSignUp: true,
+    enabled: true,
     requireEmailVerification: false,
   },
-  user: {
-    additionalFields: {
-      role: {
-        type: "string",
-        defaultValue: "member",
-        input: false,
-      },
-    },
-  },
+  plugins,
   socialProviders: {
     github: {
       clientId: process.env.GITHUB_CLIENT_ID || "",
       clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
-      enabled: !!process.env.GITHUB_CLIENT_ID,
       disableImplicitSignUp: true,
+      enabled: !!process.env.GITHUB_CLIENT_ID,
     },
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID || "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-      enabled: !!process.env.GOOGLE_CLIENT_ID,
       disableImplicitSignUp: true,
+      enabled: !!process.env.GOOGLE_CLIENT_ID,
     },
   },
-  plugins,
+  user: {
+    additionalFields: {
+      role: {
+        defaultValue: "member",
+        input: false,
+        type: "string",
+      },
+    },
+  },
 });

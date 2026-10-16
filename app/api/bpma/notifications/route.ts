@@ -26,8 +26,8 @@ export async function GET(request: Request) {
 
   const [rows, unreadCount] = await Promise.all([
     listNotifications(guard.user.id, {
-      unreadOnly: params.get("unread") === "true",
       limit,
+      unreadOnly: params.get("unread") === "true",
     }),
     countUnreadNotifications(guard.user.id),
   ]);
@@ -44,7 +44,10 @@ export async function PATCH(request: Request) {
 
   const body = await readJsonObject(request);
   if (!body) {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 }
+    );
   }
 
   if (body.all === true) {

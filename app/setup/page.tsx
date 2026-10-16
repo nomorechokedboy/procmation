@@ -38,7 +38,7 @@ export default function SetupPage() {
     setLoading(true);
 
     try {
-      await api.setup.createAdmin({ name, email, password });
+      await api.setup.createAdmin({ email, name, password });
       const response = await signIn.email({ email, password });
       if (response.error) {
         setError(response.error.message || "Sign in failed");
@@ -95,7 +95,9 @@ export default function SetupPage() {
             type="password"
             value={password}
           />
-          <p className="text-muted-foreground text-xs">At least 8 characters.</p>
+          <p className="text-muted-foreground text-xs">
+            At least 8 characters.
+          </p>
         </div>
         {error ? <p className="text-destructive text-sm">{error}</p> : null}
         <Button className="w-full" disabled={loading} type="submit">

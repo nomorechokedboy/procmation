@@ -24,6 +24,7 @@ import { useSession } from "@/lib/auth-client";
 type StatusAction = { label: string; status: ProcessStatus };
 
 const STATUS_ACTIONS: Record<ProcessStatus, StatusAction[]> = {
+  archived: [{ label: "Restore", status: "draft" }],
   draft: [
     { label: "Publish", status: "published" },
     { label: "Archive", status: "archived" },
@@ -32,14 +33,14 @@ const STATUS_ACTIONS: Record<ProcessStatus, StatusAction[]> = {
     { label: "Unpublish", status: "draft" },
     { label: "Archive", status: "archived" },
   ],
-  archived: [{ label: "Restore", status: "draft" }],
 };
 
-const STATUS_BADGE: Record<ProcessStatus, "default" | "secondary" | "outline"> = {
-  draft: "secondary",
-  published: "default",
-  archived: "outline",
-};
+const STATUS_BADGE: Record<ProcessStatus, "default" | "secondary" | "outline"> =
+  {
+    archived: "outline",
+    draft: "secondary",
+    published: "default",
+  };
 
 export default function ProcessesPage() {
   const { data: session, isPending } = useSession();
@@ -73,7 +74,10 @@ export default function ProcessesPage() {
     }
   }, [isAdmin, load]);
 
-  const changeStatus = async (process: ProcessSummary, status: ProcessStatus) => {
+  const changeStatus = async (
+    process: ProcessSummary,
+    status: ProcessStatus
+  ) => {
     try {
       await api.process.update(process.id, { status });
       toast.success(
@@ -91,7 +95,9 @@ export default function ProcessesPage() {
     return null;
   }
 
-  const usedWorkflowIds = new Set(processes.map((process) => process.workflowId));
+  const usedWorkflowIds = new Set(
+    processes.map((process) => process.workflowId)
+  );
   const availableWorkflows = workflows.filter(
     (workflow) => !usedWorkflowIds.has(workflow.id)
   );
