@@ -3,15 +3,30 @@
  * This executor captures step executions through the workflow SDK for better observability
  */
 
+import { createHook } from "workflow";
 import {
   preValidateConditionExpression,
   validateConditionExpression,
 } from "@/lib/condition-validator";
 import {
+  CONDITION_FALSE,
+  CONDITION_TRUE,
+  getTaskOutcomes,
+  targetsForBranch,
+  taskToken,
+} from "@/lib/process-branches";
+import {
+  HUMAN_TASK_ACTION,
+  type HumanTaskConfig,
+  type HumanTaskDecision,
+} from "@/lib/types/human-task";
+import {
   getActionLabel,
   getStepImporter,
   type StepImporter,
 } from "./step-registry";
+import { createHumanTaskStep } from "./steps/human-task";
+import { finishInstanceStep } from "./steps/process-instance";
 import type { StepContext } from "./steps/step-handler";
 import { triggerStep } from "./steps/trigger";
 import { getErrorMessageAsync } from "./utils";
@@ -50,6 +65,8 @@ export type WorkflowExecutionInput = {
   triggerInput?: Record<string, unknown>;
   executionId?: string;
   workflowId?: string; // Used by steps to fetch credentials
+  // Set when the run belongs to a process instance; Human Task nodes need it
+  instanceId?: string;
 };
 
 /**
@@ -378,14 +395,25 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
 
   console.log("[Workflow Executor] Starting workflow execution");
 
-  const { nodes, edges, triggerInput = {}, executionId, workflowId } = input;
+  const {
+    nodes,
+    edges,
+    triggerInput = {},
+    executionId,
+    workflowId,
+    instanceId,
+  } = input;
 
   console.log("[Workflow Executor] Input:", {
     edgeCount: edges.length,
     hasExecutionId: !!executionId,
     nodeCount: nodes.length,
     workflowId: workflowId || "none",
+    instanceId: instanceId || "none",
   });
+
+  // The last outcome a person chose, recorded on the instance when it ends
+  let lastOutcome: string | null = null;
 
   const outputs: NodeOutputs = {};
   const results: Record<string, ExecutionResult> = {};
@@ -393,10 +421,15 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
   // Build node and edge maps
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
   const edgesBySource = new Map<string, string[]>();
+  const outgoingEdges = new Map<string, WorkflowEdge[]>();
   for (const edge of edges) {
     const targets = edgesBySource.get(edge.source) || [];
     targets.push(edge.target);
     edgesBySource.set(edge.source, targets);
+
+    const outgoing = outgoingEdges.get(edge.source) || [];
+    outgoing.push(edge);
+    outgoingEdges.set(edge.source, outgoing);
   }
 
   // Find trigger nodes
@@ -431,6 +464,59 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
       return (node.data.config?.triggerType as string) || "Trigger";
     }
     return node.data.type;
+  }
+
+  // Opens a task and suspends the run until the assignee completes it.
+  // The hook is created before the task becomes visible so a fast completion
+  // can never arrive before there is something to resume.
+  async function runHumanTask(
+    node: WorkflowNode,
+    config: Record<string, unknown>,
+    context: StepContext
+  ): Promise<ExecutionResult & { outcome?: string }> {
+    if (!instanceId) {
+      return {
+        success: false,
+        error:
+          'A "Human Task" needs a process instance. Start the run from the Processes page instead of the editor test button.',
+      };
+    }
+
+    const taskConfig = config as HumanTaskConfig;
+    const outcomes = getTaskOutcomes(taskConfig);
+    const name =
+      (taskConfig.taskName && String(taskConfig.taskName).trim()) ||
+      node.data.label ||
+      "Task";
+
+    const hook = createHook<HumanTaskDecision>({
+      token: taskToken(instanceId, node.id),
+    });
+
+    await createHumanTaskStep({
+      instanceId,
+      nodeId: node.id,
+      name,
+      assigneeType: taskConfig.assigneeType ?? "manager",
+      assigneeUserId: taskConfig.assigneeUserId,
+      assigneeDepartmentId: taskConfig.assigneeDepartmentId,
+      formFields: taskConfig.formFields ?? [],
+      outcomes,
+      _context: context,
+    });
+
+    const decision = await hook;
+    lastOutcome = decision.outcome;
+
+    return {
+      success: true,
+      outcome: decision.outcome,
+      data: {
+        outcome: decision.outcome,
+        values: decision.values,
+        completedBy: decision.by,
+      },
+    };
   }
 
   // Helper to execute a single node
@@ -562,6 +648,35 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
           nodeType: actionType,
         };
 
+        if (actionType === HUMAN_TASK_ACTION) {
+          const taskResult = await runHumanTask(
+            node,
+            processedConfig,
+            stepContext
+          );
+          result = {
+            success: taskResult.success,
+            data: taskResult.data,
+            error: taskResult.error,
+          };
+          results[nodeId] = result;
+          const sanitizedTaskNodeId = nodeId.replace(/[^a-zA-Z0-9]/g, "_");
+          outputs[sanitizedTaskNodeId] = {
+            label: node.data.label || nodeId,
+            data: result.data,
+          };
+          if (result.success && taskResult.outcome) {
+            const nextNodes = targetsForBranch(
+              outgoingEdges.get(nodeId) || [],
+              taskResult.outcome
+            );
+            await Promise.all(
+              nextNodes.map((nextNodeId) => executeNode(nextNodeId, visited))
+            );
+          }
+          return;
+        }
+
         // Execute the action step with stepHandler (logging is handled inside)
         // IMPORTANT: We pass integrationId via config, not actual credentials
         // Steps fetch credentials internally using fetchCredentials(integrationId)
@@ -637,7 +752,7 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
           node.data.config?.actionType === "Condition";
 
         if (isConditionNode) {
-          // For condition nodes, only execute next nodes if condition is true
+          // Condition nodes follow the true or false exit
           const conditionResult = (result.data as { condition?: boolean })
             ?.condition;
           console.log(
@@ -645,22 +760,23 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
             conditionResult
           );
 
-          if (conditionResult === true) {
-            const nextNodes = edgesBySource.get(nodeId) || [];
-            console.log(
-              "[Workflow Executor] Condition is true, executing",
-              nextNodes.length,
-              "next nodes in parallel"
-            );
-            // Execute all next nodes in parallel
-            await Promise.all(
-              nextNodes.map((nextNodeId) => executeNode(nextNodeId, visited))
-            );
-          } else {
-            console.log(
-              "[Workflow Executor] Condition is false, skipping next nodes"
-            );
-          }
+          const handle = conditionResult === true ? CONDITION_TRUE : CONDITION_FALSE;
+          // Edges drawn before conditions had two exits count as "true"
+          const nextNodes = targetsForBranch(
+            outgoingEdges.get(nodeId) || [],
+            handle,
+            CONDITION_TRUE
+          );
+          console.log(
+            "[Workflow Executor] Condition took",
+            handle,
+            "branch, executing",
+            nextNodes.length,
+            "next nodes in parallel"
+          );
+          await Promise.all(
+            nextNodes.map((nextNodeId) => executeNode(nextNodeId, visited))
+          );
         } else {
           // For non-condition nodes, execute all next nodes in parallel
           const nextNodes = edgesBySource.get(nodeId) || [];
@@ -704,6 +820,15 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
       success: finalSuccess,
     });
 
+    if (instanceId) {
+      await finishInstanceStep({
+        instanceId,
+        success: finalSuccess,
+        outcome: lastOutcome,
+        error: Object.values(results).find((r) => !r.success)?.error,
+      });
+    }
+
     // Update execution record if we have an executionId
     if (executionId) {
       try {
@@ -738,6 +863,15 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
     );
 
     const errorMessage = await getErrorMessageAsync(error);
+
+    if (instanceId) {
+      await finishInstanceStep({
+        instanceId,
+        success: false,
+        outcome: lastOutcome,
+        error: errorMessage,
+      });
+    }
 
     // Update execution record with error if we have an executionId
     if (executionId) {
