@@ -836,6 +836,7 @@ export const PanelInner = () => {
                   config={selectedNode.data.config || {}}
                   disabled={isGenerating || !isOwner}
                   isOwner={isOwner}
+                  key={selectedNode.id}
                   onUpdateConfig={handleUpdateConfig}
                 />
               ) : null}

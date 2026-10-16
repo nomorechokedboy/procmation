@@ -2,6 +2,7 @@
 
 import {
   ChevronRight,
+  ClipboardCheck,
   Eye,
   EyeOff,
   Grid3X3,
@@ -52,6 +53,12 @@ const SYSTEM_ACTIONS: ActionType[] = [
     description: "Query your database",
     id: "Database Query",
     label: "Database Query",
+  },
+  {
+    category: "System",
+    description: "Ask a person or team to review, approve or fill in a form",
+    id: "Human Task",
+    label: "Human Task",
   },
   {
     category: "System",
@@ -117,6 +124,11 @@ function ActionIcon({
   if (action.integration) {
     return (
       <IntegrationIcon className={className} integration={action.integration} />
+    );
+  }
+  if (action.id === "Human Task") {
+    return (
+      <ClipboardCheck className={cn(className, "text-muted-foreground")} />
     );
   }
   if (action.category === "System") {

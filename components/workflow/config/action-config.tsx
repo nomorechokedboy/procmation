@@ -38,6 +38,7 @@ import {
   getAllIntegrations,
 } from "@/plugins";
 import { ActionConfigRenderer } from "./action-config-renderer";
+import { HumanTaskFields } from "./human-task-fields";
 import { SchemaBuilder, type SchemaField } from "./schema-builder";
 
 type ActionConfigProps = {
@@ -248,6 +249,14 @@ function SystemActionFields({
           onUpdateConfig={onUpdateConfig}
         />
       );
+    case "Human Task":
+      return (
+        <HumanTaskFields
+          config={config}
+          disabled={disabled}
+          onUpdateConfig={onUpdateConfig}
+        />
+      );
     case "Condition":
       return (
         <ConditionFields
@@ -265,6 +274,7 @@ function SystemActionFields({
 const SYSTEM_ACTIONS: Array<{ id: string; label: string }> = [
   { id: "HTTP Request", label: "HTTP Request" },
   { id: "Database Query", label: "Database Query" },
+  { id: "Human Task", label: "Human Task" },
   { id: "Condition", label: "Condition" },
 ];
 

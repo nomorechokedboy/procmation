@@ -18,9 +18,48 @@ export type NodeProps = ComponentProps<typeof Card> & {
     source: boolean;
   };
   status?: "idle" | "running" | "success" | "error";
+  // Labelled exits drawn instead of the single source handle
+  branches?: Array<{ id: string; label: string }>;
 };
 
-export const Node = ({ handles, className, status, ...props }: NodeProps) => (
+function BranchHandles({
+  branches,
+}: {
+  branches: Array<{ id: string; label: string }>;
+}) {
+  return (
+    <>
+      {branches.map((branch, index) => {
+        const top = `${((index + 1) / (branches.length + 1)) * 100}%`;
+        return (
+          <div key={branch.id}>
+            <Handle
+              id={branch.id}
+              position={Position.Right}
+              style={{ top }}
+              type="source"
+            />
+            <span
+              className="pointer-events-none absolute right-3 -translate-y-1/2 rounded bg-secondary px-1.5 py-0.5 font-medium text-[10px] text-muted-foreground"
+              data-testid={`branch-label-${branch.id}`}
+              style={{ top }}
+            >
+              {branch.label}
+            </span>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+export const Node = ({
+  handles,
+  branches,
+  className,
+  status,
+  ...props
+}: NodeProps) => (
   <Card
     className={cn(
       "node-container relative size-full h-auto w-sm gap-0 rounded-md bg-card p-0 transition-all duration-200",
@@ -32,7 +71,12 @@ export const Node = ({ handles, className, status, ...props }: NodeProps) => (
   >
     {status === "running" && <AnimatedBorder />}
     {handles.target && <Handle position={Position.Left} type="target" />}
-    {handles.source && <Handle position={Position.Right} type="source" />}
+    {handles.source && branches && branches.length > 0 ? (
+      <BranchHandles branches={branches} />
+    ) : null}
+    {handles.source && !(branches && branches.length > 0) ? (
+      <Handle position={Position.Right} type="source" />
+    ) : null}
     {props.children}
   </Card>
 );
