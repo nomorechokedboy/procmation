@@ -9,9 +9,9 @@ import {
   reopenTask,
 } from "@/lib/db/bpma";
 import { taskToken } from "@/lib/process-branches";
-import type { HumanTaskDecision } from "@/lib/types/human-task";
 import { validateFormValues } from "@/lib/process-form-validation";
 import { requireUser } from "@/lib/session";
+import type { HumanTaskDecision } from "@/lib/types/human-task";
 import type { FormField } from "@/lib/types/process-form";
 
 type Params = { params: Promise<{ id: string }> };
@@ -91,9 +91,9 @@ export async function POST(request: Request, { params }: Params) {
   // Let the waiting process continue. If it cannot be reached, put the task
   // back so it is not finished while the process still waits for it.
   const decision: HumanTaskDecision = {
+    by: guard.user.id,
     outcome: outcome ?? "",
     values: validated.values,
-    by: guard.user.id,
   };
   try {
     await resumeHook(taskToken(task.instanceId, task.nodeId), decision);

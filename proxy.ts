@@ -26,10 +26,7 @@ function isInternalWorkflowCall(request: NextRequest): boolean {
   if (!LOOPBACK_HOSTS.has(host)) {
     return false;
   }
-  const client = request.headers
-    .get("x-forwarded-for")
-    ?.split(",")[0]
-    ?.trim();
+  const client = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   return client === undefined || LOOPBACK_ADDRESSES.has(client);
 }
 

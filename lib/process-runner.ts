@@ -2,8 +2,8 @@ import "server-only";
 
 import { eq } from "drizzle-orm";
 import { start } from "workflow/api";
-import { type NewCaseInput, createCaseInTx } from "@/lib/db/bpma";
 import { db } from "@/lib/db";
+import { createCaseInTx, type NewCaseInput } from "@/lib/db/bpma";
 import {
   type Case,
   cases,
@@ -30,10 +30,10 @@ export type StartCaseInput = NewCaseInput & {
 export async function startProcessCase(input: StartCaseInput): Promise<Case> {
   const [workflow] = await db
     .select({
-      id: workflows.id,
-      userId: workflows.userId,
-      nodes: workflows.nodes,
       edges: workflows.edges,
+      id: workflows.id,
+      nodes: workflows.nodes,
+      userId: workflows.userId,
     })
     .from(workflows)
     .where(eq(workflows.id, input.workflowId));
@@ -43,22 +43,22 @@ export async function startProcessCase(input: StartCaseInput): Promise<Case> {
 
   const created = await db.transaction(async (tx) => {
     const newCase = await createCaseInTx(tx, {
-      processDefinitionId: input.processDefinitionId,
-      title: input.title,
-      priority: input.priority,
+      dueAt: input.dueAt,
       initiatorId: input.initiatorId,
       metadata: { ...input.metadata, startValues: input.startValues },
-      dueAt: input.dueAt,
+      priority: input.priority,
+      processDefinitionId: input.processDefinitionId,
+      title: input.title,
     });
 
     // The run is listed under the workflow's owner, who edits the process
     const [execution] = await tx
       .insert(workflowExecutions)
       .values({
-        workflowId: workflow.id,
-        userId: workflow.userId,
-        status: "running",
         input: input.startValues,
+        status: "running",
+        userId: workflow.userId,
+        workflowId: workflow.id,
       })
       .returning({ id: workflowExecutions.id });
 
@@ -72,9 +72,9 @@ export async function startProcessCase(input: StartCaseInput): Promise<Case> {
       .returning({ id: processInstances.id });
 
     await tx.insert(formSubmissions).values({
+      data: input.startValues,
       instanceId: instance.id,
       submittedById: input.requester.id,
-      data: input.startValues,
     });
 
     const [linked] = await tx
@@ -83,23 +83,23 @@ export async function startProcessCase(input: StartCaseInput): Promise<Case> {
       .where(eq(cases.id, newCase.id))
       .returning();
 
-    return { linked, instanceId: instance.id, executionId: execution.id };
+    return { executionId: execution.id, instanceId: instance.id, linked };
   });
 
   try {
     const run = await start(executeWorkflow, [
       {
-        nodes: workflow.nodes as WorkflowNode[],
         edges: workflow.edges as WorkflowEdge[],
+        executionId: created.executionId,
+        instanceId: created.instanceId,
+        nodes: workflow.nodes as WorkflowNode[],
         triggerInput: {
           ...input.startValues,
-          requester: input.requester,
           caseNumber: created.linked.caseNumber,
           caseTitle: created.linked.title,
+          requester: input.requester,
         },
-        executionId: created.executionId,
         workflowId: workflow.id,
-        instanceId: created.instanceId,
       },
     ]);
 
@@ -112,11 +112,15 @@ export async function startProcessCase(input: StartCaseInput): Promise<Case> {
     await db.transaction(async (tx) => {
       await tx
         .update(processInstances)
-        .set({ status: "failed", updatedAt: new Date(), completedAt: new Date() })
+        .set({
+          completedAt: new Date(),
+          status: "failed",
+          updatedAt: new Date(),
+        })
         .where(eq(processInstances.id, created.instanceId));
       await tx
         .update(workflowExecutions)
-        .set({ status: "error", error: message, completedAt: new Date() })
+        .set({ completedAt: new Date(), error: message, status: "error" })
         .where(eq(workflowExecutions.id, created.executionId));
       await tx
         .update(cases)

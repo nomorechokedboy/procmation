@@ -52,7 +52,9 @@ export function targetsForBranch(
   return edges
     .filter((edge) => {
       const handle = edge.sourceHandle ?? null;
-      return handle === handleId || (handle === null && legacyHandle === handleId);
+      return (
+        handle === handleId || (handle === null && legacyHandle === handleId)
+      );
     })
     .map((edge) => edge.target);
 }

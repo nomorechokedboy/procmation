@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   }
 
   const encoder = new TextEncoder();
-  let cleanup = () => {};
+  let cleanup: () => void = () => undefined;
 
   const stream = new ReadableStream<Uint8Array>({
     cancel() {

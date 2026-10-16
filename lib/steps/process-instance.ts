@@ -7,8 +7,8 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   type CaseStatus,
-  caseTimeline,
   cases,
+  caseTimeline,
   processInstances,
 } from "@/lib/db/schema";
 
@@ -40,10 +40,10 @@ export async function finishInstanceStep(
     await tx
       .update(processInstances)
       .set({
-        status: input.success ? "completed" : "failed",
-        outcome: input.outcome,
-        updatedAt: now,
         completedAt: now,
+        outcome: input.outcome,
+        status: input.success ? "completed" : "failed",
+        updatedAt: now,
       })
       .where(eq(processInstances.id, input.instanceId));
 
@@ -63,14 +63,14 @@ export async function finishInstanceStep(
         .where(eq(cases.id, linkedCase.id));
       await tx.insert(caseTimeline).values({
         caseId: linkedCase.id,
+        data: { outcome: input.outcome, to: status },
         eventType: "status_changed",
-        data: { to: status, outcome: input.outcome },
       });
     } else {
       await tx.insert(caseTimeline).values({
         caseId: linkedCase.id,
-        eventType: "case_updated",
         data: { error: input.error ?? "The process failed" },
+        eventType: "case_updated",
       });
     }
   });

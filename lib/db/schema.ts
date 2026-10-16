@@ -13,8 +13,8 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-import type { IntegrationType } from "../types/integration";
 import type { TaskOutcome } from "../types/human-task";
+import type { IntegrationType } from "../types/integration";
 import type { FormField } from "../types/process-form";
 import { generateId } from "../utils/id";
 

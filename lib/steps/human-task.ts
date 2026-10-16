@@ -6,19 +6,18 @@
 import "server-only";
 
 import { and, eq } from "drizzle-orm";
-import { createNotification } from "@/lib/db/bpma";
 import { db } from "@/lib/db";
+import { createNotification } from "@/lib/db/bpma";
 import {
-  caseTimeline,
   cases,
+  caseTimeline,
   departments,
   processInstances,
   tasks,
   userProfiles,
   users,
 } from "@/lib/db/schema";
-import type { TaskOutcome } from "@/lib/types/human-task";
-import type { AssigneeType } from "@/lib/types/human-task";
+import type { AssigneeType, TaskOutcome } from "@/lib/types/human-task";
 import type { FormField } from "@/lib/types/process-form";
 import { type StepInput, withStepLogging } from "./step-handler";
 
@@ -51,9 +50,11 @@ async function resolveAssignee(input: HumanTaskStepInput): Promise<Assignee> {
       .from(users)
       .where(eq(users.id, input.assigneeUserId));
     if (!user) {
-      throw new Error(`The person assigned to "${input.name}" no longer exists`);
+      throw new Error(
+        `The person assigned to "${input.name}" no longer exists`
+      );
     }
-    return { userId: user.id, departmentId: null };
+    return { departmentId: null, userId: user.id };
   }
 
   if (input.assigneeType === "department") {
@@ -69,7 +70,7 @@ async function resolveAssignee(input: HumanTaskStepInput): Promise<Assignee> {
         `The department assigned to "${input.name}" no longer exists`
       );
     }
-    return { userId: null, departmentId: department.id };
+    return { departmentId: department.id, userId: null };
   }
 
   // The manager of whoever started the process
@@ -86,7 +87,7 @@ async function resolveAssignee(input: HumanTaskStepInput): Promise<Assignee> {
       `Task "${input.name}" is assigned to the requester's manager, but the requester has no manager set`
     );
   }
-  return { userId: row.managerId, departmentId: null };
+  return { departmentId: null, userId: row.managerId };
 }
 
 async function openTask(input: HumanTaskStepInput): Promise<HumanTaskOpened> {
@@ -96,12 +97,12 @@ async function openTask(input: HumanTaskStepInput): Promise<HumanTaskOpened> {
     const [created] = await tx
       .insert(tasks)
       .values({
-        instanceId: input.instanceId,
-        nodeId: input.nodeId,
-        name: input.name,
-        assigneeId: assignee.userId,
         assigneeDepartmentId: assignee.departmentId,
+        assigneeId: assignee.userId,
         formFields: input.formFields,
+        instanceId: input.instanceId,
+        name: input.name,
+        nodeId: input.nodeId,
         outcomes: input.outcomes,
       })
       .onConflictDoNothing()
@@ -118,7 +119,7 @@ async function openTask(input: HumanTaskStepInput): Promise<HumanTaskOpened> {
             eq(tasks.nodeId, input.nodeId)
           )
         );
-      return { task: existing, caseId: null, isNew: false };
+      return { caseId: null, isNew: false, task: existing };
     }
 
     await tx
@@ -140,37 +141,38 @@ async function openTask(input: HumanTaskStepInput): Promise<HumanTaskOpened> {
       }
       await tx.insert(caseTimeline).values({
         caseId: linkedCase.id,
+        data: {
+          assigneeDepartmentId: assignee.departmentId,
+          assigneeId: assignee.userId,
+          name: input.name,
+        },
         eventType: "task_created",
         nodeId: input.nodeId,
-        data: {
-          name: input.name,
-          assigneeId: assignee.userId,
-          assigneeDepartmentId: assignee.departmentId,
-        },
       });
     }
 
-    return { task: created, caseId: linkedCase?.id ?? null, isNew: true };
+    return { caseId: linkedCase?.id ?? null, isNew: true, task: created };
   });
 
   if (opened.isNew && assignee.userId) {
     await createNotification({
-      userId: assignee.userId,
-      type: "task_assigned",
-      title: "A task is waiting for you",
       body: input.name,
-      taskId: opened.task.id,
       caseId: opened.caseId,
+      taskId: opened.task.id,
+      title: "A task is waiting for you",
+      type: "task_assigned",
+      userId: assignee.userId,
     });
   }
 
   return {
-    taskId: opened.task.id,
-    assigneeId: opened.task.assigneeId,
     assigneeDepartmentId: opened.task.assigneeDepartmentId,
+    assigneeId: opened.task.assigneeId,
+    taskId: opened.task.id,
   };
 }
 
+// biome-ignore lint/suspicious/useAwait: workflow "use step" requires async
 export async function createHumanTaskStep(
   input: HumanTaskStepInput
 ): Promise<HumanTaskOpened> {

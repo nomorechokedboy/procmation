@@ -1,13 +1,13 @@
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { readJsonObject } from "@/lib/api/read-json";
+import { db } from "@/lib/db";
 import { listCases } from "@/lib/db/bpma";
 import {
   CASE_PRIORITIES,
   CASE_STATUSES,
   MAX_CASE_TITLE_LENGTH,
 } from "@/lib/db/case-options";
-import { db } from "@/lib/db";
 import type { CasePriority, CaseStatus } from "@/lib/db/schema";
 import { processDefinitions } from "@/lib/db/schema";
 import { validateFormValues } from "@/lib/process-form-validation";
@@ -39,10 +39,10 @@ export async function GET(request: Request) {
   }
 
   const rows = await listCases({
-    visibleTo: viewAll ? undefined : guard.user.id,
-    status: (status as CaseStatus | null) ?? undefined,
     priority: (priority as CasePriority | null) ?? undefined,
     processDefinitionId: params.get("processId") ?? undefined,
+    status: (status as CaseStatus | null) ?? undefined,
+    visibleTo: viewAll ? undefined : guard.user.id,
   });
 
   return NextResponse.json(rows);
@@ -59,7 +59,10 @@ export async function POST(request: Request) {
 
   const body = await readJsonObject(request);
   if (!body) {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 }
+    );
   }
 
   const title = typeof body.title === "string" ? body.title.trim() : "";
@@ -100,9 +103,9 @@ export async function POST(request: Request) {
 
   const [definition] = await db
     .select({
+      startFormFields: processDefinitions.startFormFields,
       status: processDefinitions.status,
       workflowId: processDefinitions.workflowId,
-      startFormFields: processDefinitions.startFormFields,
     })
     .from(processDefinitions)
     .where(eq(processDefinitions.id, body.processDefinitionId));
@@ -126,19 +129,19 @@ export async function POST(request: Request) {
 
   try {
     const created = await startProcessCase({
-      processDefinitionId: body.processDefinitionId,
-      workflowId: definition.workflowId,
-      title,
-      priority,
+      dueAt,
       initiatorId: guard.user.id,
       metadata: metadata as Record<string, unknown>,
-      dueAt,
-      startValues: startValues.values,
+      priority,
+      processDefinitionId: body.processDefinitionId,
       requester: {
+        email: guard.user.email,
         id: guard.user.id,
         name: guard.user.name,
-        email: guard.user.email,
       },
+      startValues: startValues.values,
+      title,
+      workflowId: definition.workflowId,
     });
     return NextResponse.json(created, { status: 201 });
   } catch (error) {
