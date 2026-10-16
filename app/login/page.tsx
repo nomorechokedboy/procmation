@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api-client";
 import { signIn } from "@/lib/auth-client";
+import * as m from "@/paraglide/messages";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -37,7 +38,7 @@ export default function LoginPage() {
 
     const response = await signIn.email({ email, password });
     if (response.error) {
-      setError(response.error.message || "Sign in failed");
+      setError(response.error.message || m.login_failed());
       setLoading(false);
       return;
     }
@@ -47,13 +48,10 @@ export default function LoginPage() {
   };
 
   return (
-    <AuthShell
-      description="Sign in with the account you were invited with"
-      title="Sign in"
-    >
+    <AuthShell description={m.login_description()} title={m.login_title()}>
       <form className="space-y-4" onSubmit={handleSubmit}>
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">{m.login_email()}</Label>
           <Input
             autoComplete="email"
             id="email"
@@ -64,7 +62,7 @@ export default function LoginPage() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password">{m.login_password()}</Label>
           <Input
             autoComplete="current-password"
             id="password"
@@ -76,10 +74,10 @@ export default function LoginPage() {
         </div>
         {error ? <p className="text-destructive text-sm">{error}</p> : null}
         <Button className="w-full" disabled={loading} type="submit">
-          {loading ? "Signing in..." : "Sign in"}
+          {loading ? m.login_submitting() : m.login_submit()}
         </Button>
         <p className="text-center text-muted-foreground text-xs">
-          Accounts are created by invitation. Ask an admin for an invite link.
+          {m.login_invite_only()}
         </p>
       </form>
     </AuthShell>

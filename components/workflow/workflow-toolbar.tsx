@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { api } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
+import { SHOW_GENERIC_WORKFLOW_TOOLS } from "@/lib/bpma-features";
 import { integrationsAtom } from "@/lib/integrations-store";
 import type { IntegrationType } from "@/lib/types/integration";
 import {
@@ -1163,13 +1164,17 @@ function ToolbarActions({
       {/* Save/Download - Mobile Vertical */}
       <ButtonGroup className="flex lg:hidden" orientation="vertical">
         <SaveButton handleSave={actions.handleSave} state={state} />
-        <DownloadButton actions={actions} state={state} />
+        {SHOW_GENERIC_WORKFLOW_TOOLS && (
+          <DownloadButton actions={actions} state={state} />
+        )}
       </ButtonGroup>
 
       {/* Save/Download - Desktop Horizontal */}
       <ButtonGroup className="hidden lg:flex" orientation="horizontal">
         <SaveButton handleSave={actions.handleSave} state={state} />
-        <DownloadButton actions={actions} state={state} />
+        {SHOW_GENERIC_WORKFLOW_TOOLS && (
+          <DownloadButton actions={actions} state={state} />
+        )}
       </ButtonGroup>
 
       {/* Visibility Toggle */}

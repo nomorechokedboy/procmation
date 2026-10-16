@@ -12,7 +12,8 @@
       "!components/ai-elements",
       "!lib/utils.ts",
       "!hooks/use-mobile.ts",
-      "!plugins"
+      "!plugins",
+      "!paraglide"
     ]
   }
 }
