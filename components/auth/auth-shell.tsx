@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import {
   Card,
   CardContent,
@@ -17,6 +18,9 @@ type AuthShellProps = {
 export function AuthShell({ title, description, children }: AuthShellProps) {
   return (
     <div className="pointer-events-auto fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-background p-4">
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher />
+      </div>
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>{title}</CardTitle>

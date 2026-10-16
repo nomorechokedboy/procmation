@@ -1,0 +1,13 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "app_name": "Procmation",
+  "language_label": "Language",
+  "login_title": "Sign in",
+  "login_description": "Sign in with the account you were invited with",
+  "login_email": "Email",
+  "login_password": "Password",
+  "login_submit": "Sign in",
+  "login_submitting": "Signing in...",
+  "login_failed": "Sign in failed",
+  "login_invite_only": "Accounts are created by invitation. Ask an admin for an invite link."
+}

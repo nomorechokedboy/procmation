@@ -29,6 +29,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useIsTouch } from "@/hooks/use-touch";
+import {
+  isPluginActionVisible,
+  isSystemActionVisible,
+} from "@/lib/bpma-features";
 import { cn } from "@/lib/utils";
 import { getAllActions } from "@/plugins";
 
@@ -74,15 +78,20 @@ function useAllActions(): ActionType[] {
     const pluginActions = getAllActions();
 
     // Map plugin actions to ActionType format
-    const mappedPluginActions: ActionType[] = pluginActions.map((action) => ({
-      category: action.category,
-      description: action.description,
-      id: action.id,
-      integration: action.integration,
-      label: action.label,
-    }));
+    const mappedPluginActions: ActionType[] = pluginActions
+      .filter((action) => isPluginActionVisible(action.id))
+      .map((action) => ({
+        category: action.category,
+        description: action.description,
+        id: action.id,
+        integration: action.integration,
+        label: action.label,
+      }));
 
-    return [...SYSTEM_ACTIONS, ...mappedPluginActions];
+    return [
+      ...SYSTEM_ACTIONS.filter((action) => isSystemActionVisible(action.id)),
+      ...mappedPluginActions,
+    ];
   }, []);
 }
 

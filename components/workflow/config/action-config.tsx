@@ -28,6 +28,10 @@ import {
 } from "@/components/ui/tooltip";
 import { aiGatewayStatusAtom } from "@/lib/ai-gateway/state";
 import {
+  isPluginActionVisible,
+  isSystemActionVisible,
+} from "@/lib/bpma-features";
+import {
   integrationsAtom,
   integrationsVersionAtom,
 } from "@/lib/integrations-store";
@@ -295,14 +299,17 @@ function useCategoryData() {
       string,
       Array<{ id: string; label: string }>
     > = {
-      System: SYSTEM_ACTIONS,
+      System: SYSTEM_ACTIONS.filter((a) => isSystemActionVisible(a.id)),
     };
 
     for (const [category, actions] of Object.entries(pluginCategories)) {
-      allCategories[category] = actions.map((a) => ({
-        id: a.id,
-        label: a.label,
-      }));
+      const visible = actions.filter((a) => isPluginActionVisible(a.id));
+      if (visible.length > 0) {
+        allCategories[category] = visible.map((a) => ({
+          id: a.id,
+          label: a.label,
+        }));
+      }
     }
 
     return allCategories;
