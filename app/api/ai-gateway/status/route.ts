@@ -15,9 +15,9 @@ export async function GET(request: Request) {
   if (!enabled) {
     return Response.json({
       enabled: false,
-      signedIn: false,
-      isVercelUser: false,
       hasManagedKey: false,
+      isVercelUser: false,
+      signedIn: false,
     });
   }
 
@@ -28,9 +28,9 @@ export async function GET(request: Request) {
   if (!session?.user?.id) {
     return Response.json({
       enabled: true,
-      signedIn: false,
-      isVercelUser: false,
       hasManagedKey: false,
+      isVercelUser: false,
+      signedIn: false,
     });
   }
 
@@ -52,9 +52,9 @@ export async function GET(request: Request) {
 
   return Response.json({
     enabled: true,
-    signedIn: true,
-    isVercelUser,
     hasManagedKey: !!managedIntegration,
+    isVercelUser,
     managedIntegrationId: managedIntegration?.id,
+    signedIn: true,
   });
 }

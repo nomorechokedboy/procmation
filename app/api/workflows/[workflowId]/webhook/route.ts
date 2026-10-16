@@ -15,9 +15,9 @@ async function validateApiKey(
 ): Promise<{ valid: boolean; error?: string; statusCode?: number }> {
   if (!authHeader) {
     return {
-      valid: false,
       error: "Missing Authorization header",
       statusCode: 401,
+      valid: false,
     };
   }
 
@@ -27,7 +27,7 @@ async function validateApiKey(
     : authHeader;
 
   if (!key?.startsWith("wfb_")) {
-    return { valid: false, error: "Invalid API key format", statusCode: 401 };
+    return { error: "Invalid API key format", statusCode: 401, valid: false };
   }
 
   // Hash the key to compare with stored hash
@@ -39,15 +39,15 @@ async function validateApiKey(
   });
 
   if (!apiKey) {
-    return { valid: false, error: "Invalid API key", statusCode: 401 };
+    return { error: "Invalid API key", statusCode: 401, valid: false };
   }
 
   // Verify the API key belongs to the workflow owner
   if (apiKey.userId !== workflowUserId) {
     return {
-      valid: false,
       error: "You do not have permission to run this workflow",
       statusCode: 403,
+      valid: false,
     };
   }
 
@@ -63,9 +63,9 @@ async function validateApiKey(
 }
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Origin": "*",
 };
 
 // biome-ignore lint/nursery/useMaxParams: Background execution requires all workflow context
@@ -80,18 +80,18 @@ async function executeWorkflowBackground(
     console.log("[Webhook] Starting execution:", executionId);
 
     console.log("[Webhook] Calling executeWorkflow with:", {
-      nodeCount: nodes.length,
       edgeCount: edges.length,
       hasExecutionId: !!executionId,
+      nodeCount: nodes.length,
       workflowId,
     });
 
     start(executeWorkflow, [
       {
-        nodes,
         edges,
-        triggerInput: input,
         executionId,
+        nodes,
+        triggerInput: input,
         workflowId,
       },
     ]);
@@ -107,9 +107,9 @@ async function executeWorkflowBackground(
     await db
       .update(workflowExecutions)
       .set({
-        status: "error",
-        error: error instanceof Error ? error.message : "Unknown error",
         completedAt: new Date(),
+        error: error instanceof Error ? error.message : "Unknown error",
+        status: "error",
       })
       .where(eq(workflowExecutions.id, executionId));
   }
@@ -134,7 +134,7 @@ export async function POST(
     if (!workflow) {
       return NextResponse.json(
         { error: "Workflow not found" },
-        { status: 404, headers: corsHeaders }
+        { headers: corsHeaders, status: 404 }
       );
     }
 
@@ -145,7 +145,7 @@ export async function POST(
     if (!apiKeyValidation.valid) {
       return NextResponse.json(
         { error: apiKeyValidation.error },
-        { status: apiKeyValidation.statusCode || 401, headers: corsHeaders }
+        { headers: corsHeaders, status: apiKeyValidation.statusCode || 401 }
       );
     }
 
@@ -157,7 +157,7 @@ export async function POST(
     if (!triggerNode || triggerNode.data.config?.triggerType !== "Webhook") {
       return NextResponse.json(
         { error: "This workflow is not configured for webhook triggers" },
-        { status: 400, headers: corsHeaders }
+        { headers: corsHeaders, status: 400 }
       );
     }
 
@@ -173,7 +173,7 @@ export async function POST(
       );
       return NextResponse.json(
         { error: "Workflow contains invalid integration references" },
-        { status: 403, headers: corsHeaders }
+        { headers: corsHeaders, status: 403 }
       );
     }
 
@@ -184,10 +184,10 @@ export async function POST(
     const [execution] = await db
       .insert(workflowExecutions)
       .values({
-        workflowId,
-        userId: workflow.userId,
-        status: "running",
         input: body,
+        status: "running",
+        userId: workflow.userId,
+        workflowId,
       })
       .returning();
 
@@ -217,7 +217,7 @@ export async function POST(
         error:
           error instanceof Error ? error.message : "Failed to execute workflow",
       },
-      { status: 500, headers: corsHeaders }
+      { headers: corsHeaders, status: 500 }
     );
   }
 }

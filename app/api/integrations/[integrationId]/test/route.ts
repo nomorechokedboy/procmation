@@ -73,10 +73,10 @@ export async function POST(
     const testResult = await testFn(credentials);
 
     const result: TestConnectionResult = {
-      status: testResult.success ? "success" : "error",
       message: testResult.success
         ? "Connection successful"
         : testResult.error || "Connection failed",
+      status: testResult.success ? "success" : "error",
     };
 
     return NextResponse.json(result);
@@ -100,27 +100,27 @@ async function testDatabaseConnection(
   try {
     if (!databaseUrl) {
       return {
-        status: "error",
         message: "Connection failed",
+        status: "error",
       };
     }
 
     connection = postgres(databaseUrl, {
-      max: 1,
-      idle_timeout: 5,
       connect_timeout: 5,
+      idle_timeout: 5,
+      max: 1,
     });
 
     await connection`SELECT 1`;
 
     return {
-      status: "success",
       message: "Connection successful",
+      status: "success",
     };
   } catch {
     return {
-      status: "error",
       message: "Connection failed",
+      status: "error",
     };
   } finally {
     if (connection) {

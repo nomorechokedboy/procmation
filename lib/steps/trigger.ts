@@ -32,8 +32,8 @@ export type TriggerInput = StepInput & {
  */
 function executeTrigger(input: TriggerInput): TriggerResult {
   return {
-    success: true,
     data: input.triggerData,
+    success: true,
   };
 }
 
@@ -48,7 +48,7 @@ export async function triggerStep(input: TriggerInput): Promise<TriggerResult> {
   // If this is a completion-only call, just log workflow completion
   if (input._workflowComplete) {
     await logWorkflowComplete(input._workflowComplete);
-    return { success: true, data: {} };
+    return { data: {}, success: true };
   }
 
   // Normal trigger execution with logging

@@ -15,14 +15,14 @@ export async function GET(request: Request) {
     }
 
     const userData = await db.query.users.findFirst({
-      where: eq(users.id, session.user.id),
       columns: {
-        id: true,
-        name: true,
         email: true,
+        id: true,
         image: true,
         isAnonymous: true,
+        name: true,
       },
+      where: eq(users.id, session.user.id),
     });
 
     if (!userData) {
@@ -31,10 +31,10 @@ export async function GET(request: Request) {
 
     // Get the user's account to determine auth provider
     const userAccount = await db.query.accounts.findFirst({
-      where: eq(accounts.userId, session.user.id),
       columns: {
         providerId: true,
       },
+      where: eq(accounts.userId, session.user.id),
     });
 
     return NextResponse.json({
@@ -64,10 +64,10 @@ export async function PATCH(request: Request) {
 
     // Check if user is an OAuth user (can't update profile)
     const userAccount = await db.query.accounts.findFirst({
-      where: eq(accounts.userId, session.user.id),
       columns: {
         providerId: true,
       },
+      where: eq(accounts.userId, session.user.id),
     });
 
     // Block updates for OAuth users (vercel, github, google, etc.)

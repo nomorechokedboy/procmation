@@ -39,7 +39,7 @@ export const TriggerNode = memo(({ data, selected }: TriggerNodeProps) => {
         "flex h-48 w-48 flex-col items-center justify-center shadow-none transition-all duration-150 ease-out",
         selected && "border-primary"
       )}
-      handles={{ target: false, source: true }}
+      handles={{ source: true, target: false }}
       status={status}
     >
       {/* Status indicator badge in top right */}

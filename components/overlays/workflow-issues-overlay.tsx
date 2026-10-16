@@ -90,11 +90,11 @@ export function WorkflowIssuesOverlay({
 
   const openConnectionOverlay = (integrationType: IntegrationType) => {
     push(ConfigureConnectionOverlay, {
-      type: integrationType,
       onSuccess: () => {
         // Increment version to trigger auto-fix for nodes
         setIntegrationsVersion((v) => v + 1);
       },
+      type: integrationType,
     });
   };
 
@@ -120,7 +120,7 @@ export function WorkflowIssuesOverlay({
   return (
     <Overlay
       actions={[
-        { label: "Run Anyway", variant: "outline", onClick: handleRunAnyway },
+        { label: "Run Anyway", onClick: handleRunAnyway, variant: "outline" },
         { label: "Cancel", onClick: closeAll },
       ]}
       overlayId={overlayId}

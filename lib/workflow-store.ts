@@ -88,7 +88,7 @@ export const autosaveAtom = atom(
 
     const saveFunc = async () => {
       try {
-        await api.workflow.update(workflowId, { nodes, edges });
+        await api.workflow.update(workflowId, { edges, nodes });
         // Clear the unsaved changes indicator after successful save
         set(hasUnsavedChangesAtom, false);
       } catch (error) {
@@ -207,7 +207,7 @@ export const addNodeAtom = atom(null, (get, set, node: WorkflowNode) => {
   const currentNodes = get(nodesAtom);
   const currentEdges = get(edgesAtom);
   const history = get(historyAtom);
-  set(historyAtom, [...history, { nodes: currentNodes, edges: currentEdges }]);
+  set(historyAtom, [...history, { edges: currentEdges, nodes: currentNodes }]);
   set(futureAtom, []);
 
   // Deselect all existing nodes and add new node as selected
@@ -345,7 +345,7 @@ export const deleteNodeAtom = atom(null, (get, set, nodeId: string) => {
   // Save current state to history before making changes
   const currentEdges = get(edgesAtom);
   const history = get(historyAtom);
-  set(historyAtom, [...history, { nodes: currentNodes, edges: currentEdges }]);
+  set(historyAtom, [...history, { edges: currentEdges, nodes: currentNodes }]);
   set(futureAtom, []);
 
   const newNodes = currentNodes.filter((node) => node.id !== nodeId);
@@ -372,7 +372,7 @@ export const deleteEdgeAtom = atom(null, (get, set, edgeId: string) => {
   const currentNodes = get(nodesAtom);
   const currentEdges = get(edgesAtom);
   const history = get(historyAtom);
-  set(historyAtom, [...history, { nodes: currentNodes, edges: currentEdges }]);
+  set(historyAtom, [...history, { edges: currentEdges, nodes: currentNodes }]);
   set(futureAtom, []);
 
   const newEdges = currentEdges.filter((edge) => edge.id !== edgeId);
@@ -394,7 +394,7 @@ export const deleteSelectedItemsAtom = atom(null, (get, set) => {
   const currentNodes = get(nodesAtom);
   const currentEdges = get(edgesAtom);
   const history = get(historyAtom);
-  set(historyAtom, [...history, { nodes: currentNodes, edges: currentEdges }]);
+  set(historyAtom, [...history, { edges: currentEdges, nodes: currentNodes }]);
   set(futureAtom, []);
 
   // Get all selected nodes, excluding trigger nodes
@@ -438,7 +438,7 @@ export const clearWorkflowAtom = atom(null, (get, set) => {
   const currentNodes = get(nodesAtom);
   const currentEdges = get(edgesAtom);
   const history = get(historyAtom);
-  set(historyAtom, [...history, { nodes: currentNodes, edges: currentEdges }]);
+  set(historyAtom, [...history, { edges: currentEdges, nodes: currentNodes }]);
   set(futureAtom, []);
 
   set(nodesAtom, []);
@@ -480,10 +480,10 @@ export const saveWorkflowAsAtom = atom(
 
     try {
       const workflow = await api.workflow.create({
-        name,
         description,
-        nodes,
         edges,
+        name,
+        nodes,
       });
       return workflow;
     } catch (error) {
@@ -521,7 +521,7 @@ export const undoAtom = atom(null, (get, set) => {
   const future = get(futureAtom);
 
   // Save current state to future
-  set(futureAtom, [...future, { nodes: currentNodes, edges: currentEdges }]);
+  set(futureAtom, [...future, { edges: currentEdges, nodes: currentNodes }]);
 
   // Pop from history and set as current
   const newHistory = [...history];
@@ -549,7 +549,7 @@ export const redoAtom = atom(null, (get, set) => {
   const history = get(historyAtom);
 
   // Save current state to history
-  set(historyAtom, [...history, { nodes: currentNodes, edges: currentEdges }]);
+  set(historyAtom, [...history, { edges: currentEdges, nodes: currentNodes }]);
 
   // Pop from future and set as current
   const newFuture = [...future];

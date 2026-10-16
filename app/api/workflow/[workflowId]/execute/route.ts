@@ -23,19 +23,19 @@ async function executeWorkflowBackground(
     // Steps will fetch credentials internally using fetchWorkflowCredentials(workflowId)
     // This prevents credentials from being logged in Vercel's observability
     console.log("[Workflow Execute] Calling executeWorkflow with:", {
-      nodeCount: nodes.length,
       edgeCount: edges.length,
       hasExecutionId: !!executionId,
+      nodeCount: nodes.length,
       workflowId,
     });
 
     // Use start() from workflow/api to properly execute the workflow
     start(executeWorkflow, [
       {
-        nodes,
         edges,
-        triggerInput: input,
         executionId,
+        nodes,
+        triggerInput: input,
         workflowId, // Pass workflow ID so steps can fetch credentials
       },
     ]);
@@ -52,9 +52,9 @@ async function executeWorkflowBackground(
     await db
       .update(workflowExecutions)
       .set({
-        status: "error",
-        error: error instanceof Error ? error.message : "Unknown error",
         completedAt: new Date(),
+        error: error instanceof Error ? error.message : "Unknown error",
+        status: "error",
       })
       .where(eq(workflowExecutions.id, executionId));
   }
@@ -116,10 +116,10 @@ export async function POST(
     const [execution] = await db
       .insert(workflowExecutions)
       .values({
-        workflowId,
-        userId: session.user.id,
-        status: "running",
         input,
+        status: "running",
+        userId: session.user.id,
+        workflowId,
       })
       .returning();
 

@@ -47,7 +47,7 @@ export function SettingsOverlay({ overlayId }: SettingsOverlayProps) {
   const saveAccount = async () => {
     try {
       setSaving(true);
-      await api.user.update({ name: accountName, email: accountEmail });
+      await api.user.update({ email: accountEmail, name: accountName });
       await loadAccount();
       toast.success("Settings saved");
       closeAll();
@@ -62,12 +62,12 @@ export function SettingsOverlay({ overlayId }: SettingsOverlayProps) {
   return (
     <Overlay
       actions={[
-        { label: "Cancel", variant: "outline", onClick: closeAll },
+        { label: "Cancel", onClick: closeAll, variant: "outline" },
         {
-          label: "Save",
-          onClick: saveAccount,
-          loading: saving,
           disabled: loading,
+          label: "Save",
+          loading: saving,
+          onClick: saveAccount,
         },
       ]}
       overlayId={overlayId}

@@ -10,9 +10,9 @@ import { findActionById } from "@/plugins";
 
 // System action templates (non-plugin actions)
 const SYSTEM_ACTION_TEMPLATES: Record<string, string> = {
+  Condition: conditionTemplate,
   "Database Query": databaseQueryTemplate,
   "HTTP Request": httpRequestTemplate,
-  Condition: conditionTemplate,
 };
 
 const FALLBACK_ACTION_CODE = `async function actionStep(input: Record<string, unknown>) {

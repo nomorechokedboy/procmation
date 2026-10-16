@@ -31,15 +31,15 @@ export function getCredentials(
 
   // For production, use system environment variables
   return {
-    LINEAR_API_KEY: process.env.LINEAR_API_KEY,
-    LINEAR_TEAM_ID: process.env.LINEAR_TEAM_ID,
-    RESEND_API_KEY: process.env.RESEND_API_KEY,
-    RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL,
-    SLACK_API_KEY: process.env.SLACK_API_KEY,
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     AI_GATEWAY_API_KEY: process.env.AI_GATEWAY_API_KEY,
     DATABASE_URL: process.env.DATABASE_URL,
     FIRECRAWL_API_KEY: process.env.FIRECRAWL_API_KEY,
+    LINEAR_API_KEY: process.env.LINEAR_API_KEY,
+    LINEAR_TEAM_ID: process.env.LINEAR_TEAM_ID,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
+    RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL,
+    SLACK_API_KEY: process.env.SLACK_API_KEY,
   };
 }
 
@@ -55,16 +55,16 @@ export function enrichStepInput(
 
   const actionHandlers: Record<string, () => void> = {
     "Create Ticket": () => enrichLinearCredentials(enrichedInput, credentials),
+    "Database Query": () =>
+      enrichDatabaseCredentials(enrichedInput, credentials),
     "Find Issues": () => enrichLinearCredentials(enrichedInput, credentials),
+    "Generate Image": () => enrichAICredentials(enrichedInput, credentials),
+    "Generate Text": () => enrichAICredentials(enrichedInput, credentials),
+    Scrape: () => enrichFirecrawlCredentials(enrichedInput, credentials),
+    Search: () => enrichFirecrawlCredentials(enrichedInput, credentials),
     "Send Email": () => enrichResendCredentials(enrichedInput, credentials),
     "Send Slack Message": () =>
       enrichSlackCredentials(enrichedInput, credentials),
-    "Generate Text": () => enrichAICredentials(enrichedInput, credentials),
-    "Generate Image": () => enrichAICredentials(enrichedInput, credentials),
-    "Database Query": () =>
-      enrichDatabaseCredentials(enrichedInput, credentials),
-    Scrape: () => enrichFirecrawlCredentials(enrichedInput, credentials),
-    Search: () => enrichFirecrawlCredentials(enrichedInput, credentials),
   };
 
   const handler = actionHandlers[actionType];

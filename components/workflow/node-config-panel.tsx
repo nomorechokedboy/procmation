@@ -249,14 +249,14 @@ export const PanelInner = () => {
         ...selectedNode.data.config,
         integrationId: availableIntegrations[0].id,
       };
-      updateNodeData({ id: selectedNode.id, data: { config: newConfig } });
+      updateNodeData({ data: { config: newConfig }, id: selectedNode.id });
     } else if (availableIntegrations.length === 0) {
       // No integrations available - clear the invalid reference
       const newConfig = {
         ...selectedNode.data.config,
         integrationId: undefined,
       };
-      updateNodeData({ id: selectedNode.id, data: { config: newConfig } });
+      updateNodeData({ data: { config: newConfig }, id: selectedNode.id });
     }
     // If multiple integrations exist, let the user choose manually
   }, [selectedNode, globalIntegrations, isOwner, updateNodeData]);
@@ -303,8 +303,8 @@ export const PanelInner = () => {
     if (selectedNode) {
       const currentEnabled = selectedNode.data.enabled ?? true;
       updateNodeData({
-        id: selectedNode.id,
         data: { enabled: !currentEnabled },
+        id: selectedNode.id,
       });
     }
   };
@@ -335,13 +335,13 @@ export const PanelInner = () => {
 
   const handleUpdateLabel = (label: string) => {
     if (selectedNode) {
-      updateNodeData({ id: selectedNode.id, data: { label } });
+      updateNodeData({ data: { label }, id: selectedNode.id });
     }
   };
 
   const handleUpdateDescription = (description: string) => {
     if (selectedNode) {
-      updateNodeData({ id: selectedNode.id, data: { description } });
+      updateNodeData({ data: { description }, id: selectedNode.id });
     }
   };
   const autoSelectIntegration = useCallback(
@@ -384,7 +384,7 @@ export const PanelInner = () => {
             actionType,
             integrationId: filtered[0].id,
           };
-          updateNodeData({ id: nodeId, data: { config: newConfig } });
+          updateNodeData({ data: { config: newConfig }, id: nodeId });
         }
       } catch (error) {
         console.error("Failed to auto-select integration:", error);
@@ -411,7 +411,7 @@ export const PanelInner = () => {
         newConfig = { ...newConfig, integrationId: undefined };
       }
 
-      updateNodeData({ id: selectedNode.id, data: { config: newConfig } });
+      updateNodeData({ data: { config: newConfig }, id: selectedNode.id });
 
       // When action type changes, auto-select integration if only one exists
       if (key === "actionType") {
@@ -447,9 +447,9 @@ export const PanelInner = () => {
     if (currentWorkflowId) {
       try {
         await api.workflow.update(currentWorkflowId, {
+          edges,
           name: newName,
           nodes,
-          edges,
         });
       } catch (error) {
         console.error("Failed to update workflow name:", error);
@@ -707,14 +707,14 @@ export const PanelInner = () => {
                 height="100%"
                 language="typescript"
                 options={{
-                  readOnly: true,
-                  minimap: { enabled: false },
-                  scrollBeyondLastLine: false,
+                  folding: true,
                   fontSize: 13,
                   lineNumbers: "on",
-                  folding: true,
+                  minimap: { enabled: false },
+                  padding: { bottom: 16, top: 16 },
+                  readOnly: true,
+                  scrollBeyondLastLine: false,
                   wordWrap: "off",
-                  padding: { top: 16, bottom: 16 },
                 }}
                 value={workflowCode}
               />
@@ -972,14 +972,14 @@ export const PanelInner = () => {
                     height="100%"
                     language={language}
                     options={{
-                      readOnly: true,
-                      minimap: { enabled: false },
-                      scrollBeyondLastLine: false,
+                      folding: false,
                       fontSize: 13,
                       lineNumbers: "on",
-                      folding: false,
+                      minimap: { enabled: false },
+                      padding: { bottom: 16, top: 16 },
+                      readOnly: true,
+                      scrollBeyondLastLine: false,
                       wordWrap: "off",
-                      padding: { top: 16, bottom: 16 },
                     }}
                     value={generateNodeCode(selectedNode)}
                   />

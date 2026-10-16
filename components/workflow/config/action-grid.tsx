@@ -42,22 +42,22 @@ type ActionType = {
 // System actions that don't have plugins
 const SYSTEM_ACTIONS: ActionType[] = [
   {
+    category: "System",
+    description: "Make an HTTP request to any API",
     id: "HTTP Request",
     label: "HTTP Request",
-    description: "Make an HTTP request to any API",
-    category: "System",
   },
   {
+    category: "System",
+    description: "Query your database",
     id: "Database Query",
     label: "Database Query",
-    description: "Query your database",
-    category: "System",
   },
   {
+    category: "System",
+    description: "Branch based on a condition",
     id: "Condition",
     label: "Condition",
-    description: "Branch based on a condition",
-    category: "System",
   },
 ];
 
@@ -68,11 +68,11 @@ function useAllActions(): ActionType[] {
 
     // Map plugin actions to ActionType format
     const mappedPluginActions: ActionType[] = pluginActions.map((action) => ({
-      id: action.id,
-      label: action.label,
-      description: action.description,
       category: action.category,
+      description: action.description,
+      id: action.id,
       integration: action.integration,
+      label: action.label,
     }));
 
     return [...SYSTEM_ACTIONS, ...mappedPluginActions];
@@ -132,7 +132,9 @@ const VIEW_MODE_KEY = "workflow-action-grid-view-mode";
 type ViewMode = "list" | "grid";
 
 function getInitialHiddenGroups(): Set<string> {
-  if (typeof window === "undefined") return new Set();
+  if (typeof window === "undefined") {
+    return new Set();
+  }
   try {
     const stored = localStorage.getItem(HIDDEN_GROUPS_KEY);
     return stored ? new Set(JSON.parse(stored)) : new Set();
@@ -142,7 +144,9 @@ function getInitialHiddenGroups(): Set<string> {
 }
 
 function getInitialViewMode(): ViewMode {
-  if (typeof window === "undefined") return "list";
+  if (typeof window === "undefined") {
+    return "list";
+  }
   try {
     const stored = localStorage.getItem(VIEW_MODE_KEY);
     return stored === "grid" ? "grid" : "list";
@@ -232,20 +236,26 @@ export function ActionGrid({
 
     // Sort categories: System first, then alphabetically
     const sortedCategories = Object.keys(groups).sort((a, b) => {
-      if (a === "System") return -1;
-      if (b === "System") return 1;
+      if (a === "System") {
+        return -1;
+      }
+      if (b === "System") {
+        return 1;
+      }
       return a.localeCompare(b);
     });
 
     return sortedCategories.map((category) => ({
-      category,
       actions: groups[category],
+      category,
     }));
   }, [filteredActions]);
 
   // Filter groups based on hidden state
   const visibleGroups = useMemo(() => {
-    if (showHidden) return groupedActions;
+    if (showHidden) {
+      return groupedActions;
+    }
     return groupedActions.filter((g) => !hiddenGroups.has(g.category));
   }, [groupedActions, hiddenGroups, showHidden]);
 

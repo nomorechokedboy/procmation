@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api-client";
-import { authClient, useSession } from "@/lib/auth-client";
 import {
   currentWorkflowNameAtom,
   edgesAtom,
@@ -19,22 +18,21 @@ import {
 // Helper function to create a default trigger node
 function createDefaultTriggerNode() {
   return {
-    id: nanoid(),
-    type: "trigger" as const,
-    position: { x: 0, y: 0 },
     data: {
-      label: "",
-      description: "",
-      type: "trigger" as const,
       config: { triggerType: "Manual" },
+      description: "",
+      label: "",
       status: "idle" as const,
+      type: "trigger" as const,
     },
+    id: nanoid(),
+    position: { x: 0, y: 0 },
+    type: "trigger" as const,
   };
 }
 
 const Home = () => {
   const router = useRouter();
-  const { data: session } = useSession();
   const nodes = useAtomValue(nodesAtom);
   const edges = useAtomValue(edgesAtom);
   const setNodes = useSetAtom(nodesAtom);
@@ -57,14 +55,6 @@ const Home = () => {
     document.title = `${currentWorkflowName} - AI Workflow Builder`;
   }, [currentWorkflowName]);
 
-  // Helper to create anonymous session if needed
-  const ensureSession = useCallback(async () => {
-    if (!session) {
-      await authClient.signIn.anonymous();
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-  }, [session]);
-
   // Handler to add the first node (replaces the "add" node)
   const handleAddNode = useCallback(() => {
     const newNode: WorkflowNode = createDefaultTriggerNode();
@@ -75,16 +65,16 @@ const Home = () => {
   // Initialize with a temporary "add" node on mount
   useEffect(() => {
     const addNodePlaceholder: WorkflowNode = {
-      id: "add-node-placeholder",
-      type: "add",
-      position: { x: 0, y: 0 },
       data: {
         label: "",
-        type: "add",
         onClick: handleAddNode,
+        type: "add",
       },
       draggable: false,
+      id: "add-node-placeholder",
+      position: { x: 0, y: 0 },
       selectable: false,
+      type: "add",
     };
     setNodes([addNodePlaceholder]);
     setEdges([]);
@@ -105,14 +95,12 @@ const Home = () => {
       hasCreatedWorkflowRef.current = true;
 
       try {
-        await ensureSession();
-
         // Create workflow with all real nodes
         const newWorkflow = await api.workflow.create({
-          name: "Untitled Workflow",
           description: "",
-          nodes: realNodes,
           edges,
+          name: "Untitled Workflow",
+          nodes: realNodes,
         });
 
         // Set flags to indicate we're coming from homepage (for sidebar animation)
@@ -129,7 +117,7 @@ const Home = () => {
     };
 
     createWorkflowAndRedirect();
-  }, [nodes, edges, router, ensureSession, setIsTransitioningFromHomepage]);
+  }, [nodes, edges, router, setIsTransitioningFromHomepage]);
 
   // Canvas and toolbar are rendered by PersistentCanvas in the layout
   return null;

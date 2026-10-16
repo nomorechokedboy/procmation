@@ -191,10 +191,10 @@ export async function createIntegration(
   const [result] = await db
     .insert(integrations)
     .values({
-      userId,
+      config: encryptedConfig,
       name,
       type,
-      config: encryptedConfig,
+      userId,
     })
     .returning();
 
@@ -326,7 +326,7 @@ export async function validateWorkflowIntegrations(
     .map((i) => i.id);
 
   if (invalidIds.length > 0) {
-    return { valid: false, invalidIds };
+    return { invalidIds, valid: false };
   }
 
   return { valid: true };

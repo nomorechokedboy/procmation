@@ -32,15 +32,15 @@ export async function GET(request: Request) {
     if (!currentWorkflow) {
       // Return empty workflow if no current state exists
       return NextResponse.json({
-        nodes: [],
         edges: [],
+        nodes: [],
       });
     }
 
     return NextResponse.json({
+      edges: currentWorkflow.edges,
       id: currentWorkflow.id,
       nodes: currentWorkflow.nodes,
-      edges: currentWorkflow.edges,
     });
   } catch (error) {
     console.error("Failed to get current workflow:", error);
@@ -93,17 +93,17 @@ export async function POST(request: Request) {
       const [updatedWorkflow] = await db
         .update(workflows)
         .set({
-          nodes,
           edges,
+          nodes,
           updatedAt: new Date(),
         })
         .where(eq(workflows.id, existingWorkflow.id))
         .returning();
 
       return NextResponse.json({
+        edges: updatedWorkflow.edges,
         id: updatedWorkflow.id,
         nodes: updatedWorkflow.nodes,
-        edges: updatedWorkflow.edges,
       });
     }
 
@@ -113,19 +113,19 @@ export async function POST(request: Request) {
     const [savedWorkflow] = await db
       .insert(workflows)
       .values({
+        description: "Auto-saved current workflow",
+        edges,
         id: workflowId,
         name: CURRENT_WORKFLOW_NAME,
-        description: "Auto-saved current workflow",
         nodes,
-        edges,
         userId: session.user.id,
       })
       .returning();
 
     return NextResponse.json({
+      edges: savedWorkflow.edges,
       id: savedWorkflow.id,
       nodes: savedWorkflow.nodes,
-      edges: savedWorkflow.edges,
     });
   } catch (error) {
     console.error("Failed to save current workflow:", error);

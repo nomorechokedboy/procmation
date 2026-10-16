@@ -31,12 +31,12 @@ export async function logStepStartDb(
     .insert(workflowExecutionLogs)
     .values({
       executionId: params.executionId,
+      input: params.input,
       nodeId: params.nodeId,
       nodeName: params.nodeName,
       nodeType: params.nodeType,
-      status: "running",
-      input: params.input,
       startedAt: new Date(),
+      status: "running",
     })
     .returning();
 
@@ -65,11 +65,11 @@ export async function logStepCompleteDb(
   await db
     .update(workflowExecutionLogs)
     .set({
-      status: params.status,
-      output: params.output,
-      error: params.error,
       completedAt: new Date(),
       duration: duration.toString(),
+      error: params.error,
+      output: params.output,
+      status: params.status,
     })
     .where(eq(workflowExecutionLogs.id, params.logId));
 }
@@ -93,11 +93,11 @@ export async function logWorkflowCompleteDb(
   await db
     .update(workflowExecutions)
     .set({
-      status: params.status,
-      output: params.output,
-      error: params.error,
       completedAt: new Date(),
       duration: duration.toString(),
+      error: params.error,
+      output: params.output,
+      status: params.status,
     })
     .where(eq(workflowExecutions.id, params.executionId));
 }

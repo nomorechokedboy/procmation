@@ -36,46 +36,46 @@ import { findActionById, getIntegration } from "@/plugins";
 // Helper to get display name for AI model
 const getModelDisplayName = (modelId: string): string => {
   const modelNames: Record<string, string> = {
-    "gpt-5": "GPT-5",
-    "openai/gpt-5.1-instant": "GPT-5.1 Instant",
-    "openai/gpt-5.1-codex": "GPT-5.1 Codex",
-    "openai/gpt-5.1-codex-mini": "GPT-5.1 Codex Mini",
-    "openai/gpt-5.1-thinking": "GPT-5.1 Thinking",
+    "anthropic/claude-haiku-4.5": "Claude Haiku 4.5",
+    "anthropic/claude-opus-4.5": "Claude Opus 4.5",
+    "anthropic/claude-sonnet-4.5": "Claude Sonnet 4.5",
+    "bfl/flux-1-pro": "FLUX.1 Pro",
+    "bfl/flux-2-pro": "FLUX.2 Pro",
+    "claude-3-5-sonnet": "Claude 3.5",
+    "claude-3-opus": "Claude 3 Opus",
+    "google/gemini-2.5-flash": "Gemini 2.5 Flash",
+    "google/gemini-2.5-flash-lite": "Gemini 2.5 Flash Lite",
+    "google/gemini-2.5-pro": "Gemini 2.5 Pro",
+    "google/gemini-3-pro-preview": "Gemini 3 Pro Preview",
+    "google/imagen-4.0-generate": "Imagen 4.0",
     "gpt-4": "GPT-4",
     "gpt-4o": "GPT-4o",
     "gpt-4o-mini": "GPT-4o Mini",
-    "claude-3-5-sonnet": "Claude 3.5",
-    "claude-3-opus": "Claude 3 Opus",
-    "anthropic/claude-opus-4.5": "Claude Opus 4.5",
-    "anthropic/claude-sonnet-4.5": "Claude Sonnet 4.5",
-    "anthropic/claude-haiku-4.5": "Claude Haiku 4.5",
-    "google/gemini-3-pro-preview": "Gemini 3 Pro Preview",
-    "google/gemini-2.5-flash-lite": "Gemini 2.5 Flash Lite",
-    "google/gemini-2.5-flash": "Gemini 2.5 Flash",
-    "google/gemini-2.5-pro": "Gemini 2.5 Pro",
-    "meta/llama-4-scout": "Llama 4 Scout",
-    "meta/llama-3.3-70b": "Llama 3.3 70B",
+    "gpt-5": "GPT-5",
     "meta/llama-3.1-8b": "Llama 3.1 8B",
+    "meta/llama-3.3-70b": "Llama 3.3 70B",
+    "meta/llama-4-scout": "Llama 4 Scout",
     "moonshotai/kimi-k2-0905": "Kimi K2",
+    "o1-mini": "o1 Mini",
+    "o1-preview": "o1 Preview",
+    "openai/dall-e-3": "DALL-E 3",
+    "openai/gpt-5.1-codex": "GPT-5.1 Codex",
+    "openai/gpt-5.1-codex-mini": "GPT-5.1 Codex Mini",
+    "openai/gpt-5.1-instant": "GPT-5.1 Instant",
+    "openai/gpt-5.1-thinking": "GPT-5.1 Thinking",
+    "openai/gpt-oss-20b": "GPT OSS 20B",
     "openai/gpt-oss-120b": "GPT OSS 120B",
     "openai/gpt-oss-safeguard-20b": "GPT OSS Safeguard 20B",
-    "openai/gpt-oss-20b": "GPT OSS 20B",
-    "o1-preview": "o1 Preview",
-    "o1-mini": "o1 Mini",
-    "bfl/flux-2-pro": "FLUX.2 Pro",
-    "bfl/flux-1-pro": "FLUX.1 Pro",
-    "openai/dall-e-3": "DALL-E 3",
-    "google/imagen-4.0-generate": "Imagen 4.0",
   };
   return modelNames[modelId] || modelId;
 };
 
 // System action labels (non-plugin actions)
 const SYSTEM_ACTION_LABELS: Record<string, string> = {
-  "HTTP Request": "System",
-  "Database Query": "Database",
   Condition: "Condition",
+  "Database Query": "Database",
   "Execute Code": "System",
+  "HTTP Request": "System",
 };
 
 // Helper to get integration name from action type
@@ -274,7 +274,7 @@ export const ActionNode = memo(({ data, selected, id }: ActionNodeProps) => {
           isDisabled && "opacity-50"
         )}
         data-testid={`action-node-${id}`}
-        handles={{ target: true, source: true }}
+        handles={{ source: true, target: true }}
         status={status}
       >
         {isDisabled && (
@@ -344,7 +344,7 @@ export const ActionNode = memo(({ data, selected, id }: ActionNodeProps) => {
         isDisabled && "opacity-50"
       )}
       data-testid={`action-node-${id}`}
-      handles={{ target: true, source: true }}
+      handles={{ source: true, target: true }}
       status={status}
     >
       {/* Disabled badge in top left */}

@@ -64,7 +64,9 @@ export function IntegrationsManager({
           integration.type,
       }))
       .filter((integration) => {
-        if (!filter) return true;
+        if (!filter) {
+          return true;
+        }
         return (
           integration.label.toLowerCase().includes(filterLower) ||
           integration.name.toLowerCase().includes(filterLower) ||
@@ -83,11 +85,11 @@ export function IntegrationsManager({
   const handleEdit = (integration: Integration) => {
     push(EditConnectionOverlay, {
       integration,
-      onSuccess: () => {
+      onDelete: () => {
         loadIntegrations();
         onIntegrationChange?.();
       },
-      onDelete: () => {
+      onSuccess: () => {
         loadIntegrations();
         onIntegrationChange?.();
       },

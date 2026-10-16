@@ -1,81 +1,26 @@
-/**
- * app/api/bpma/tasks/[id]/route.ts
- */
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { completeTask, getTaskById, reassignTask } from "@/lib/db/bpma";
+import { canActOnTask, getDepartmentIdOf, getTask } from "@/lib/db/bpma";
+import { requireUser } from "@/lib/session";
 
 type Params = { params: Promise<{ id: string }> };
 
 // GET /api/bpma/tasks/:id
 export async function GET(request: Request, { params }: Params) {
-  try {
-    const { id } = await params;
-    const session = await auth.api.getSession({ headers: request.headers });
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const task = await getTaskById(id);
-    if (!task) {
-      return NextResponse.json({ error: "Task not found" }, { status: 404 });
-    }
-
-    return NextResponse.json(task);
-  } catch (error) {
-    console.error("[tasks/:id] GET error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch task" },
-      { status: 500 }
-    );
+  const guard = await requireUser(request);
+  if (!guard.ok) {
+    return guard.response;
   }
-}
 
-// POST /api/bpma/tasks/:id/complete
-// POST /api/bpma/tasks/:id/reassign
-export async function POST(request: Request, { params }: Params) {
-  try {
-    const { id } = await params;
-    const session = await auth.api.getSession({ headers: request.headers });
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const url = new URL(request.url);
-    const action = url.pathname.split("/").at(-1); // 'complete' | 'reassign'
-
-    const body = await request.json().catch(() => ({}));
-
-    if (action === "complete") {
-      const { outcome, formSubmissionId } = body;
-      const result = await completeTask(id, session.user.id, outcome, formSubmissionId);
-      if (!result) {
-        return NextResponse.json({ error: "Task not found" }, { status: 404 });
-      }
-      return NextResponse.json(result);
-    }
-
-    if (action === "reassign") {
-      const { assigneeId } = body;
-      if (!assigneeId) {
-        return NextResponse.json(
-          { error: "assigneeId is required" },
-          { status: 400 }
-        );
-      }
-      const result = await reassignTask(id, assigneeId, session.user.id);
-      if (!result) {
-        return NextResponse.json({ error: "Task not found" }, { status: 404 });
-      }
-      return NextResponse.json(result);
-    }
-
-    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
-  } catch (error) {
-    console.error("[tasks/:id] POST error:", error);
-    return NextResponse.json(
-      { error: "Failed to process task action" },
-      { status: 500 }
-    );
+  const { id } = await params;
+  const task = await getTask(id);
+  if (
+    !(
+      task &&
+      canActOnTask(guard.user, task, await getDepartmentIdOf(guard.user.id))
+    )
+  ) {
+    return NextResponse.json({ error: "Task not found" }, { status: 404 });
   }
+
+  return NextResponse.json(task);
 }

@@ -120,14 +120,14 @@ export function AddConnectionOverlay({
               showConsentModalWithCallbacks();
             });
         } else {
-          push(ConfigureConnectionOverlay, { type, onSuccess });
+          push(ConfigureConnectionOverlay, { onSuccess, type });
         }
       });
       return;
     }
 
     // Push to configure overlay
-    push(ConfigureConnectionOverlay, { type, onSuccess });
+    push(ConfigureConnectionOverlay, { onSuccess, type });
   };
 
   return (
@@ -269,9 +269,9 @@ export function ConfigureConnectionOverlay({
     try {
       setSaving(true);
       const newIntegration = await api.integration.create({
+        config,
         name: name.trim(),
         type,
-        config,
       });
       toast.success("Connection created");
       onSuccess?.(newIntegration.id);
@@ -296,17 +296,17 @@ export function ConfigureConnectionOverlay({
       setSaving(true);
       setTestResult(null);
 
-      const result = await api.integration.testCredentials({ type, config });
+      const result = await api.integration.testCredentials({ config, type });
 
       if (result.status === "error") {
         // Show confirmation to save anyway
         push(ConfirmOverlay, {
-          title: "Connection Test Failed",
-          message: `The test failed: ${result.message}\n\nDo you want to save anyway?`,
           confirmLabel: "Save Anyway",
+          message: `The test failed: ${result.message}\n\nDo you want to save anyway?`,
           onConfirm: async () => {
             await doSave();
           },
+          title: "Connection Test Failed",
         });
         setSaving(false);
         return;
@@ -317,12 +317,12 @@ export function ConfigureConnectionOverlay({
       const message =
         error instanceof Error ? error.message : "Failed to test connection";
       push(ConfirmOverlay, {
-        title: "Connection Test Failed",
-        message: `${message}\n\nDo you want to save anyway?`,
         confirmLabel: "Save Anyway",
+        message: `${message}\n\nDo you want to save anyway?`,
         onConfirm: async () => {
           await doSave();
         },
+        title: "Connection Test Failed",
       });
       setSaving(false);
     }
@@ -338,7 +338,7 @@ export function ConfigureConnectionOverlay({
     try {
       setTesting(true);
       setTestResult(null);
-      const result = await api.integration.testCredentials({ type, config });
+      const result = await api.integration.testCredentials({ config, type });
       setTestResult(result);
       if (result.status === "success") {
         toast.success(result.message || "Connection successful");
@@ -348,7 +348,7 @@ export function ConfigureConnectionOverlay({
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Connection test failed";
-      setTestResult({ status: "error", message });
+      setTestResult({ message, status: "error" });
       toast.error(message);
     } finally {
       setTesting(false);
@@ -375,7 +375,9 @@ export function ConfigureConnectionOverlay({
       );
     }
 
-    if (!formFields) return null;
+    if (!formFields) {
+      return null;
+    }
 
     return formFields.map((field) => {
       if (field.type === "password") {
@@ -428,13 +430,13 @@ export function ConfigureConnectionOverlay({
     <Overlay
       actions={[
         {
-          label: "Test",
-          variant: "outline",
-          onClick: handleTest,
-          loading: testing,
           disabled: saving,
+          label: "Test",
+          loading: testing,
+          onClick: handleTest,
+          variant: "outline",
         },
-        { label: "Create", onClick: handleSave, loading: saving },
+        { label: "Create", loading: saving, onClick: handleSave },
       ]}
       overlayId={overlayId}
       title={`Add ${getLabel(type)}`}

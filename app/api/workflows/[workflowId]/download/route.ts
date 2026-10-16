@@ -249,9 +249,9 @@ export async function GET(
 
     // Generate workflow-specific files
     const workflowFiles = generateWorkflowFiles({
+      edges: workflow.edges as WorkflowEdge[],
       name: workflow.name,
       nodes: workflow.nodes as WorkflowNode[],
-      edges: workflow.edges as WorkflowEdge[],
     });
 
     // Merge boilerplate, step files, and workflow files
@@ -331,18 +331,18 @@ For more information, visit the [Workflow documentation](https://workflow.is).
     allFiles[".env.example"] = generateEnvExample();
 
     return NextResponse.json({
-      success: true,
       files: allFiles,
+      success: true,
     });
   } catch (error) {
     console.error("Failed to prepare workflow download:", error);
     return NextResponse.json(
       {
-        success: false,
         error:
           error instanceof Error
             ? error.message
             : "Failed to prepare workflow download",
+        success: false,
       },
       { status: 500 }
     );

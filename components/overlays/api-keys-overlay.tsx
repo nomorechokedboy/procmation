@@ -43,9 +43,9 @@ function CreateApiKeyOverlay({
     setCreating(true);
     try {
       const response = await fetch("/api/api-keys", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: keyName || null }),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
       });
 
       if (!response.ok) {
@@ -69,7 +69,7 @@ function CreateApiKeyOverlay({
 
   return (
     <Overlay
-      actions={[{ label: "Create", onClick: handleCreate, loading: creating }]}
+      actions={[{ label: "Create", loading: creating, onClick: handleCreate }]}
       overlayId={overlayId}
       title="Create API Key"
     >
@@ -148,13 +148,13 @@ export function ApiKeysOverlay({ overlayId }: ApiKeysOverlayProps) {
 
   const openDeleteConfirm = (keyId: string) => {
     push(ConfirmOverlay, {
-      title: "Delete API Key",
-      message:
-        "Are you sure you want to delete this API key? Any webhooks using this key will stop working immediately.",
       confirmLabel: "Delete",
       confirmVariant: "destructive" as const,
       destructive: true,
+      message:
+        "Are you sure you want to delete this API key? Any webhooks using this key will stop working immediately.",
       onConfirm: () => handleDelete(keyId),
+      title: "Delete API Key",
     });
   };
 
@@ -165,8 +165,8 @@ export function ApiKeysOverlay({ overlayId }: ApiKeysOverlayProps) {
 
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleDateString("en-US", {
-      month: "short",
       day: "numeric",
+      month: "short",
       year: "numeric",
     });
 
@@ -175,9 +175,9 @@ export function ApiKeysOverlay({ overlayId }: ApiKeysOverlayProps) {
       actions={[
         {
           label: "New API Key",
-          variant: "outline",
           onClick: () =>
             push(CreateApiKeyOverlay, { onCreated: handleKeyCreated }),
+          variant: "outline",
         },
         { label: "Done", onClick: closeAll },
       ]}

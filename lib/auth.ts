@@ -1,12 +1,10 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { anonymous, genericOAuth } from "better-auth/plugins";
-import { eq } from "drizzle-orm";
+import { genericOAuth } from "better-auth/plugins";
 import { isAiGatewayManagedKeysEnabled } from "./ai-gateway/config";
 import { db } from "./db";
 import {
   accounts,
-  integrations,
   sessions,
   users,
   verifications,
@@ -18,14 +16,14 @@ import {
 
 // Construct schema object for drizzle adapter
 const schema = {
-  user: users,
-  session: sessions,
   account: accounts,
+  session: sessions,
+  user: users,
   verification: verifications,
-  workflows,
-  workflowExecutions,
   workflowExecutionLogs,
+  workflowExecutions,
   workflowExecutionsRelations,
+  workflows,
 };
 
 // Determine the base URL for authentication
@@ -54,65 +52,16 @@ function getBaseURL() {
 
 // Build plugins array conditionally
 const plugins = [
-  anonymous({
-    async onLinkAccount(data) {
-      // When an anonymous user links to a real account, migrate their data
-      const fromUserId = data.anonymousUser.user.id;
-      const toUserId = data.newUser.user.id;
-
-      console.log(
-        `[Anonymous Migration] Migrating from user ${fromUserId} to ${toUserId}`
-      );
-
-      try {
-        // Migrate workflows
-        await db
-          .update(workflows)
-          .set({ userId: toUserId })
-          .where(eq(workflows.userId, fromUserId));
-
-        // Migrate workflow executions
-        await db
-          .update(workflowExecutions)
-          .set({ userId: toUserId })
-          .where(eq(workflowExecutions.userId, fromUserId));
-
-        // Migrate integrations
-        await db
-          .update(integrations)
-          .set({ userId: toUserId })
-          .where(eq(integrations.userId, fromUserId));
-
-        console.log(
-          `[Anonymous Migration] Successfully migrated data from ${fromUserId} to ${toUserId}`
-        );
-      } catch (error) {
-        console.error(
-          "[Anonymous Migration] Error migrating user data:",
-          error
-        );
-        throw error;
-      }
-    },
-  }),
   ...(process.env.VERCEL_CLIENT_ID
     ? [
         genericOAuth({
           config: [
             {
-              providerId: "vercel",
+              authorizationUrl: "https://vercel.com/oauth/authorize",
               clientId: process.env.VERCEL_CLIENT_ID,
               clientSecret: process.env.VERCEL_CLIENT_SECRET || "",
-              authorizationUrl: "https://vercel.com/oauth/authorize",
-              tokenUrl: "https://api.vercel.com/login/oauth/token",
-              userInfoUrl: "https://api.vercel.com/login/oauth/userinfo",
-              // Include read-write:team scope when AI Gateway User Keys is enabled
-              // This grants APIKey and APIKeyAiGateway permissions for creating user keys
-              scopes: isAiGatewayManagedKeysEnabled()
-                ? ["openid", "email", "profile", "read-write:team"]
-                : ["openid", "email", "profile"],
+              disableSignUp: true,
               discoveryUrl: undefined,
-              pkce: true,
               getUserInfo: async (tokens) => {
                 const response = await fetch(
                   "https://api.vercel.com/login/oauth/userinfo",
@@ -125,13 +74,22 @@ const plugins = [
                 const profile = await response.json();
                 console.log("[Vercel OAuth] userinfo response:", profile);
                 return {
-                  id: profile.sub,
                   email: profile.email,
-                  name: profile.name ?? profile.preferred_username,
                   emailVerified: profile.email_verified ?? true,
+                  id: profile.sub,
                   image: profile.picture,
+                  name: profile.name ?? profile.preferred_username,
                 };
               },
+              pkce: true,
+              providerId: "vercel",
+              // Include read-write:team scope when AI Gateway User Keys is enabled
+              // This grants APIKey and APIKeyAiGateway permissions for creating user keys
+              scopes: isAiGatewayManagedKeysEnabled()
+                ? ["openid", "email", "profile", "read-write:team"]
+                : ["openid", "email", "profile"],
+              tokenUrl: "https://api.vercel.com/login/oauth/token",
+              userInfoUrl: "https://api.vercel.com/login/oauth/userinfo",
             },
           ],
         }),
@@ -145,21 +103,34 @@ export const auth = betterAuth({
     provider: "pg",
     schema,
   }),
+  // Invite-only: accounts are created by the setup flow or by accepting an invitation
   emailAndPassword: {
+    disableSignUp: true,
     enabled: true,
     requireEmailVerification: false,
   },
+  plugins,
   socialProviders: {
     github: {
       clientId: process.env.GITHUB_CLIENT_ID || "",
       clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
+      disableImplicitSignUp: true,
       enabled: !!process.env.GITHUB_CLIENT_ID,
     },
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID || "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+      disableImplicitSignUp: true,
       enabled: !!process.env.GOOGLE_CLIENT_ID,
     },
   },
-  plugins,
+  user: {
+    additionalFields: {
+      role: {
+        defaultValue: "member",
+        input: false,
+        type: "string",
+      },
+    },
+  },
 });

@@ -67,11 +67,11 @@ function DatabaseQueryFields({
             height="150px"
             onChange={(value) => onUpdateConfig("dbQuery", value || "")}
             options={{
-              minimap: { enabled: false },
-              lineNumbers: "on",
-              scrollBeyondLastLine: false,
               fontSize: 12,
+              lineNumbers: "on",
+              minimap: { enabled: false },
               readOnly: disabled,
+              scrollBeyondLastLine: false,
               wordWrap: "off",
             }}
             value={(config?.dbQuery as string) || ""}
@@ -149,11 +149,11 @@ function HttpRequestFields({
             height="100px"
             onChange={(value) => onUpdateConfig("httpHeaders", value || "{}")}
             options={{
-              minimap: { enabled: false },
-              lineNumbers: "off",
-              scrollBeyondLastLine: false,
               fontSize: 12,
+              lineNumbers: "off",
+              minimap: { enabled: false },
               readOnly: disabled,
+              scrollBeyondLastLine: false,
               wordWrap: "off",
             }}
             value={(config?.httpHeaders as string) || "{}"}
@@ -170,12 +170,12 @@ function HttpRequestFields({
             height="120px"
             onChange={(value) => onUpdateConfig("httpBody", value || "{}")}
             options={{
-              minimap: { enabled: false },
-              lineNumbers: "off",
-              scrollBeyondLastLine: false,
-              fontSize: 12,
-              readOnly: config?.httpMethod === "GET" || disabled,
               domReadOnly: config?.httpMethod === "GET" || disabled,
+              fontSize: 12,
+              lineNumbers: "off",
+              minimap: { enabled: false },
+              readOnly: config?.httpMethod === "GET" || disabled,
+              scrollBeyondLastLine: false,
               wordWrap: "off",
             }}
             value={(config?.httpBody as string) || "{}"}
@@ -401,7 +401,9 @@ export function ActionConfig({
 
   // Check if there are existing connections for this integration type
   const hasExistingConnections = useMemo(() => {
-    if (!integrationType) return false;
+    if (!integrationType) {
+      return false;
+    }
     return globalIntegrations.some((i) => i.type === integrationType);
   }, [integrationType, globalIntegrations]);
 
@@ -413,11 +415,11 @@ export function ActionConfig({
   const openConnectionOverlay = () => {
     if (integrationType) {
       push(ConfigureConnectionOverlay, {
-        type: integrationType,
         onSuccess: (integrationId: string) => {
           setIntegrationsVersion((v) => v + 1);
           onUpdateConfig("integrationId", integrationId);
         },
+        type: integrationType,
       });
     }
   };

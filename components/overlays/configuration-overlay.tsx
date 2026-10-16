@@ -112,7 +112,9 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
   // Auto-fix invalid integration references
   const globalIntegrations = useAtomValue(integrationsAtom);
   useEffect(() => {
-    if (!(selectedNode && isOwner)) return;
+    if (!(selectedNode && isOwner)) {
+      return;
+    }
 
     const actionType = selectedNode.data.config?.actionType as
       | string
@@ -121,14 +123,18 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
       | string
       | undefined;
 
-    if (!(actionType && currentIntegrationId)) return;
+    if (!(actionType && currentIntegrationId)) {
+      return;
+    }
 
     const action = findActionById(actionType);
     const integrationType: IntegrationType | undefined =
       (action?.integration as IntegrationType | undefined) ||
       SYSTEM_ACTION_INTEGRATIONS[actionType];
 
-    if (!integrationType) return;
+    if (!integrationType) {
+      return;
+    }
 
     const validIntegrations = globalIntegrations.filter(
       (i) => i.type === integrationType
@@ -139,25 +145,27 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
 
     if (!isValid && validIntegrations.length > 0) {
       updateNodeData({
-        id: selectedNode.id,
         data: {
           config: {
             ...selectedNode.data.config,
             integrationId: validIntegrations[0].id,
           },
         },
+        id: selectedNode.id,
       });
     }
   }, [selectedNode, globalIntegrations, isOwner, updateNodeData]);
 
   const handleUpdateConfig = useCallback(
     (key: string, value: string) => {
-      if (!selectedNode) return;
+      if (!selectedNode) {
+        return;
+      }
       updateNodeData({
-        id: selectedNode.id,
         data: {
           config: { ...selectedNode.data.config, [key]: value },
         },
+        id: selectedNode.id,
       });
     },
     [selectedNode, updateNodeData]
@@ -165,46 +173,54 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
 
   const handleUpdateLabel = useCallback(
     (label: string) => {
-      if (!selectedNode) return;
-      updateNodeData({ id: selectedNode.id, data: { label } });
+      if (!selectedNode) {
+        return;
+      }
+      updateNodeData({ data: { label }, id: selectedNode.id });
     },
     [selectedNode, updateNodeData]
   );
 
   const handleUpdateDescription = useCallback(
     (description: string) => {
-      if (!selectedNode) return;
-      updateNodeData({ id: selectedNode.id, data: { description } });
+      if (!selectedNode) {
+        return;
+      }
+      updateNodeData({ data: { description }, id: selectedNode.id });
     },
     [selectedNode, updateNodeData]
   );
 
   const handleToggleEnabled = useCallback(() => {
-    if (!selectedNode) return;
+    if (!selectedNode) {
+      return;
+    }
     updateNodeData({
-      id: selectedNode.id,
       data: { enabled: selectedNode.data.enabled === false },
+      id: selectedNode.id,
     });
   }, [selectedNode, updateNodeData]);
 
   const handleDeleteNode = useCallback(() => {
     push(ConfirmOverlay, {
-      title: "Delete Step",
-      message:
-        "Are you sure you want to delete this node? This action cannot be undone.",
       confirmLabel: "Delete",
       confirmVariant: "destructive" as const,
+      message:
+        "Are you sure you want to delete this node? This action cannot be undone.",
       onConfirm: () => {
         if (selectedNode) {
           deleteNode(selectedNode.id);
           closeAll();
         }
       },
+      title: "Delete Step",
     });
   }, [selectedNode, deleteNode, closeAll, push]);
 
   const handleCopyCode = useCallback(() => {
-    if (!selectedNode) return;
+    if (!selectedNode) {
+      return;
+    }
     navigator.clipboard.writeText(generateNodeCode(selectedNode));
     toast.success("Code copied to clipboard");
   }, [selectedNode]);
@@ -219,13 +235,14 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
 
   const handleDeleteAllRuns = () => {
     push(ConfirmOverlay, {
-      title: "Delete All Runs",
-      message:
-        "Are you sure you want to delete all workflow runs? This action cannot be undone.",
       confirmLabel: "Delete",
       confirmVariant: "destructive" as const,
+      message:
+        "Are you sure you want to delete all workflow runs? This action cannot be undone.",
       onConfirm: async () => {
-        if (!currentWorkflowId) return;
+        if (!currentWorkflowId) {
+          return;
+        }
         try {
           await api.workflow.deleteExecutions(currentWorkflowId);
           clearNodeStatuses();
@@ -238,6 +255,7 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
           toast.error("Failed to delete runs");
         }
       },
+      title: "Delete All Runs",
     });
   };
 
@@ -297,28 +315,29 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
   // Handle clear workflow
   const handleClearWorkflow = () => {
     push(ConfirmOverlay, {
-      title: "Clear Workflow",
-      message:
-        "Are you sure you want to clear all nodes and connections? This action cannot be undone.",
       confirmLabel: "Clear Workflow",
       confirmVariant: "destructive" as const,
       destructive: true,
+      message:
+        "Are you sure you want to clear all nodes and connections? This action cannot be undone.",
       onConfirm: () => {
         clearWorkflow();
       },
+      title: "Clear Workflow",
     });
   };
 
   // Handle delete workflow
   const handleDeleteWorkflow = () => {
     push(ConfirmOverlay, {
-      title: "Delete Workflow",
-      message: `Are you sure you want to delete "${currentWorkflowName}"? This will permanently delete the workflow. This cannot be undone.`,
       confirmLabel: "Delete Workflow",
       confirmVariant: "destructive" as const,
       destructive: true,
+      message: `Are you sure you want to delete "${currentWorkflowName}"? This will permanently delete the workflow. This cannot be undone.`,
       onConfirm: async () => {
-        if (!currentWorkflowId) return;
+        if (!currentWorkflowId) {
+          return;
+        }
         try {
           await api.workflow.delete(currentWorkflowId);
           closeAll();
@@ -329,6 +348,7 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
           toast.error("Failed to delete workflow. Please try again.");
         }
       },
+      title: "Delete Workflow",
     });
   };
 
@@ -358,15 +378,15 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
   const handleDeleteEdge = () => {
     if (selectedEdgeId) {
       push(ConfirmOverlay, {
-        title: "Delete Connection",
-        message:
-          "Are you sure you want to delete this connection? This action cannot be undone.",
         confirmLabel: "Delete",
         confirmVariant: "destructive" as const,
+        message:
+          "Are you sure you want to delete this connection? This action cannot be undone.",
         onConfirm: () => {
           deleteEdge(selectedEdgeId);
           closeAll();
         },
+        title: "Delete Connection",
       });
     }
   };
@@ -484,11 +504,11 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
                   defaultLanguage="typescript"
                   height="100%"
                   options={{
-                    readOnly: true,
-                    minimap: { enabled: false },
-                    lineNumbers: "on",
-                    scrollBeyondLastLine: false,
                     fontSize: 12,
+                    lineNumbers: "on",
+                    minimap: { enabled: false },
+                    readOnly: true,
+                    scrollBeyondLastLine: false,
                     wordWrap: "on",
                   }}
                   value={workflowCode}
@@ -715,14 +735,14 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
                     : "typescript"
                 }
                 options={{
-                  readOnly: true,
-                  minimap: { enabled: false },
-                  scrollBeyondLastLine: false,
+                  folding: false,
                   fontSize: 13,
                   lineNumbers: "on",
-                  folding: false,
+                  minimap: { enabled: false },
+                  padding: { bottom: 16, top: 16 },
+                  readOnly: true,
+                  scrollBeyondLastLine: false,
                   wordWrap: "off",
-                  padding: { top: 16, bottom: 16 },
                 }}
                 value={generateNodeCode(selectedNode)}
               />

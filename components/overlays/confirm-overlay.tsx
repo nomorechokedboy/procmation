@@ -71,13 +71,13 @@ export function ConfirmOverlay({
   const actions: OverlayAction[] = [
     {
       label: cancelLabel,
-      variant: "outline",
       onClick: handleCancel,
+      variant: "outline",
     },
     {
       label: confirmLabel,
-      variant: destructive ? "destructive" : confirmVariant,
       onClick: handleConfirm,
+      variant: destructive ? "destructive" : confirmVariant,
     },
   ];
 

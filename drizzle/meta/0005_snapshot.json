@@ -1,5 +1,5 @@
 {
-  "id": "12bd4625-2bf2-40c2-95c7-2c22cf2e79c3",
+  "id": "c6f99547-55ee-4832-9502-a60bbc1c9f4c",
   "prevId": "0832c6e0-e9ef-4979-af70-f53f1f15d10a",
   "version": "7",
   "dialect": "postgresql",
@@ -93,12 +93,8 @@
           "name": "accounts_user_id_users_id_fk",
           "tableFrom": "accounts",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -163,12 +159,8 @@
           "name": "api_keys_user_id_users_id_fk",
           "tableFrom": "api_keys",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -241,18 +233,93 @@
           "name": "integrations_user_id_users_id_fk",
           "tableFrom": "integrations",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.invitations": {
+      "name": "invitations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'member'"
+        },
+        "token_hash": {
+          "name": "token_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "invited_by": {
+          "name": "invited_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "accepted_at": {
+          "name": "accepted_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "invitations_invited_by_users_id_fk": {
+          "name": "invitations_invited_by_users_id_fk",
+          "tableFrom": "invitations",
+          "tableTo": "users",
+          "columnsFrom": ["invited_by"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "invitations_token_hash_unique": {
+          "name": "invitations_token_hash_unique",
+          "nullsNotDistinct": false,
+          "columns": ["token_hash"]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -316,12 +383,8 @@
           "name": "sessions_user_id_users_id_fk",
           "tableFrom": "sessions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -331,9 +394,7 @@
         "sessions_token_unique": {
           "name": "sessions_token_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token"
-          ]
+          "columns": ["token"]
         }
       },
       "policies": {},
@@ -393,6 +454,13 @@
           "primaryKey": false,
           "notNull": false,
           "default": false
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'member'"
         }
       },
       "indexes": {},
@@ -402,9 +470,7 @@
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -551,12 +617,8 @@
           "name": "workflow_execution_logs_execution_id_workflow_executions_id_fk",
           "tableFrom": "workflow_execution_logs",
           "tableTo": "workflow_executions",
-          "columnsFrom": [
-            "execution_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["execution_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -639,12 +701,8 @@
           "name": "workflow_executions_workflow_id_workflows_id_fk",
           "tableFrom": "workflow_executions",
           "tableTo": "workflows",
-          "columnsFrom": [
-            "workflow_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workflow_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -652,12 +710,8 @@
           "name": "workflow_executions_user_id_users_id_fk",
           "tableFrom": "workflow_executions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -736,1236 +790,8 @@
           "name": "workflows_user_id_users_id_fk",
           "tableFrom": "workflows",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.case_timeline": {
-      "name": "case_timeline",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "case_id": {
-          "name": "case_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "event_type": {
-          "name": "event_type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "actor_id": {
-          "name": "actor_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "node_id": {
-          "name": "node_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "data": {
-          "name": "data",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'{}'::jsonb"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "case_timeline_case_id_cases_id_fk": {
-          "name": "case_timeline_case_id_cases_id_fk",
-          "tableFrom": "case_timeline",
-          "tableTo": "cases",
-          "columnsFrom": [
-            "case_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "case_timeline_actor_id_users_id_fk": {
-          "name": "case_timeline_actor_id_users_id_fk",
-          "tableFrom": "case_timeline",
-          "tableTo": "users",
-          "columnsFrom": [
-            "actor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.cases": {
-      "name": "cases",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "case_number": {
-          "name": "case_number",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "process_definition_id": {
-          "name": "process_definition_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "process_instance_id": {
-          "name": "process_instance_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'open'"
-        },
-        "priority": {
-          "name": "priority",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'medium'"
-        },
-        "initiator_id": {
-          "name": "initiator_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "participants": {
-          "name": "participants",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'[]'::jsonb"
-        },
-        "metadata": {
-          "name": "metadata",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'{}'::jsonb"
-        },
-        "due_at": {
-          "name": "due_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "cases_process_definition_id_process_definitions_id_fk": {
-          "name": "cases_process_definition_id_process_definitions_id_fk",
-          "tableFrom": "cases",
-          "tableTo": "process_definitions",
-          "columnsFrom": [
-            "process_definition_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "cases_process_instance_id_process_instances_id_fk": {
-          "name": "cases_process_instance_id_process_instances_id_fk",
-          "tableFrom": "cases",
-          "tableTo": "process_instances",
-          "columnsFrom": [
-            "process_instance_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "cases_initiator_id_users_id_fk": {
-          "name": "cases_initiator_id_users_id_fk",
-          "tableFrom": "cases",
-          "tableTo": "users",
-          "columnsFrom": [
-            "initiator_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "cases_case_number_unique": {
-          "name": "cases_case_number_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "case_number"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.departments": {
-      "name": "departments",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "parent_id": {
-          "name": "parent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.form_submissions": {
-      "name": "form_submissions",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "form_id": {
-          "name": "form_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "data": {
-          "name": "data",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::jsonb"
-        },
-        "submitted_by": {
-          "name": "submitted_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "submitted_at": {
-          "name": "submitted_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "form_submissions_form_id_forms_id_fk": {
-          "name": "form_submissions_form_id_forms_id_fk",
-          "tableFrom": "form_submissions",
-          "tableTo": "forms",
-          "columnsFrom": [
-            "form_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "form_submissions_submitted_by_users_id_fk": {
-          "name": "form_submissions_submitted_by_users_id_fk",
-          "tableFrom": "form_submissions",
-          "tableTo": "users",
-          "columnsFrom": [
-            "submitted_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.forms": {
-      "name": "forms",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "schema": {
-          "name": "schema",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "forms_created_by_users_id_fk": {
-          "name": "forms_created_by_users_id_fk",
-          "tableFrom": "forms",
-          "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.notifications": {
-      "name": "notifications",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "type": {
-          "name": "type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "body": {
-          "name": "body",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "data": {
-          "name": "data",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'{}'::jsonb"
-        },
-        "read": {
-          "name": "read",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "case_id": {
-          "name": "case_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "task_id": {
-          "name": "task_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "notifications_user_id_users_id_fk": {
-          "name": "notifications_user_id_users_id_fk",
-          "tableFrom": "notifications",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "notifications_case_id_cases_id_fk": {
-          "name": "notifications_case_id_cases_id_fk",
-          "tableFrom": "notifications",
-          "tableTo": "cases",
-          "columnsFrom": [
-            "case_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "notifications_task_id_tasks_id_fk": {
-          "name": "notifications_task_id_tasks_id_fk",
-          "tableFrom": "notifications",
-          "tableTo": "tasks",
-          "columnsFrom": [
-            "task_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.process_definitions": {
-      "name": "process_definitions",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "slug": {
-          "name": "slug",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "version": {
-          "name": "version",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 1
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "nodes": {
-          "name": "nodes",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "edges": {
-          "name": "edges",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'draft'"
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "process_definitions_created_by_users_id_fk": {
-          "name": "process_definitions_created_by_users_id_fk",
-          "tableFrom": "process_definitions",
-          "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.process_instances": {
-      "name": "process_instances",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "process_definition_id": {
-          "name": "process_definition_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "process_definition_version": {
-          "name": "process_definition_version",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'running'"
-        },
-        "current_node_id": {
-          "name": "current_node_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "context_data": {
-          "name": "context_data",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'{}'::jsonb"
-        },
-        "started_by": {
-          "name": "started_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "started_at": {
-          "name": "started_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "completed_at": {
-          "name": "completed_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "process_instances_process_definition_id_process_definitions_id_fk": {
-          "name": "process_instances_process_definition_id_process_definitions_id_fk",
-          "tableFrom": "process_instances",
-          "tableTo": "process_definitions",
-          "columnsFrom": [
-            "process_definition_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "process_instances_started_by_users_id_fk": {
-          "name": "process_instances_started_by_users_id_fk",
-          "tableFrom": "process_instances",
-          "tableTo": "users",
-          "columnsFrom": [
-            "started_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.process_steps": {
-      "name": "process_steps",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "process_definition_id": {
-          "name": "process_definition_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "node_id": {
-          "name": "node_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "type": {
-          "name": "type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "label": {
-          "name": "label",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "assignment_rule": {
-          "name": "assignment_rule",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "gateway_rules": {
-          "name": "gateway_rules",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "form_id": {
-          "name": "form_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "sla_hours": {
-          "name": "sla_hours",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "process_steps_process_definition_id_process_definitions_id_fk": {
-          "name": "process_steps_process_definition_id_process_definitions_id_fk",
-          "tableFrom": "process_steps",
-          "tableTo": "process_definitions",
-          "columnsFrom": [
-            "process_definition_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.process_templates": {
-      "name": "process_templates",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "category": {
-          "name": "category",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "nodes": {
-          "name": "nodes",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "edges": {
-          "name": "edges",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "is_public": {
-          "name": "is_public",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "process_templates_created_by_users_id_fk": {
-          "name": "process_templates_created_by_users_id_fk",
-          "tableFrom": "process_templates",
-          "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.sla_escalations": {
-      "name": "sla_escalations",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "task_id": {
-          "name": "task_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "case_id": {
-          "name": "case_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "escalated_to": {
-          "name": "escalated_to",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "reason": {
-          "name": "reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "triggered_at": {
-          "name": "triggered_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "resolved_at": {
-          "name": "resolved_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "sla_escalations_task_id_tasks_id_fk": {
-          "name": "sla_escalations_task_id_tasks_id_fk",
-          "tableFrom": "sla_escalations",
-          "tableTo": "tasks",
-          "columnsFrom": [
-            "task_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "sla_escalations_case_id_cases_id_fk": {
-          "name": "sla_escalations_case_id_cases_id_fk",
-          "tableFrom": "sla_escalations",
-          "tableTo": "cases",
-          "columnsFrom": [
-            "case_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "sla_escalations_escalated_to_users_id_fk": {
-          "name": "sla_escalations_escalated_to_users_id_fk",
-          "tableFrom": "sla_escalations",
-          "tableTo": "users",
-          "columnsFrom": [
-            "escalated_to"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.tasks": {
-      "name": "tasks",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "case_id": {
-          "name": "case_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "process_instance_id": {
-          "name": "process_instance_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "node_id": {
-          "name": "node_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "step_label": {
-          "name": "step_label",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "assignee_id": {
-          "name": "assignee_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "form_id": {
-          "name": "form_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "form_submission_id": {
-          "name": "form_submission_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "outcome": {
-          "name": "outcome",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "due_at": {
-          "name": "due_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "completed_at": {
-          "name": "completed_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "tasks_case_id_cases_id_fk": {
-          "name": "tasks_case_id_cases_id_fk",
-          "tableFrom": "tasks",
-          "tableTo": "cases",
-          "columnsFrom": [
-            "case_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "tasks_process_instance_id_process_instances_id_fk": {
-          "name": "tasks_process_instance_id_process_instances_id_fk",
-          "tableFrom": "tasks",
-          "tableTo": "process_instances",
-          "columnsFrom": [
-            "process_instance_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "tasks_assignee_id_users_id_fk": {
-          "name": "tasks_assignee_id_users_id_fk",
-          "tableFrom": "tasks",
-          "tableTo": "users",
-          "columnsFrom": [
-            "assignee_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "tasks_form_id_forms_id_fk": {
-          "name": "tasks_form_id_forms_id_fk",
-          "tableFrom": "tasks",
-          "tableTo": "forms",
-          "columnsFrom": [
-            "form_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "tasks_form_submission_id_form_submissions_id_fk": {
-          "name": "tasks_form_submission_id_form_submissions_id_fk",
-          "tableFrom": "tasks",
-          "tableTo": "form_submissions",
-          "columnsFrom": [
-            "form_submission_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.user_profiles": {
-      "name": "user_profiles",
-      "schema": "",
-      "columns": {
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "department_id": {
-          "name": "department_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "manager_id": {
-          "name": "manager_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "role": {
-          "name": "role",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'user'"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "user_profiles_user_id_users_id_fk": {
-          "name": "user_profiles_user_id_users_id_fk",
-          "tableFrom": "user_profiles",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "user_profiles_department_id_departments_id_fk": {
-          "name": "user_profiles_department_id_departments_id_fk",
-          "tableFrom": "user_profiles",
-          "tableTo": "departments",
-          "columnsFrom": [
-            "department_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }

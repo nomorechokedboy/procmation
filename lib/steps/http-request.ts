@@ -59,33 +59,33 @@ async function httpRequest(
 ): Promise<HttpRequestResult> {
   if (!input.endpoint) {
     return {
-      success: false,
       error: "HTTP request failed: URL is required",
+      success: false,
     };
   }
 
   try {
     const response = await fetch(input.endpoint, {
-      method: input.httpMethod,
-      headers: parseHeaders(input.httpHeaders),
       body: parseBody(input.httpMethod, input.httpBody),
+      headers: parseHeaders(input.httpHeaders),
+      method: input.httpMethod,
     });
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => "Unknown error");
       return {
-        success: false,
         error: `HTTP request failed with status ${response.status}: ${errorText}`,
         status: response.status,
+        success: false,
       };
     }
 
     const data = await parseResponse(response);
-    return { success: true, data, status: response.status };
+    return { data, status: response.status, success: true };
   } catch (error) {
     return {
-      success: false,
       error: `HTTP request failed: ${getErrorMessage(error)}`,
+      success: false,
     };
   }
 }

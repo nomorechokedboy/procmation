@@ -55,8 +55,8 @@ export async function GET(
     }));
 
     return NextResponse.json({
-      status: execution.status,
       nodeStatuses,
+      status: execution.status,
     });
   } catch (error) {
     console.error("Failed to get execution status:", error);

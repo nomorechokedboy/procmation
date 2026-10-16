@@ -54,8 +54,8 @@ function tryParseAndEnqueueOperation(
 
     controller.enqueue(
       encodeMessage(encoder, {
-        type: "operation",
         operation,
+        type: "operation",
       })
     );
 
@@ -85,7 +85,7 @@ function processBufferLines(
     );
   }
 
-  return { remainingBuffer, newOperationCount };
+  return { newOperationCount, remainingBuffer };
 }
 
 async function processOperationStream(
@@ -326,8 +326,8 @@ Example: If user says "connect node A to node B", output:
 
     const result = streamText({
       model: "openai/gpt-5.1-instant",
-      system: getSystemPrompt(),
       prompt: userPrompt,
+      system: getSystemPrompt(),
     });
 
     // Create a streaming response
@@ -340,11 +340,11 @@ Example: If user says "connect node A to node B", output:
         } catch (error) {
           controller.enqueue(
             encodeMessage(encoder, {
-              type: "error",
               error:
                 error instanceof Error
                   ? error.message
                   : "Failed to generate workflow",
+              type: "error",
             })
           );
           controller.close();
@@ -354,9 +354,9 @@ Example: If user says "connect node A to node B", output:
 
     return new Response(stream, {
       headers: {
-        "Content-Type": "application/x-ndjson",
         "Cache-Control": "no-cache",
         Connection: "keep-alive",
+        "Content-Type": "application/x-ndjson",
       },
     });
   } catch (error) {

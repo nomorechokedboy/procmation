@@ -32,7 +32,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { api } from "@/lib/api-client";
-import { authClient, useSession } from "@/lib/auth-client";
+import { useSession } from "@/lib/auth-client";
 import { integrationsAtom } from "@/lib/integrations-store";
 import type { IntegrationType } from "@/lib/types/integration";
 import {
@@ -95,7 +95,7 @@ function updateNodesStatus(
   status: "idle" | "running" | "success" | "error"
 ) {
   for (const node of nodes) {
-    updateNodeData({ id: node.id, data: { status } });
+    updateNodeData({ data: { status }, id: node.id });
   }
 }
 
@@ -139,8 +139,8 @@ function extractTemplateReferences(
   const matches = value.matchAll(pattern);
 
   return Array.from(matches).map((match) => ({
-    nodeId: match[1],
     displayText: match[2],
+    nodeId: match[1],
   }));
 }
 
@@ -205,18 +205,18 @@ function getBrokenTemplateReferences(
       const flatFields = action ? flattenConfigFields(action.configFields) : [];
 
       brokenByNode.push({
-        nodeId: node.id,
-        nodeLabel: node.data.label || action?.label || "Unnamed Step",
         brokenReferences: brokenRefs.map((ref) => {
           // Look up human-readable field label
           const configField = flatFields.find((f) => f.key === ref.field);
           return {
+            displayText: ref.displayText,
             fieldKey: ref.field,
             fieldLabel: configField?.label || ref.field,
             referencedNodeId: ref.nodeId,
-            displayText: ref.displayText,
           };
         }),
+        nodeId: node.id,
+        nodeLabel: node.data.label || action?.label || "Unnamed Step",
       });
     }
   }
@@ -295,9 +295,9 @@ function getNodeMissingFields(
   }
 
   return {
+    missingFields,
     nodeId: node.id,
     nodeLabel: node.data.label || action.label || "Unnamed Step",
-    missingFields,
   };
 }
 
@@ -367,11 +367,11 @@ function getMissingIntegrations(
 
   return Array.from(missingByType.entries()).map(
     ([integrationType, nodeNames]) => ({
-      integrationType,
       integrationLabel:
         integrationLabels[integrationType] ||
         BUILTIN_INTEGRATION_LABELS[integrationType] ||
         integrationType,
+      integrationType,
       nodeNames,
     })
   );
@@ -403,18 +403,18 @@ async function executeTestWorkflow({
   // Immediately set trigger nodes to running for instant visual feedback
   for (const node of nodes) {
     if (node.data.type === "trigger") {
-      updateNodeData({ id: node.id, data: { status: "running" } });
+      updateNodeData({ data: { status: "running" }, id: node.id });
     }
   }
 
   try {
     // Start the execution via API
     const response = await fetch(`/api/workflow/${workflowId}/execute`, {
-      method: "POST",
+      body: JSON.stringify({ input: {} }),
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ input: {} }),
+      method: "POST",
     });
 
     if (!response.ok) {
@@ -436,7 +436,6 @@ async function executeTestWorkflow({
         // Update node statuses based on the execution logs
         for (const nodeStatus of statusData.nodeStatuses) {
           updateNodeData({
-            id: nodeStatus.nodeId,
             data: {
               status: nodeStatus.status as
                 | "idle"
@@ -444,6 +443,7 @@ async function executeTestWorkflow({
                 | "success"
                 | "error",
             },
+            id: nodeStatus.nodeId,
           });
         }
 
@@ -532,7 +532,7 @@ function useWorkflowHandlers({
 
     setIsSaving(true);
     try {
-      await api.workflow.update(currentWorkflowId, { nodes, edges });
+      await api.workflow.update(currentWorkflowId, { edges, nodes });
       setHasUnsavedChanges(false);
     } catch (error) {
       console.error("Failed to save workflow:", error);
@@ -558,12 +558,12 @@ function useWorkflowHandlers({
 
     setIsExecuting(true);
     await executeTestWorkflow({
-      workflowId: currentWorkflowId,
       nodes,
-      updateNodeData,
       pollingIntervalRef,
       setIsExecuting,
       setSelectedExecutionId,
+      updateNodeData,
+      workflowId: currentWorkflowId,
     });
     // Don't set executing to false here - let polling handle it
   };
@@ -604,8 +604,8 @@ function useWorkflowHandlers({
       openOverlay(WorkflowIssuesOverlay, {
         issues: {
           brokenReferences: brokenRefs,
-          missingRequiredFields: missingFields,
           missingIntegrations,
+          missingRequiredFields: missingFields,
         },
         onGoToStep: handleGoToStep,
         onRunAnyway: executeWorkflow,
@@ -617,8 +617,8 @@ function useWorkflowHandlers({
   };
 
   return {
-    handleSave,
     handleExecute,
+    handleSave,
   };
 }
 
@@ -679,44 +679,44 @@ function useWorkflowState() {
   }, []);
 
   return {
-    nodes,
-    edges,
-    isExecuting,
-    setIsExecuting,
-    isGenerating,
-    clearWorkflow,
-    updateNodeData,
-    currentWorkflowId,
-    workflowName,
-    setCurrentWorkflowName,
-    workflowVisibility,
-    setWorkflowVisibility,
-    isOwner,
-    router,
-    isSaving,
-    setIsSaving,
-    hasUnsavedChanges,
-    setHasUnsavedChanges,
-    undo,
-    redo,
     addNode,
-    canUndo,
-    canRedo,
-    session,
-    isDownloading,
-    setIsDownloading,
-    isDuplicating,
-    setIsDuplicating,
     allWorkflows,
-    setAllWorkflows,
+    canRedo,
+    canUndo,
+    clearWorkflow,
+    currentWorkflowId,
+    edges,
+    hasUnsavedChanges,
+    isDownloading,
+    isDuplicating,
+    isExecuting,
+    isGenerating,
+    isOwner,
+    isSaving,
+    nodes,
+    redo,
+    router,
+    session,
     setActiveTab,
-    setNodes,
+    setAllWorkflows,
+    setCurrentWorkflowName,
     setEdges,
-    setSelectedNodeId,
+    setHasUnsavedChanges,
+    setIsDownloading,
+    setIsDuplicating,
+    setIsExecuting,
+    setIsSaving,
+    setNodes,
     setSelectedExecutionId,
-    userIntegrations,
-    triggerExecute,
+    setSelectedNodeId,
     setTriggerExecute,
+    setWorkflowVisibility,
+    triggerExecute,
+    undo,
+    updateNodeData,
+    userIntegrations,
+    workflowName,
+    workflowVisibility,
   };
 }
 
@@ -752,18 +752,18 @@ function useWorkflowActions(state: ReturnType<typeof useWorkflowState>) {
 
   const { handleSave, handleExecute } = useWorkflowHandlers({
     currentWorkflowId,
-    nodes,
     edges,
-    updateNodeData,
     isExecuting,
+    nodes,
+    setActiveTab,
+    setEdges,
+    setHasUnsavedChanges,
     setIsExecuting,
     setIsSaving,
-    setHasUnsavedChanges,
-    setActiveTab,
     setNodes,
-    setEdges,
-    setSelectedNodeId,
     setSelectedExecutionId,
+    setSelectedNodeId,
+    updateNodeData,
     userIntegrations,
   });
 
@@ -777,27 +777,28 @@ function useWorkflowActions(state: ReturnType<typeof useWorkflowState>) {
 
   const handleClearWorkflow = () => {
     openOverlay(ConfirmOverlay, {
-      title: "Clear Workflow",
-      message:
-        "Are you sure you want to clear all nodes and connections? This action cannot be undone.",
       confirmLabel: "Clear Workflow",
       confirmVariant: "destructive" as const,
       destructive: true,
+      message:
+        "Are you sure you want to clear all nodes and connections? This action cannot be undone.",
       onConfirm: () => {
         clearWorkflow();
       },
+      title: "Clear Workflow",
     });
   };
 
   const handleDeleteWorkflow = () => {
     openOverlay(ConfirmOverlay, {
-      title: "Delete Workflow",
-      message: `Are you sure you want to delete "${workflowName}"? This will permanently delete the workflow. This cannot be undone.`,
       confirmLabel: "Delete Workflow",
       confirmVariant: "destructive" as const,
       destructive: true,
+      message: `Are you sure you want to delete "${workflowName}"? This will permanently delete the workflow. This cannot be undone.`,
       onConfirm: async () => {
-        if (!currentWorkflowId) return;
+        if (!currentWorkflowId) {
+          return;
+        }
         try {
           await api.workflow.delete(currentWorkflowId);
           toast.success("Workflow deleted successfully");
@@ -807,6 +808,7 @@ function useWorkflowActions(state: ReturnType<typeof useWorkflowState>) {
           toast.error("Failed to delete workflow. Please try again.");
         }
       },
+      title: "Delete Workflow",
     });
   };
 
@@ -915,13 +917,6 @@ function useWorkflowActions(state: ReturnType<typeof useWorkflowState>) {
 
     setIsDuplicating(true);
     try {
-      // Auto-sign in as anonymous if user has no session
-      if (!session?.user) {
-        await authClient.signIn.anonymous();
-        // Wait for session to be established
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
-
       const newWorkflow = await api.workflow.duplicate(currentWorkflowId);
       toast.success("Workflow duplicated successfully");
       router.push(`/workflows/${newWorkflow.id}`);
@@ -934,14 +929,14 @@ function useWorkflowActions(state: ReturnType<typeof useWorkflowState>) {
   };
 
   return {
-    handleSave,
-    handleExecute,
     handleClearWorkflow,
     handleDeleteWorkflow,
     handleDownload,
-    loadWorkflows,
-    handleToggleVisibility,
     handleDuplicate,
+    handleExecute,
+    handleSave,
+    handleToggleVisibility,
+    loadWorkflows,
   };
 }
 
@@ -983,10 +978,9 @@ function ToolbarActions({
     const itemType = isNode ? "Node" : "Connection";
 
     push(ConfirmOverlay, {
-      title: `Delete ${itemType}`,
-      message: `Are you sure you want to delete this ${itemType.toLowerCase()}? This action cannot be undone.`,
       confirmLabel: "Delete",
       confirmVariant: "destructive" as const,
+      message: `Are you sure you want to delete this ${itemType.toLowerCase()}? This action cannot be undone.`,
       onConfirm: () => {
         if (selectedNodeId) {
           deleteNode(selectedNodeId);
@@ -994,6 +988,7 @@ function ToolbarActions({
           deleteEdge(selectedEdgeId);
         }
       },
+      title: `Delete ${itemType}`,
     });
   };
 
@@ -1045,16 +1040,16 @@ function ToolbarActions({
 
     // Create new action node
     const newNode: WorkflowNode = {
-      id: nanoid(),
-      type: "action",
-      position: finalPosition,
       data: {
-        label: "",
-        description: "",
-        type: "action",
         config: {},
+        description: "",
+        label: "",
         status: "idle",
+        type: "action",
       },
+      id: nanoid(),
+      position: finalPosition,
+      type: "action",
     };
 
     state.addNode(newNode);
@@ -1228,8 +1223,8 @@ function DownloadButton({
 
   const handleClick = () => {
     openOverlay(ExportWorkflowOverlay, {
-      onExport: actions.handleDownload,
       isDownloading: state.isDownloading,
+      onExport: actions.handleDownload,
     });
   };
 

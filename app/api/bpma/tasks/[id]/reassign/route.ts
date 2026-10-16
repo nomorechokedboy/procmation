@@ -1,59 +1,63 @@
+import { and, eq, isNull, or } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { completeTask, getTaskById, reassignTask } from "@/lib/db/bpma";
+import { readJsonObject } from "@/lib/api/read-json";
+import { db } from "@/lib/db";
+import { getTask, reassignTask } from "@/lib/db/bpma";
+import { users } from "@/lib/db/schema";
+import { requireUser } from "@/lib/session";
 
 type Params = { params: Promise<{ id: string }> };
 
-// POST /api/bpma/tasks/:id/complete
 // POST /api/bpma/tasks/:id/reassign
+// Body: { assigneeId: string }. The current assignee or an admin can hand a
+// task to another member.
 export async function POST(request: Request, { params }: Params) {
-    try {
-        const { id } = await params;
-        const session = await auth.api.getSession({ headers: request.headers });
-        if (!session?.user) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+  const guard = await requireUser(request);
+  if (!guard.ok) {
+    return guard.response;
+  }
 
-        const url = new URL(request.url);
-        const action = url.pathname.split("/").at(-1); // 'complete' | 'reassign'
+  const { id } = await params;
+  const task = await getTask(id);
+  if (!task) {
+    return NextResponse.json({ error: "Task not found" }, { status: 404 });
+  }
+  if (guard.user.role !== "admin" && task.assigneeId !== guard.user.id) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
-        const body = await request.json().catch(() => ({}));
+  const body = await readJsonObject(request);
+  if (!body || typeof body.assigneeId !== "string") {
+    return NextResponse.json(
+      { error: "assigneeId is required" },
+      { status: 400 }
+    );
+  }
 
-        if (action === "complete") {
-            const { outcome, formSubmissionId } = body;
-            const result = await completeTask(
-                id,
-                session.user.id,
-                outcome,
-                formSubmissionId,
-            );
-            if (!result) {
-                return NextResponse.json({ error: "Task not found" }, { status: 404 });
-            }
-            return NextResponse.json(result);
-        }
+  const [assignee] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(
+      and(
+        eq(users.id, body.assigneeId),
+        or(isNull(users.isAnonymous), eq(users.isAnonymous, false))
+      )
+    );
+  if (!assignee) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
 
-        if (action === "reassign") {
-            const { assigneeId } = body;
-            if (!assigneeId) {
-                return NextResponse.json(
-                    { error: "assigneeId is required" },
-                    { status: 400 },
-                );
-            }
-            const result = await reassignTask(id, assigneeId, session.user.id);
-            if (!result) {
-                return NextResponse.json({ error: "Task not found" }, { status: 404 });
-            }
-            return NextResponse.json(result);
-        }
+  const result = await reassignTask({
+    actorId: guard.user.id,
+    newAssigneeId: assignee.id,
+    task,
+  });
+  if (!result.ok) {
+    return NextResponse.json(
+      { error: "Only a pending task can be reassigned" },
+      { status: 409 }
+    );
+  }
 
-        return NextResponse.json({ error: "Unknown action" }, { status: 400 });
-    } catch (error) {
-        console.error("[tasks/:id] POST error:", error);
-        return NextResponse.json(
-            { error: "Failed to process task action" },
-            { status: 500 },
-        );
-    }
+  return NextResponse.json(result.task);
 }

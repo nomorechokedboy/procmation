@@ -1,92 +1,124 @@
-/**
- * app/api/bpma/cases/route.ts
- */
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { createCase, getCases, getProcessDefinitionById } from "@/lib/db/bpma";
+import { readJsonObject } from "@/lib/api/read-json";
+import { db } from "@/lib/db";
+import { createCase, listCases } from "@/lib/db/bpma";
+import {
+  CASE_PRIORITIES,
+  CASE_STATUSES,
+  MAX_CASE_TITLE_LENGTH,
+} from "@/lib/db/case-options";
+import type { CasePriority, CaseStatus } from "@/lib/db/schema";
+import { processDefinitions } from "@/lib/db/schema";
+import { requireUser } from "@/lib/session";
 
-// GET /api/bpma/cases
+// GET /api/bpma/cases - cases the user started or takes part in.
+// Admins can pass all=true to see every case.
 export async function GET(request: Request) {
-  try {
-    const session = await auth.api.getSession({ headers: request.headers });
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { searchParams } = new URL(request.url);
-    const status = searchParams.get("status") as string | null;
-    const priority = searchParams.get("priority") as string | null;
-    const processDefinitionId = searchParams.get("processId") ?? undefined;
-
-    // By default, return cases for the current user (as initiator or assignee)
-    const viewAll = searchParams.get("all") === "true";
-
-    const allCases = await getCases({
-      initiatorId: viewAll ? undefined : session.user.id,
-      status: status as any,
-      priority: priority as any,
-      processDefinitionId,
-    });
-
-    return NextResponse.json(allCases);
-  } catch (error) {
-    console.error("[cases] GET error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch cases" },
-      { status: 500 }
-    );
+  const guard = await requireUser(request);
+  if (!guard.ok) {
+    return guard.response;
   }
+
+  const params = new URL(request.url).searchParams;
+  const status = params.get("status");
+  const priority = params.get("priority");
+
+  if (status && !CASE_STATUSES.includes(status as CaseStatus)) {
+    return NextResponse.json({ error: "Unknown status" }, { status: 400 });
+  }
+  if (priority && !CASE_PRIORITIES.includes(priority as CasePriority)) {
+    return NextResponse.json({ error: "Unknown priority" }, { status: 400 });
+  }
+
+  const viewAll = params.get("all") === "true";
+  if (viewAll && guard.user.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const rows = await listCases({
+    priority: (priority as CasePriority | null) ?? undefined,
+    processDefinitionId: params.get("processId") ?? undefined,
+    status: (status as CaseStatus | null) ?? undefined,
+    visibleTo: viewAll ? undefined : guard.user.id,
+  });
+
+  return NextResponse.json(rows);
 }
 
-// POST /api/bpma/cases  — start a new case / request
+// POST /api/bpma/cases - open a case for a published process
 export async function POST(request: Request) {
-  try {
-    const session = await auth.api.getSession({ headers: request.headers });
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const guard = await requireUser(request);
+  if (!guard.ok) {
+    return guard.response;
+  }
 
-    const body = await request.json();
-    const { processDefinitionId, title, priority, metadata, dueAt } = body;
-
-    if (!(processDefinitionId && title)) {
-      return NextResponse.json(
-        { error: "processDefinitionId and title are required" },
-        { status: 400 }
-      );
-    }
-
-    // Verify the process exists and is active
-    const processDef = await getProcessDefinitionById(processDefinitionId);
-    if (!processDef) {
-      return NextResponse.json(
-        { error: "Process definition not found" },
-        { status: 404 }
-      );
-    }
-    if (processDef.status !== "active") {
-      return NextResponse.json(
-        { error: "Process must be active to create a case" },
-        { status: 400 }
-      );
-    }
-
-    const newCase = await createCase({
-      processDefinitionId,
-      title,
-      priority: priority ?? "medium",
-      initiatorId: session.user.id,
-      participants: [session.user.id],
-      metadata: metadata ?? {},
-      dueAt: dueAt ? new Date(dueAt) : undefined,
-    });
-
-    return NextResponse.json(newCase, { status: 201 });
-  } catch (error) {
-    console.error("[cases] POST error:", error);
+  const body = await readJsonObject(request);
+  if (!body) {
     return NextResponse.json(
-      { error: "Failed to create case" },
-      { status: 500 }
+      { error: "Invalid request body" },
+      { status: 400 }
     );
   }
+
+  const title = typeof body.title === "string" ? body.title.trim() : "";
+  if (!title || title.length > MAX_CASE_TITLE_LENGTH) {
+    return NextResponse.json(
+      { error: `Title is required, up to ${MAX_CASE_TITLE_LENGTH} characters` },
+      { status: 400 }
+    );
+  }
+
+  const priority = (body.priority ?? "medium") as CasePriority;
+  if (!CASE_PRIORITIES.includes(priority)) {
+    return NextResponse.json({ error: "Unknown priority" }, { status: 400 });
+  }
+
+  let dueAt: Date | null = null;
+  if (body.dueAt !== undefined && body.dueAt !== null) {
+    dueAt = new Date(String(body.dueAt));
+    if (Number.isNaN(dueAt.getTime())) {
+      return NextResponse.json({ error: "Invalid due date" }, { status: 400 });
+    }
+  }
+
+  const metadata = body.metadata ?? {};
+  if (typeof metadata !== "object" || Array.isArray(metadata)) {
+    return NextResponse.json(
+      { error: "Metadata must be an object" },
+      { status: 400 }
+    );
+  }
+
+  if (typeof body.processDefinitionId !== "string") {
+    return NextResponse.json(
+      { error: "processDefinitionId is required" },
+      { status: 400 }
+    );
+  }
+
+  const [definition] = await db
+    .select({ status: processDefinitions.status })
+    .from(processDefinitions)
+    .where(eq(processDefinitions.id, body.processDefinitionId));
+  if (!definition) {
+    return NextResponse.json({ error: "Process not found" }, { status: 404 });
+  }
+  if (definition.status !== "published") {
+    return NextResponse.json(
+      { error: "Process is not published" },
+      { status: 400 }
+    );
+  }
+
+  const created = await createCase({
+    dueAt,
+    initiatorId: guard.user.id,
+    metadata: metadata as Record<string, unknown>,
+    priority,
+    processDefinitionId: body.processDefinitionId,
+    title,
+  });
+
+  return NextResponse.json(created, { status: 201 });
 }

@@ -35,9 +35,9 @@ export async function GET(
 
     // Fetch executions
     const executions = await db.query.workflowExecutions.findMany({
-      where: eq(workflowExecutions.workflowId, workflowId),
-      orderBy: [desc(workflowExecutions.startedAt)],
       limit: 50,
+      orderBy: [desc(workflowExecutions.startedAt)],
+      where: eq(workflowExecutions.workflowId, workflowId),
     });
 
     return NextResponse.json(executions);
@@ -84,8 +84,8 @@ export async function DELETE(
 
     // Get all execution IDs for this workflow
     const executions = await db.query.workflowExecutions.findMany({
-      where: eq(workflowExecutions.workflowId, workflowId),
       columns: { id: true },
+      where: eq(workflowExecutions.workflowId, workflowId),
     });
 
     const executionIds = executions.map((e) => e.id);
@@ -106,8 +106,8 @@ export async function DELETE(
     }
 
     return NextResponse.json({
-      success: true,
       deletedCount: executionIds.length,
+      success: true,
     });
   } catch (error) {
     console.error("Failed to delete executions:", error);

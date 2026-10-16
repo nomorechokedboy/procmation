@@ -1,12 +1,18 @@
 "use client";
 
-import { Key, LogOut, Moon, Plug, Settings, Sun } from "lucide-react";
+import {
+  Key,
+  ListChecks,
+  LogOut,
+  Moon,
+  Plug,
+  Settings,
+  Sun,
+  Users,
+} from "lucide-react";
+import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
-import {
-  AuthDialog,
-  isSingleProviderSignInInitiated,
-} from "@/components/auth/dialog";
 import { ApiKeysOverlay } from "@/components/overlays/api-keys-overlay";
 import { IntegrationsOverlay } from "@/components/overlays/integrations-overlay";
 import { useOverlay } from "@/components/overlays/overlay-provider";
@@ -37,7 +43,7 @@ export const UserMenu = () => {
 
   // Fetch provider info when session is available
   useEffect(() => {
-    if (session?.user && !session.user.name?.startsWith("Anonymous")) {
+    if (session?.user) {
       api.user
         .get()
         .then((user) => setProviderId(user.providerId))
@@ -70,37 +76,19 @@ export const UserMenu = () => {
     return "U";
   };
 
-  const signInInProgress = isSingleProviderSignInInitiated();
-
   // Don't render anything while session is loading to prevent flash
-  // BUT if sign-in is in progress, keep showing the AuthDialog with loading state
-  if (isPending && !signInInProgress) {
+  if (isPending) {
     return (
       <div className="h-9 w-9" /> // Placeholder to maintain layout
     );
   }
 
-  // Check if user is anonymous
-  // Better Auth anonymous plugin creates users with name "Anonymous" and temp- email
-  const isAnonymous =
-    !session?.user ||
-    session.user.name === "Anonymous" ||
-    session.user.email?.startsWith("temp-");
-
-  // Show Sign In button if user is anonymous or not logged in
-  if (isAnonymous) {
+  // Every page requires a session, so this only shows if it expires mid-use
+  if (!session?.user) {
     return (
-      <div className="flex items-center gap-2">
-        <AuthDialog>
-          <Button
-            className="h-9 disabled:opacity-100 disabled:[&>*]:text-muted-foreground"
-            size="sm"
-            variant="default"
-          >
-            Sign In
-          </Button>
-        </AuthDialog>
-      </div>
+      <Button asChild className="h-9" size="sm" variant="default">
+        <Link href="/login">Sign In</Link>
+      </Button>
     );
   }
 
@@ -146,6 +134,22 @@ export const UserMenu = () => {
           <Key className="size-4" />
           <span>API Keys</span>
         </DropdownMenuItem>
+        {session.user.role === "admin" && (
+          <>
+            <DropdownMenuItem asChild>
+              <Link href="/admin/processes">
+                <ListChecks className="size-4" />
+                <span>Processes</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/admin/members">
+                <Users className="size-4" />
+                <span>Members</span>
+              </Link>
+            </DropdownMenuItem>
+          </>
+        )}
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             <Sun className="size-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />

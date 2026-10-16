@@ -118,12 +118,12 @@ const FIELD_RENDERERS: Record<
   ActionConfigFieldBase["type"],
   React.ComponentType<FieldProps>
 > = {
+  number: NumberInputField,
+  "schema-builder": SchemaBuilderField,
+  select: SelectField,
   "template-input": TemplateInputField,
   "template-textarea": TemplateTextareaField,
   text: TextInputField,
-  number: NumberInputField,
-  select: SelectField,
-  "schema-builder": SchemaBuilderField,
 };
 
 /**

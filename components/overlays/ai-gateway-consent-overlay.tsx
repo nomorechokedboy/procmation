@@ -138,26 +138,26 @@ export function AiGatewayConsentOverlay({
     ...(onManualEntry
       ? [
           {
-            label: "Enter manually",
-            variant: "ghost" as const,
-            onClick: handleManualEntry,
             disabled: loading,
+            label: "Enter manually",
+            onClick: handleManualEntry,
+            variant: "ghost" as const,
           },
         ]
       : []),
     {
-      label: "Cancel",
-      variant: "outline" as const,
-      onClick: handleDecline,
       disabled: loading,
+      label: "Cancel",
+      onClick: handleDecline,
+      variant: "outline" as const,
     },
     {
-      label: loading ? "Setting up..." : "Agree & Connect",
-      variant: "default" as const,
-      onClick: handleConsent,
       disabled:
         loading || (teamsLoading && teams.length === 0) || !selectedTeamId,
+      label: loading ? "Setting up..." : "Agree & Connect",
       loading,
+      onClick: handleConsent,
+      variant: "default" as const,
     },
   ];
 

@@ -142,11 +142,11 @@ function replacePlaceholders(content: string, config: PluginConfig): string {
  */
 function getTemplateFiles(actionSlug: string) {
   return [
-    { src: "index.ts.txt", dest: "index.ts" },
-    { src: "icon.tsx.txt", dest: "icon.tsx" },
-    { src: "test.ts.txt", dest: "test.ts" },
-    { src: "credentials.ts.txt", dest: "credentials.ts" },
-    { src: "steps/action.ts.txt", dest: `steps/${actionSlug}.ts` },
+    { dest: "index.ts", src: "index.ts.txt" },
+    { dest: "icon.tsx", src: "icon.tsx.txt" },
+    { dest: "test.ts", src: "test.ts.txt" },
+    { dest: "credentials.ts", src: "credentials.ts.txt" },
+    { dest: `steps/${actionSlug}.ts`, src: "steps/action.ts.txt" },
   ];
 }
 
@@ -226,10 +226,10 @@ async function main(): Promise<void> {
   });
 
   const answers: PluginConfig = {
-    integrationName,
-    integrationDescription,
-    actionName,
     actionDescription,
+    actionName,
+    integrationDescription,
+    integrationName,
   };
 
   const pluginName = toKebabCase(integrationName);

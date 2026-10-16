@@ -94,10 +94,10 @@ function checkNodeIntegration(
   const available = allIntegrations.filter((i) => i.type === integrationType);
 
   if (available.length === 1) {
-    return { nodeId: node.id, newIntegrationId: available[0].id };
+    return { newIntegrationId: available[0].id, nodeId: node.id };
   }
   if (available.length === 0 && currentIntegrationId) {
-    return { nodeId: node.id, newIntegrationId: undefined };
+    return { newIntegrationId: undefined, nodeId: node.id };
   }
   return null;
 }
@@ -312,10 +312,10 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
         setCurrentWorkflowName(workflowData.name || "AI Generated Workflow");
 
         await api.workflow.update(workflowId, {
-          name: workflowData.name,
           description: workflowData.description,
-          nodes: workflowData.nodes,
           edges: workflowData.edges,
+          name: workflowData.name,
+          nodes: workflowData.nodes,
         });
       } catch (error) {
         console.error("Failed to generate workflow:", error);
@@ -347,11 +347,11 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
       // Reset node statuses to idle and clear selection when loading from database
       const nodesWithIdleStatus = workflow.nodes.map((node: WorkflowNode) => ({
         ...node,
-        selected: false,
         data: {
           ...node.data,
           status: "idle" as const,
         },
+        selected: false,
       }));
 
       setNodes(nodesWithIdleStatus);
@@ -457,20 +457,20 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
           const node = nodes.find((n) => n.id === fix.nodeId);
           if (node) {
             updateNodeData({
-              id: fix.nodeId,
               data: {
                 config: {
                   ...node.data.config,
                   integrationId: fix.newIntegrationId,
                 },
               },
+              id: fix.nodeId,
             });
           }
         }
 
         lastAutoFixRef.current = {
-          workflowId: currentWorkflowId,
           version: integrationsVersion,
+          workflowId: currentWorkflowId,
         };
         if (fixes.length > 0) {
           setHasUnsavedChanges(true);
@@ -499,7 +499,7 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
     }
     setIsSaving(true);
     try {
-      await api.workflow.update(currentWorkflowId, { nodes, edges });
+      await api.workflow.update(currentWorkflowId, { edges, nodes });
       setHasUnsavedChanges(false);
     } catch (error) {
       console.error("Failed to save workflow:", error);
@@ -573,7 +573,6 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
 
       // Handle run shortcut
       if (handleRunShortcut(e, target)) {
-        return;
       }
     };
 
@@ -607,7 +606,7 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
     if (!selectedExecutionId) {
       // Reset all node statuses when no execution is selected
       for (const node of nodesRef.current) {
-        updateNodeData({ id: node.id, data: { status: "idle" } });
+        updateNodeData({ data: { status: "idle" }, id: node.id });
       }
       return;
     }
@@ -621,7 +620,6 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
         // Update node statuses based on the execution logs
         for (const nodeStatus of statusData.nodeStatuses) {
           updateNodeData({
-            id: nodeStatus.nodeId,
             data: {
               status: nodeStatus.status as
                 | "idle"
@@ -629,6 +627,7 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
                 | "success"
                 | "error",
             },
+            id: nodeStatus.nodeId,
           });
         }
 
@@ -700,11 +699,11 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
         <div
           className="pointer-events-auto absolute inset-y-0 right-0 z-20 border-l bg-background transition-transform duration-300 ease-out"
           style={{
-            width: `${panelWidth}%`,
             transform:
               panelVisible && !panelCollapsed
                 ? "translateX(0)"
                 : "translateX(100%)",
+            width: `${panelWidth}%`,
           }}
         >
           {/* Resize handle with collapse button */}

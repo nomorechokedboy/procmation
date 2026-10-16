@@ -2,89 +2,76 @@ import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import {
-    accounts,
-    apiKeys,
-    integrations,
-    sessions,
-    users,
-    verifications,
-    workflowExecutionLogs,
-    workflowExecutions,
-    workflowExecutionsRelations,
-    workflows,
+  accounts,
+  apiKeys,
+  cases,
+  caseTimeline,
+  departments,
+  formSubmissions,
+  forms,
+  integrations,
+  invitations,
+  notifications,
+  processDefinitions,
+  processInstances,
+  processTemplates,
+  sessions,
+  slaEscalations,
+  tasks,
+  userProfiles,
+  users,
+  verifications,
+  workflowExecutionLogs,
+  workflowExecutions,
+  workflowExecutionsRelations,
+  workflows,
 } from "./schema";
-import {
-    caseRelations,
-    caseTimeline,
-    cases,
-    departmentRelations,
-    departments,
-    formSubmissions,
-    forms,
-    notificationRelations,
-    notifications,
-    processDefinitionRelations,
-    processDefinitions,
-    processInstances,
-    processSteps,
-    processTemplates,
-    slaEscalations,
-    taskRelations,
-    tasks,
-    userProfiles,
-} from "./schema-bpma";
 
 // Construct schema object for drizzle
 const schema = {
-    users,
-    sessions,
-    accounts,
-    verifications,
-    workflows,
-    workflowExecutions,
-    workflowExecutionLogs,
-    workflowExecutionsRelations,
-    apiKeys,
-    integrations,
-
-    caseRelations,
-    caseTimeline,
-    cases,
-    departmentRelations,
-    departments,
-    formSubmissions,
-    forms,
-    notificationRelations,
-    notifications,
-    processDefinitionRelations,
-    processDefinitions,
-    processInstances,
-    processSteps,
-    processTemplates,
-    slaEscalations,
-    taskRelations,
-    tasks,
-    userProfiles,
+  accounts,
+  apiKeys,
+  cases,
+  caseTimeline,
+  departments,
+  formSubmissions,
+  forms,
+  integrations,
+  invitations,
+  notifications,
+  processDefinitions,
+  processInstances,
+  processTemplates,
+  sessions,
+  slaEscalations,
+  tasks,
+  userProfiles,
+  users,
+  verifications,
+  workflowExecutionLogs,
+  workflowExecutions,
+  workflowExecutionsRelations,
+  workflows,
 };
 
 const connectionString =
-    process.env.DATABASE_URL || "postgres://localhost:5432/workflow";
+  process.env.DATABASE_URL || "postgres://localhost:5432/workflow";
 
 // For migrations
 export const migrationClient = postgres(connectionString, { max: 1 });
 
 // Use global singleton to prevent connection exhaustion during HMR
 const globalForDb = globalThis as unknown as {
-    queryClient: ReturnType<typeof postgres> | undefined;
-    db: PostgresJsDatabase<typeof schema> | undefined;
+  queryClient: ReturnType<typeof postgres> | undefined;
+  db: PostgresJsDatabase<typeof schema> | undefined;
 };
 
 // For queries - reuse connection in development
 const queryClient =
-    globalForDb.queryClient ?? postgres(connectionString, { max: 10 });
+  globalForDb.queryClient ?? postgres(connectionString, { max: 10 });
 export const db = globalForDb.db ?? drizzle(queryClient, { schema });
 
 if (process.env.NODE_ENV !== "production") {
-    globalForDb.queryClient = queryClient;
-    globalForDb.db = db;
+  globalForDb.queryClient = queryClient;
+  globalForDb.db = db;
 }

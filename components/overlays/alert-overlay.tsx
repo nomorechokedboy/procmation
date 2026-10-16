@@ -35,25 +35,25 @@ const variantConfig: Record<
     bgClass: string;
   }
 > = {
-  info: {
-    icon: InfoIcon,
-    iconClass: "text-blue-500",
-    bgClass: "bg-blue-500/10",
-  },
-  success: {
-    icon: CheckCircle2Icon,
-    iconClass: "text-green-500",
-    bgClass: "bg-green-500/10",
-  },
-  warning: {
-    icon: AlertTriangleIcon,
-    iconClass: "text-yellow-500",
-    bgClass: "bg-yellow-500/10",
-  },
   error: {
+    bgClass: "bg-red-500/10",
     icon: XCircleIcon,
     iconClass: "text-red-500",
-    bgClass: "bg-red-500/10",
+  },
+  info: {
+    bgClass: "bg-blue-500/10",
+    icon: InfoIcon,
+    iconClass: "text-blue-500",
+  },
+  success: {
+    bgClass: "bg-green-500/10",
+    icon: CheckCircle2Icon,
+    iconClass: "text-green-500",
+  },
+  warning: {
+    bgClass: "bg-yellow-500/10",
+    icon: AlertTriangleIcon,
+    iconClass: "text-yellow-500",
   },
 };
 
@@ -108,10 +108,10 @@ export function AlertOverlay({
   const displayTitle =
     title ??
     {
+      error: "Error",
       info: "Information",
       success: "Success",
       warning: "Warning",
-      error: "Error",
     }[variant];
 
   return (

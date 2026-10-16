@@ -19,6 +19,11 @@ import type { WorkflowEdge, WorkflowNode } from "./workflow-store";
 
 // System actions that don't have plugins - maps to module import functions
 const SYSTEM_ACTIONS: Record<string, StepImporter> = {
+  Condition: {
+    // biome-ignore lint/suspicious/noExplicitAny: Dynamic module import
+    importer: () => import("./steps/condition") as Promise<any>,
+    stepFunction: "conditionStep",
+  },
   "Database Query": {
     // biome-ignore lint/suspicious/noExplicitAny: Dynamic module import
     importer: () => import("./steps/database-query") as Promise<any>,
@@ -28,11 +33,6 @@ const SYSTEM_ACTIONS: Record<string, StepImporter> = {
     // biome-ignore lint/suspicious/noExplicitAny: Dynamic module import
     importer: () => import("./steps/http-request") as Promise<any>,
     stepFunction: "httpRequestStep",
-  },
-  Condition: {
-    // biome-ignore lint/suspicious/noExplicitAny: Dynamic module import
-    importer: () => import("./steps/condition") as Promise<any>,
-    stepFunction: "conditionStep",
   },
 };
 
@@ -140,7 +140,7 @@ function evaluateConditionExpression(
   console.log("[Condition] Original expression:", conditionExpression);
 
   if (typeof conditionExpression === "boolean") {
-    return { result: conditionExpression, resolvedValues: {} };
+    return { resolvedValues: {}, result: conditionExpression };
   }
 
   if (typeof conditionExpression === "string") {
@@ -149,7 +149,7 @@ function evaluateConditionExpression(
     if (!preValidation.valid) {
       console.error("[Condition] Pre-validation failed:", preValidation.error);
       console.error("[Condition] Expression was:", conditionExpression);
-      return { result: false, resolvedValues: {} };
+      return { resolvedValues: {}, result: false };
     }
 
     try {
@@ -185,7 +185,7 @@ function evaluateConditionExpression(
           "[Condition] Transformed expression:",
           transformedExpression
         );
-        return { result: false, resolvedValues };
+        return { resolvedValues, result: false };
       }
 
       const varNames = Object.keys(evalContext);
@@ -198,15 +198,15 @@ function evaluateConditionExpression(
         `return (${transformedExpression});`
       );
       const result = evalFunc(...varValues);
-      return { result: Boolean(result), resolvedValues };
+      return { resolvedValues, result: Boolean(result) };
     } catch (error) {
       console.error("[Condition] Failed to evaluate condition:", error);
       console.error("[Condition] Expression was:", conditionExpression);
-      return { result: false, resolvedValues: {} };
+      return { resolvedValues: {}, result: false };
     }
   }
 
-  return { result: Boolean(conditionExpression), resolvedValues: {} };
+  return { resolvedValues: {}, result: Boolean(conditionExpression) };
 }
 
 /**
@@ -238,13 +238,13 @@ async function executeActionStep(input: {
     console.log("[Condition] Final result:", evaluatedCondition);
 
     return await module[systemAction.stepFunction]({
+      _context: context,
       condition: evaluatedCondition,
       // Include original expression and resolved values for logging purposes
       expression:
         typeof originalExpression === "string" ? originalExpression : undefined,
       values:
         Object.keys(resolvedValues).length > 0 ? resolvedValues : undefined,
-      _context: context,
     });
   }
 
@@ -266,15 +266,15 @@ async function executeActionStep(input: {
     }
 
     return {
-      success: false,
       error: `Step function "${stepImporter.stepFunction}" not found in module for action "${actionType}". Check that the plugin exports the correct function name.`,
+      success: false,
     };
   }
 
   // Fallback for unknown action types
   return {
-    success: false,
     error: `Unknown action type: "${actionType}". This action is not registered in the plugin system. Available system actions: ${Object.keys(SYSTEM_ACTIONS).join(", ")}.`,
+    success: false,
   };
 }
 
@@ -381,9 +381,9 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
   const { nodes, edges, triggerInput = {}, executionId, workflowId } = input;
 
   console.log("[Workflow Executor] Input:", {
-    nodeCount: nodes.length,
     edgeCount: edges.length,
     hasExecutionId: !!executionId,
+    nodeCount: nodes.length,
     workflowId: workflowId || "none",
   });
 
@@ -457,8 +457,8 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
       // Store null output for disabled nodes so downstream templates don't fail
       const sanitizedNodeId = nodeId.replace(/[^a-zA-Z0-9]/g, "_");
       outputs[sanitizedNodeId] = {
-        label: node.data.label || nodeId,
         data: null,
+        label: node.data.label || nodeId,
       };
 
       const nextNodes = edgesBySource.get(nodeId) || [];
@@ -477,8 +477,8 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
         const config = node.data.config || {};
         const triggerType = config.triggerType as string;
         let triggerData: Record<string, unknown> = {
-          triggered: true,
           timestamp: Date.now(),
+          triggered: true,
         };
 
         // Handle webhook mock request for test runs
@@ -515,13 +515,13 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
 
         // Execute trigger step (handles logging internally)
         const triggerResult = await triggerStep({
-          triggerData,
           _context: triggerContext,
+          triggerData,
         });
 
         result = {
-          success: triggerResult.success,
           data: triggerResult.data,
+          success: triggerResult.success,
         };
       } else if (node.data.type === "action") {
         const config = node.data.config || {};
@@ -532,8 +532,8 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
         // Check if action type is defined
         if (!actionType) {
           result = {
-            success: false,
             error: `Action node "${node.data.label || node.id}" has no action type configured`,
+            success: false,
           };
           results[nodeId] = result;
           return;
@@ -569,8 +569,8 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
         const stepResult = await executeActionStep({
           actionType,
           config: processedConfig,
-          outputs,
           context: stepContext,
+          outputs,
         });
 
         console.log("[Workflow Executor] Step result received:", {
@@ -597,20 +597,20 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
               : errorResult.error?.message ||
                 `Step "${actionType}" in node "${node.data.label || node.id}" failed without a specific error message.`;
           result = {
-            success: false,
             error: errorMessage,
+            success: false,
           };
         } else {
           result = {
-            success: true,
             data: stepResult,
+            success: true,
           };
         }
       } else {
         console.log("[Workflow Executor] Unknown node type:", node.data.type);
         result = {
-          success: false,
           error: `Unknown node type "${node.data.type}" in node "${node.data.label || node.id}". Expected "trigger" or "action".`,
+          success: false,
         };
       }
 
@@ -620,8 +620,8 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
       // Store outputs with sanitized nodeId for template variable lookup
       const sanitizedNodeId = nodeId.replace(/[^a-zA-Z0-9]/g, "_");
       outputs[sanitizedNodeId] = {
-        label: node.data.label || nodeId,
         data: result.data,
+        label: node.data.label || nodeId,
       };
 
       console.log("[Workflow Executor] Node execution completed:", {
@@ -679,8 +679,8 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
       console.error("[Workflow Executor] Error executing node:", nodeId, error);
       const errorMessage = await getErrorMessageAsync(error);
       const errorResult = {
-        success: false,
         error: errorMessage,
+        success: false,
       };
       results[nodeId] = errorResult;
       // Note: stepHandler already logged the error for action steps
@@ -699,23 +699,23 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
     const duration = Date.now() - workflowStartTime;
 
     console.log("[Workflow Executor] Workflow execution completed:", {
-      success: finalSuccess,
-      resultCount: Object.keys(results).length,
       duration,
+      resultCount: Object.keys(results).length,
+      success: finalSuccess,
     });
 
     // Update execution record if we have an executionId
     if (executionId) {
       try {
         await triggerStep({
-          triggerData: {},
           _workflowComplete: {
-            executionId,
-            status: finalSuccess ? "success" : "error",
-            output: Object.values(results).at(-1)?.data,
             error: Object.values(results).find((r) => !r.success)?.error,
+            executionId,
+            output: Object.values(results).at(-1)?.data,
             startTime: workflowStartTime,
+            status: finalSuccess ? "success" : "error",
           },
+          triggerData: {},
         });
         console.log("[Workflow Executor] Updated execution record");
       } catch (error) {
@@ -727,9 +727,9 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
     }
 
     return {
-      success: finalSuccess,
-      results,
       outputs,
+      results,
+      success: finalSuccess,
     };
   } catch (error) {
     console.error(
@@ -743,13 +743,13 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
     if (executionId) {
       try {
         await triggerStep({
-          triggerData: {},
           _workflowComplete: {
-            executionId,
-            status: "error",
             error: errorMessage,
+            executionId,
             startTime: Date.now(),
+            status: "error",
           },
+          triggerData: {},
         });
       } catch (logError) {
         console.error("[Workflow Executor] Failed to log error:", logError);
@@ -757,10 +757,10 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
     }
 
     return {
-      success: false,
-      results,
-      outputs,
       error: errorMessage,
+      outputs,
+      results,
+      success: false,
     };
   }
 }

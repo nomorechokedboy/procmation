@@ -1,59 +1,78 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { completeTask, reassignTask } from "@/lib/db/bpma";
+import { readJsonObject } from "@/lib/api/read-json";
+import {
+  canActOnTask,
+  completeTask,
+  getDepartmentIdOf,
+  getTask,
+} from "@/lib/db/bpma";
+import { validateFormValues } from "@/lib/process-form-validation";
+import { requireUser } from "@/lib/session";
+import type { FormField } from "@/lib/types/process-form";
 
 type Params = { params: Promise<{ id: string }> };
 
+const MAX_OUTCOME_LENGTH = 100;
+
 // POST /api/bpma/tasks/:id/complete
-// POST /api/bpma/tasks/:id/reassign
+// Body: { outcome?: string, values?: { [fieldKey]: value } }
 export async function POST(request: Request, { params }: Params) {
-    try {
-        const { id } = await params;
-        const session = await auth.api.getSession({ headers: request.headers });
-        if (!session?.user) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+  const guard = await requireUser(request);
+  if (!guard.ok) {
+    return guard.response;
+  }
 
-        const url = new URL(request.url);
-        const action = url.pathname.split("/").at(-1); // 'complete' | 'reassign'
+  const { id } = await params;
+  const task = await getTask(id);
+  if (
+    !(
+      task &&
+      canActOnTask(guard.user, task, await getDepartmentIdOf(guard.user.id))
+    )
+  ) {
+    return NextResponse.json({ error: "Task not found" }, { status: 404 });
+  }
 
-        const body = await request.json().catch(() => ({}));
+  const body = await readJsonObject(request);
+  if (!body) {
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 }
+    );
+  }
 
-        if (action === "complete") {
-            const { outcome, formSubmissionId } = body;
-            const result = await completeTask(
-                id,
-                session.user.id,
-                outcome,
-                formSubmissionId,
-            );
-            if (!result) {
-                return NextResponse.json({ error: "Task not found" }, { status: 404 });
-            }
-            return NextResponse.json(result);
-        }
-
-        if (action === "reassign") {
-            const { assigneeId } = body;
-            if (!assigneeId) {
-                return NextResponse.json(
-                    { error: "assigneeId is required" },
-                    { status: 400 },
-                );
-            }
-            const result = await reassignTask(id, assigneeId, session.user.id);
-            if (!result) {
-                return NextResponse.json({ error: "Task not found" }, { status: 404 });
-            }
-            return NextResponse.json(result);
-        }
-
-        return NextResponse.json({ error: "Unknown action" }, { status: 400 });
-    } catch (error) {
-        console.error("[tasks/:id] POST error:", error);
-        return NextResponse.json(
-            { error: "Failed to process task action" },
-            { status: 500 },
-        );
+  let outcome: string | null = null;
+  if (body.outcome !== undefined && body.outcome !== null) {
+    if (
+      typeof body.outcome !== "string" ||
+      !body.outcome.trim() ||
+      body.outcome.length > MAX_OUTCOME_LENGTH
+    ) {
+      return NextResponse.json({ error: "Invalid outcome" }, { status: 400 });
     }
+    outcome = body.outcome.trim();
+  }
+
+  const validated = validateFormValues(
+    task.formFields as FormField[],
+    body.values ?? {}
+  );
+  if (!validated.ok) {
+    return NextResponse.json({ error: validated.error }, { status: 400 });
+  }
+
+  const result = await completeTask({
+    completedById: guard.user.id,
+    outcome,
+    task,
+    values: validated.values,
+  });
+  if (!result.ok) {
+    return NextResponse.json(
+      { error: "Task is already completed or cancelled" },
+      { status: 409 }
+    );
+  }
+
+  return NextResponse.json(result.task);
 }

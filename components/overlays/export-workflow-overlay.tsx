@@ -26,11 +26,11 @@ export function ExportWorkflowOverlay({
   return (
     <Overlay
       actions={[
-        { label: "Cancel", variant: "outline", onClick: closeAll },
+        { label: "Cancel", onClick: closeAll, variant: "outline" },
         {
           label: isDownloading ? "Exporting..." : "Export Project",
-          onClick: handleExport,
           loading: isDownloading,
+          onClick: handleExport,
         },
       ]}
       overlayId={overlayId}

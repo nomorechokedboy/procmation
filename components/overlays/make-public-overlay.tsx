@@ -23,7 +23,7 @@ export function MakePublicOverlay({
   return (
     <Overlay
       actions={[
-        { label: "Cancel", variant: "outline", onClick: closeAll },
+        { label: "Cancel", onClick: closeAll, variant: "outline" },
         { label: "Make Public", onClick: handleConfirm },
       ]}
       overlayId={overlayId}

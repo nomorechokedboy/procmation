@@ -1,71 +1,69 @@
-/**
- * app/api/bpma/notifications/route.ts
- * Includes both REST polling and SSE streaming endpoints.
- */
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { readJsonObject } from "@/lib/api/read-json";
 import {
-  getNotificationsForUser,
-  getUnreadNotificationCount,
+  countUnreadNotifications,
+  listNotifications,
   markAllNotificationsRead,
   markNotificationsRead,
 } from "@/lib/db/bpma";
+import { requireUser } from "@/lib/session";
 
-// GET /api/bpma/notifications
+const DEFAULT_LIMIT = 50;
+const MAX_LIMIT = 100;
+
+// GET /api/bpma/notifications?unread=true&limit=50
 export async function GET(request: Request) {
-  try {
-    const session = await auth.api.getSession({ headers: request.headers });
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { searchParams } = new URL(request.url);
-    const unreadOnly = searchParams.get("unread") === "true";
-    const limit = Number(searchParams.get("limit") ?? "50");
-
-    const [notifs, unreadCount] = await Promise.all([
-      getNotificationsForUser(session.user.id, { unreadOnly, limit }),
-      getUnreadNotificationCount(session.user.id),
-    ]);
-
-    return NextResponse.json({ notifications: notifs, unreadCount });
-  } catch (error) {
-    console.error("[notifications] GET error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch notifications" },
-      { status: 500 }
-    );
+  const guard = await requireUser(request);
+  if (!guard.ok) {
+    return guard.response;
   }
+
+  const params = new URL(request.url).searchParams;
+  const requested = Number(params.get("limit") ?? DEFAULT_LIMIT);
+  const limit = Number.isInteger(requested)
+    ? Math.min(Math.max(requested, 1), MAX_LIMIT)
+    : DEFAULT_LIMIT;
+
+  const [rows, unreadCount] = await Promise.all([
+    listNotifications(guard.user.id, {
+      limit,
+      unreadOnly: params.get("unread") === "true",
+    }),
+    countUnreadNotifications(guard.user.id),
+  ]);
+
+  return NextResponse.json({ notifications: rows, unreadCount });
 }
 
-// PATCH /api/bpma/notifications  — mark as read
+// PATCH /api/bpma/notifications - body: { ids: string[] } or { all: true }
 export async function PATCH(request: Request) {
-  try {
-    const session = await auth.api.getSession({ headers: request.headers });
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const guard = await requireUser(request);
+  if (!guard.ok) {
+    return guard.response;
+  }
 
-    const body = await request.json();
-    const { ids, all } = body;
-
-    if (all) {
-      await markAllNotificationsRead(session.user.id);
-    } else if (Array.isArray(ids) && ids.length > 0) {
-      await markNotificationsRead(session.user.id, ids);
-    } else {
-      return NextResponse.json(
-        { error: "Provide ids[] or all:true" },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("[notifications] PATCH error:", error);
+  const body = await readJsonObject(request);
+  if (!body) {
     return NextResponse.json(
-      { error: "Failed to update notifications" },
-      { status: 500 }
+      { error: "Invalid request body" },
+      { status: 400 }
     );
   }
+
+  if (body.all === true) {
+    await markAllNotificationsRead(guard.user.id);
+  } else if (
+    Array.isArray(body.ids) &&
+    body.ids.length > 0 &&
+    body.ids.every((item) => typeof item === "string")
+  ) {
+    await markNotificationsRead(guard.user.id, body.ids as string[]);
+  } else {
+    return NextResponse.json(
+      { error: "Provide ids or all: true" },
+      { status: 400 }
+    );
+  }
+
+  return NextResponse.json({ success: true });
 }
