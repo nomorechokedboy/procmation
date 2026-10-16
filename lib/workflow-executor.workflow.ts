@@ -407,9 +407,9 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
   console.log("[Workflow Executor] Input:", {
     edgeCount: edges.length,
     hasExecutionId: !!executionId,
+    instanceId: instanceId || "none",
     nodeCount: nodes.length,
     workflowId: workflowId || "none",
-    instanceId: instanceId || "none",
   });
 
   // The last outcome a person chose, recorded on the instance when it ends
@@ -476,9 +476,9 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
   ): Promise<ExecutionResult & { outcome?: string }> {
     if (!instanceId) {
       return {
-        success: false,
         error:
           'A "Human Task" needs a process instance. Start the run from the Processes page instead of the editor test button.',
+        success: false,
       };
     }
 
@@ -494,28 +494,28 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
     });
 
     await createHumanTaskStep({
-      instanceId,
-      nodeId: node.id,
-      name,
+      _context: context,
+      assigneeDepartmentId: taskConfig.assigneeDepartmentId,
       assigneeType: taskConfig.assigneeType ?? "manager",
       assigneeUserId: taskConfig.assigneeUserId,
-      assigneeDepartmentId: taskConfig.assigneeDepartmentId,
       formFields: taskConfig.formFields ?? [],
+      instanceId,
+      name,
+      nodeId: node.id,
       outcomes,
-      _context: context,
     });
 
     const decision = await hook;
     lastOutcome = decision.outcome;
 
     return {
-      success: true,
-      outcome: decision.outcome,
       data: {
+        completedBy: decision.by,
         outcome: decision.outcome,
         values: decision.values,
-        completedBy: decision.by,
       },
+      outcome: decision.outcome,
+      success: true,
     };
   }
 
@@ -655,15 +655,15 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
             stepContext
           );
           result = {
-            success: taskResult.success,
             data: taskResult.data,
             error: taskResult.error,
+            success: taskResult.success,
           };
           results[nodeId] = result;
           const sanitizedTaskNodeId = nodeId.replace(/[^a-zA-Z0-9]/g, "_");
           outputs[sanitizedTaskNodeId] = {
-            label: node.data.label || nodeId,
             data: result.data,
+            label: node.data.label || nodeId,
           };
           if (result.success && taskResult.outcome) {
             const nextNodes = targetsForBranch(
@@ -760,7 +760,8 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
             conditionResult
           );
 
-          const handle = conditionResult === true ? CONDITION_TRUE : CONDITION_FALSE;
+          const handle =
+            conditionResult === true ? CONDITION_TRUE : CONDITION_FALSE;
           // Edges drawn before conditions had two exits count as "true"
           const nextNodes = targetsForBranch(
             outgoingEdges.get(nodeId) || [],
@@ -822,10 +823,10 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
 
     if (instanceId) {
       await finishInstanceStep({
-        instanceId,
-        success: finalSuccess,
-        outcome: lastOutcome,
         error: Object.values(results).find((r) => !r.success)?.error,
+        instanceId,
+        outcome: lastOutcome,
+        success: finalSuccess,
       });
     }
 
@@ -866,10 +867,10 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
 
     if (instanceId) {
       await finishInstanceStep({
-        instanceId,
-        success: false,
-        outcome: lastOutcome,
         error: errorMessage,
+        instanceId,
+        outcome: lastOutcome,
+        success: false,
       });
     }
 
