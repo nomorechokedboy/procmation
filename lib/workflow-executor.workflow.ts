@@ -12,6 +12,7 @@ import {
   CONDITION_FALSE,
   CONDITION_TRUE,
   getTaskOutcomes,
+  readConfigList,
   targetsForBranch,
   taskToken,
 } from "@/lib/process-branches";
@@ -20,6 +21,7 @@ import {
   type HumanTaskConfig,
   type HumanTaskDecision,
 } from "@/lib/types/human-task";
+import type { FormField } from "@/lib/types/process-form";
 import {
   getActionLabel,
   getStepImporter,
@@ -498,7 +500,7 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
       assigneeDepartmentId: taskConfig.assigneeDepartmentId,
       assigneeType: taskConfig.assigneeType ?? "manager",
       assigneeUserId: taskConfig.assigneeUserId,
-      formFields: taskConfig.formFields ?? [],
+      formFields: readConfigList<FormField>(taskConfig.formFields),
       instanceId,
       name,
       nodeId: node.id,

@@ -1,10 +1,11 @@
 "use client";
 
-import type { NodeProps } from "@xyflow/react";
+import { type NodeProps, useUpdateNodeInternals } from "@xyflow/react";
 import { useAtomValue } from "jotai";
 import {
   AlertTriangle,
   Check,
+  ClipboardCheck,
   Code,
   Database,
   EyeOff,
@@ -13,7 +14,7 @@ import {
   Zap,
 } from "lucide-react";
 import Image from "next/image";
-import { memo, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import {
   Node,
   NodeDescription,
@@ -24,6 +25,7 @@ import {
   integrationIdsAtom,
   integrationsLoadedAtom,
 } from "@/lib/integrations-store";
+import { getBranchHandles } from "@/lib/process-branches";
 import { cn } from "@/lib/utils";
 import {
   executionLogsAtom,
@@ -76,6 +78,7 @@ const SYSTEM_ACTION_LABELS: Record<string, string> = {
   "Database Query": "Database",
   "Execute Code": "System",
   "HTTP Request": "System",
+  "Human Task": "Person or team",
 };
 
 // Helper to get integration name from action type
@@ -129,6 +132,10 @@ const getProviderLogo = (actionType: string) => {
       return <Database className="size-12 text-blue-300" strokeWidth={1.5} />;
     case "Execute Code":
       return <Code className="size-12 text-green-300" strokeWidth={1.5} />;
+    case "Human Task":
+      return (
+        <ClipboardCheck className="size-12 text-teal-300" strokeWidth={1.5} />
+      );
     case "Condition":
       return <GitBranch className="size-12 text-pink-300" strokeWidth={1.5} />;
     default:
@@ -242,11 +249,26 @@ type ActionNodeProps = NodeProps & {
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Complex UI logic with multiple conditions including disabled state
 export const ActionNode = memo(({ data, selected, id }: ActionNodeProps) => {
+  const updateNodeInternals = useUpdateNodeInternals();
   const selectedExecutionId = useAtomValue(selectedExecutionIdAtom);
   const executionLogs = useAtomValue(executionLogsAtom);
   const pendingIntegrationNodes = useAtomValue(pendingIntegrationNodesAtom);
   const availableIntegrationIds = useAtomValue(integrationIdsAtom);
   const integrationsLoaded = useAtomValue(integrationsLoadedAtom);
+
+  const branches = data
+    ? getBranchHandles(
+        data.config?.actionType as string | undefined,
+        data.config
+      )
+    : null;
+  const branchKey = branches?.map((branch) => branch.id).join("|") ?? "";
+
+  // React Flow measures handles once; tell it when the exits change
+  // biome-ignore lint/correctness/useExhaustiveDependencies: branchKey stands for the handle set
+  useEffect(() => {
+    updateNodeInternals(id);
+  }, [branchKey, id, updateNodeInternals]);
 
   if (!data) {
     return null;
@@ -338,6 +360,7 @@ export const ActionNode = memo(({ data, selected, id }: ActionNodeProps) => {
 
   return (
     <Node
+      branches={branches ?? undefined}
       className={cn(
         "relative flex h-48 w-48 flex-col items-center justify-center shadow-none transition-all duration-150 ease-out",
         selected && "border-primary",
@@ -364,7 +387,12 @@ export const ActionNode = memo(({ data, selected, id }: ActionNodeProps) => {
       {/* Status indicator badge in top right */}
       <StatusBadge status={status} />
 
-      <div className="flex flex-col items-center justify-center gap-3 p-6">
+      <div
+        className={cn(
+          "flex flex-col items-center justify-center gap-3 p-6",
+          branches && "pr-16"
+        )}
+      >
         {hasGeneratedImage ? (
           <GeneratedImageThumbnail
             base64={(nodeLog.output as { base64: string }).base64}

@@ -11,11 +11,30 @@ export type BranchHandle = { id: string; label: string };
 export const CONDITION_TRUE = "true";
 export const CONDITION_FALSE = "false";
 
+/**
+ * The canvas config panel stores structured values as JSON strings, while
+ * API-built definitions may hold real arrays. Accept both.
+ */
+export function readConfigList<T>(value: unknown): T[] {
+  if (Array.isArray(value)) {
+    return value as T[];
+  }
+  if (typeof value === "string" && value.trim() !== "") {
+    try {
+      const parsed: unknown = JSON.parse(value);
+      return Array.isArray(parsed) ? (parsed as T[]) : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
 export function getTaskOutcomes(
-  config: Pick<HumanTaskConfig, "outcomes"> | undefined
+  config: { outcomes?: unknown } | undefined
 ): TaskOutcome[] {
-  const outcomes = config?.outcomes;
-  return outcomes && outcomes.length > 0 ? outcomes : DEFAULT_TASK_OUTCOMES;
+  const outcomes = readConfigList<TaskOutcome>(config?.outcomes);
+  return outcomes.length > 0 ? outcomes : DEFAULT_TASK_OUTCOMES;
 }
 
 /**
