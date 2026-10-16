@@ -31,8 +31,14 @@ import {
   type UserRole,
 } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
+import * as m from "@/paraglide/messages";
+import { getLocale } from "@/paraglide/runtime";
 
 const ROLE_OPTIONS: UserRole[] = ["admin", "member"];
+
+function roleLabel(role: UserRole): string {
+  return role === "admin" ? m.role_admin() : m.role_member();
+}
 
 function RoleSelect({
   value,
@@ -55,7 +61,7 @@ function RoleSelect({
       <SelectContent>
         {ROLE_OPTIONS.map((role) => (
           <SelectItem key={role} value={role}>
-            {role}
+            {roleLabel(role)}
           </SelectItem>
         ))}
       </SelectContent>
@@ -87,7 +93,7 @@ export default function MembersPage() {
       setDepartments(departmentList);
       setInvites(inviteList.filter((invite) => !invite.acceptedAt));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to load");
+      toast.error(err instanceof Error ? err.message : m.members_load_failed());
     }
   }, []);
 
@@ -99,7 +105,7 @@ export default function MembersPage() {
 
   const copy = async (text: string) => {
     await navigator.clipboard.writeText(text);
-    toast.success("Invite link copied");
+    toast.success(m.members_invite_copied());
   };
 
   const handleInvite = async (event: FormEvent) => {
@@ -111,7 +117,9 @@ export default function MembersPage() {
       setEmail("");
       await load();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to invite");
+      toast.error(
+        err instanceof Error ? err.message : m.members_invite_failed()
+      );
     } finally {
       setCreating(false);
     }
@@ -120,9 +128,11 @@ export default function MembersPage() {
   const handleRoleChange = async (memberId: string, newRole: UserRole) => {
     try {
       await api.member.updateRole(memberId, newRole);
-      toast.success("Role updated");
+      toast.success(m.members_role_updated());
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to update role");
+      toast.error(
+        err instanceof Error ? err.message : m.members_role_update_failed()
+      );
     }
     await load();
   };
@@ -131,7 +141,9 @@ export default function MembersPage() {
     try {
       await api.invite.revoke(inviteId);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to revoke");
+      toast.error(
+        err instanceof Error ? err.message : m.members_revoke_failed()
+      );
     }
     await load();
   };
@@ -144,18 +156,18 @@ export default function MembersPage() {
     <div className="pointer-events-auto fixed inset-0 z-50 overflow-y-auto bg-background p-4 sm:p-8">
       <div className="mx-auto max-w-3xl space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="font-semibold text-xl">Members</h1>
+          <h1 className="font-semibold text-xl">{m.members_title()}</h1>
           <Button asChild size="sm" variant="outline">
-            <Link href="/">Back to app</Link>
+            <Link href="/">{m.common_back_to_app()}</Link>
           </Button>
         </div>
 
         {isAdmin ? null : (
           <Card>
             <CardHeader>
-              <CardTitle>Admins only</CardTitle>
+              <CardTitle>{m.members_admins_only_title()}</CardTitle>
               <CardDescription>
-                Only admins can invite people and change roles.
+                {m.members_admins_only_description()}
               </CardDescription>
             </CardHeader>
           </Card>
@@ -165,10 +177,9 @@ export default function MembersPage() {
           <>
             <Card>
               <CardHeader>
-                <CardTitle>Invite someone</CardTitle>
+                <CardTitle>{m.members_invite_title()}</CardTitle>
                 <CardDescription>
-                  Create a single-use link that expires in 7 days and send it to
-                  them. They set their own password.
+                  {m.members_invite_description()}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -177,7 +188,7 @@ export default function MembersPage() {
                   onSubmit={handleInvite}
                 >
                   <div className="flex-1 space-y-2">
-                    <Label htmlFor="invite-email">Email</Label>
+                    <Label htmlFor="invite-email">{m.login_email()}</Label>
                     <Input
                       id="invite-email"
                       onChange={(event) => setEmail(event.target.value)}
@@ -187,11 +198,11 @@ export default function MembersPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Role</Label>
+                    <Label>{m.members_role_label()}</Label>
                     <RoleSelect onChange={setRole} value={role} />
                   </div>
                   <Button disabled={creating} type="submit">
-                    {creating ? "Creating..." : "Create invite"}
+                    {creating ? m.common_creating() : m.members_create_invite()}
                   </Button>
                 </form>
 
@@ -206,7 +217,7 @@ export default function MembersPage() {
                       variant="outline"
                     >
                       <Copy className="size-3.5" />
-                      Copy
+                      {m.common_copy()}
                     </Button>
                   </div>
                 ) : null}
@@ -215,7 +226,7 @@ export default function MembersPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Team</CardTitle>
+                <CardTitle>{m.members_team_title()}</CardTitle>
               </CardHeader>
               <CardContent className="divide-y">
                 {members.map((member) => {
@@ -229,7 +240,9 @@ export default function MembersPage() {
                     member.jobTitle,
                     department?.name,
                     manager
-                      ? `Reports to ${manager.name || manager.email}`
+                      ? m.members_reports_to({
+                          name: manager.name || manager.email || "",
+                        })
                       : null,
                   ].filter(Boolean);
                   return (
@@ -256,7 +269,7 @@ export default function MembersPage() {
                           size="sm"
                           variant="outline"
                         >
-                          Profile
+                          {m.members_profile_button()}
                         </Button>
                         <RoleSelect
                           onChange={(newRole) =>
@@ -276,10 +289,9 @@ export default function MembersPage() {
             {invites.length > 0 ? (
               <Card>
                 <CardHeader>
-                  <CardTitle>Pending invitations</CardTitle>
+                  <CardTitle>{m.members_pending_title()}</CardTitle>
                   <CardDescription>
-                    Links are shown once when created. Revoke and re-invite to
-                    get a new one.
+                    {m.members_pending_description()}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="divide-y">
@@ -293,8 +305,12 @@ export default function MembersPage() {
                           {invite.email}
                         </p>
                         <p className="text-muted-foreground text-xs">
-                          {invite.role}, expires{" "}
-                          {new Date(invite.expiresAt).toLocaleDateString()}
+                          {m.members_invite_expires({
+                            date: new Date(invite.expiresAt).toLocaleDateString(
+                              getLocale()
+                            ),
+                            role: roleLabel(invite.role),
+                          })}
                         </p>
                       </div>
                       <Button
@@ -302,7 +318,7 @@ export default function MembersPage() {
                         size="sm"
                         variant="outline"
                       >
-                        Revoke
+                        {m.members_revoke()}
                       </Button>
                     </div>
                   ))}

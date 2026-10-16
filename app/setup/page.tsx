@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api-client";
 import { signIn } from "@/lib/auth-client";
+import * as m from "@/paraglide/messages";
 
 export default function SetupPage() {
   const router = useRouter();
@@ -41,14 +42,14 @@ export default function SetupPage() {
       await api.setup.createAdmin({ email, name, password });
       const response = await signIn.email({ email, password });
       if (response.error) {
-        setError(response.error.message || "Sign in failed");
+        setError(response.error.message || m.login_failed());
         setLoading(false);
         return;
       }
       router.push("/");
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Setup failed");
+      setError(err instanceof Error ? err.message : m.setup_failed());
       setLoading(false);
     }
   };
@@ -58,13 +59,10 @@ export default function SetupPage() {
   }
 
   return (
-    <AuthShell
-      description="Create the first admin account. Admins invite everyone else."
-      title="Set up procmation"
-    >
+    <AuthShell description={m.setup_description()} title={m.setup_title()}>
       <form className="space-y-4" onSubmit={handleSubmit}>
         <div className="space-y-2">
-          <Label htmlFor="name">Name</Label>
+          <Label htmlFor="name">{m.common_name()}</Label>
           <Input
             autoComplete="name"
             id="name"
@@ -74,7 +72,7 @@ export default function SetupPage() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">{m.login_email()}</Label>
           <Input
             autoComplete="email"
             id="email"
@@ -85,7 +83,7 @@ export default function SetupPage() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password">{m.login_password()}</Label>
           <Input
             autoComplete="new-password"
             id="password"
@@ -96,12 +94,12 @@ export default function SetupPage() {
             value={password}
           />
           <p className="text-muted-foreground text-xs">
-            At least 8 characters.
+            {m.common_password_hint()}
           </p>
         </div>
         {error ? <p className="text-destructive text-sm">{error}</p> : null}
         <Button className="w-full" disabled={loading} type="submit">
-          {loading ? "Creating..." : "Create admin account"}
+          {loading ? m.common_creating() : m.setup_submit()}
         </Button>
       </form>
     </AuthShell>

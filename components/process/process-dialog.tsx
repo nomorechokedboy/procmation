@@ -24,6 +24,7 @@ import {
 import { api, type ProcessSummary, type SavedWorkflow } from "@/lib/api-client";
 import { validateFormFields } from "@/lib/process-form-validation";
 import type { FormField } from "@/lib/types/process-form";
+import * as m from "@/paraglide/messages";
 
 type ProcessDialogProps =
   | {
@@ -59,7 +60,7 @@ export function ProcessDialog(props: ProcessDialogProps) {
       return;
     }
     if (props.mode === "create" && !workflowId) {
-      setError("Choose the workflow this process runs");
+      setError(m.process_dialog_choose_workflow_error());
       return;
     }
 
@@ -71,18 +72,18 @@ export function ProcessDialog(props: ProcessDialogProps) {
           startFormFields: validation.fields,
           workflowId,
         });
-        toast.success("Process created as a draft");
+        toast.success(m.process_dialog_created());
       } else {
         await api.process.update(props.process.id, {
           category: category.trim() || null,
           startFormFields: validation.fields,
         });
-        toast.success("Process updated");
+        toast.success(m.process_dialog_updated());
       }
       await props.onSaved();
       props.onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save");
+      setError(err instanceof Error ? err.message : m.common_save_failed());
       setSaving(false);
     }
   };
@@ -94,28 +95,32 @@ export function ProcessDialog(props: ProcessDialogProps) {
           <DialogHeader>
             <DialogTitle>
               {props.mode === "create"
-                ? "New process"
-                : `Edit ${props.process.name}`}
+                ? m.processes_new()
+                : m.process_dialog_edit_title({ name: props.process.name })}
             </DialogTitle>
             <DialogDescription>
               {props.mode === "create"
-                ? "A process is a workflow that people can start. It stays a draft until you publish it."
-                : "Changes to the start form apply to requests started from now on."}
+                ? m.process_dialog_create_description()
+                : m.process_dialog_edit_description()}
             </DialogDescription>
           </DialogHeader>
 
           {props.mode === "create" ? (
             <div className="space-y-2">
-              <Label>Workflow</Label>
+              <Label>{m.process_dialog_workflow()}</Label>
               {props.workflows.length === 0 ? (
                 <p className="text-muted-foreground text-sm">
-                  Every workflow you own is already a process. Create a new
-                  workflow in the editor first.
+                  {m.process_dialog_no_workflows()}
                 </p>
               ) : (
                 <Select onValueChange={setWorkflowId} value={workflowId}>
-                  <SelectTrigger aria-label="Workflow" className="w-full">
-                    <SelectValue placeholder="Choose a workflow" />
+                  <SelectTrigger
+                    aria-label={m.process_dialog_workflow()}
+                    className="w-full"
+                  >
+                    <SelectValue
+                      placeholder={m.process_dialog_choose_workflow()}
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {props.workflows.map((workflow) => (
@@ -130,20 +135,22 @@ export function ProcessDialog(props: ProcessDialogProps) {
           ) : null}
 
           <div className="space-y-2">
-            <Label htmlFor="process-category">Category</Label>
+            <Label htmlFor="process-category">
+              {m.process_dialog_category()}
+            </Label>
             <Input
               id="process-category"
               maxLength={60}
               onChange={(event) => setCategory(event.target.value)}
-              placeholder="For example HR or Finance"
+              placeholder={m.process_dialog_category_placeholder()}
               value={category}
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Start form</Label>
+            <Label>{m.process_dialog_start_form()}</Label>
             <p className="text-muted-foreground text-xs">
-              What the requester fills in to start this process.
+              {m.process_dialog_start_form_hint()}
             </p>
             <FormFieldsEditor initialFields={fields} onChange={setFields} />
           </div>
@@ -152,7 +159,7 @@ export function ProcessDialog(props: ProcessDialogProps) {
 
           <DialogFooter>
             <Button disabled={saving} type="submit">
-              {saving ? "Saving..." : "Save"}
+              {saving ? m.common_saving() : m.common_save()}
             </Button>
           </DialogFooter>
         </form>

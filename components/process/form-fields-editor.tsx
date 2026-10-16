@@ -15,15 +15,33 @@ import {
 } from "@/components/ui/select";
 import { slugifyFieldKey } from "@/lib/process-form-validation";
 import type { FormField, FormFieldType } from "@/lib/types/process-form";
+import * as m from "@/paraglide/messages";
 
-const TYPE_LABELS: Record<FormFieldType, string> = {
-  checkbox: "Yes / no",
-  date: "Date",
-  number: "Number",
-  select: "Dropdown",
-  text: "Short text",
-  textarea: "Long text",
-};
+const FIELD_TYPES: FormFieldType[] = [
+  "checkbox",
+  "date",
+  "number",
+  "select",
+  "text",
+  "textarea",
+];
+
+function typeLabel(type: FormFieldType): string {
+  switch (type) {
+    case "checkbox":
+      return m.form_fields_type_checkbox();
+    case "date":
+      return m.form_fields_type_date();
+    case "number":
+      return m.form_fields_type_number();
+    case "select":
+      return m.form_fields_type_select();
+    case "text":
+      return m.form_fields_type_text();
+    default:
+      return m.form_fields_type_textarea();
+  }
+}
 
 type Row = {
   uid: number;
@@ -85,12 +103,12 @@ function OptionsInput({
 
   return (
     <Input
-      aria-label="Dropdown options"
+      aria-label={m.form_fields_options_label()}
       onChange={(event) => {
         setText(event.target.value);
         onChange(parseOptions(event.target.value));
       }}
-      placeholder="Options, separated by commas"
+      placeholder={m.form_fields_options_placeholder()}
       value={text}
     />
   );
@@ -174,20 +192,17 @@ export function FormFieldsEditor({
   return (
     <div className="space-y-3">
       {rows.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
-          No fields yet. The requester will start this process without filling
-          anything in.
-        </p>
+        <p className="text-muted-foreground text-sm">{m.form_fields_empty()}</p>
       ) : null}
 
       {rows.map((row, index) => (
         <div className="space-y-2 rounded-md border p-3" key={row.uid}>
           <div className="flex flex-wrap items-center gap-2">
             <Input
-              aria-label="Field label"
+              aria-label={m.form_fields_label_aria()}
               className="min-w-40 flex-1"
               onChange={(event) => handleLabelChange(row, event.target.value)}
-              placeholder="Label, for example Days requested"
+              placeholder={m.form_fields_label_placeholder()}
               value={row.field.label}
             />
             <Select
@@ -196,13 +211,16 @@ export function FormFieldsEditor({
               }
               value={row.field.type}
             >
-              <SelectTrigger aria-label="Field type" className="w-36">
+              <SelectTrigger
+                aria-label={m.form_fields_type_aria()}
+                className="w-36"
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(Object.keys(TYPE_LABELS) as FormFieldType[]).map((type) => (
+                {FIELD_TYPES.map((type) => (
                   <SelectItem key={type} value={type}>
-                    {TYPE_LABELS[type]}
+                    {typeLabel(type)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -216,12 +234,12 @@ export function FormFieldsEditor({
                 }
               />
               <Label className="text-sm" htmlFor={`required-${row.uid}`}>
-                Required
+                {m.form_fields_required()}
               </Label>
             </div>
             <div className="flex">
               <Button
-                aria-label="Move field up"
+                aria-label={m.form_fields_move_up()}
                 disabled={index === 0}
                 onClick={() => move(index, -1)}
                 size="icon"
@@ -231,7 +249,7 @@ export function FormFieldsEditor({
                 <ChevronUp className="size-4" />
               </Button>
               <Button
-                aria-label="Move field down"
+                aria-label={m.form_fields_move_down()}
                 disabled={index === rows.length - 1}
                 onClick={() => move(index, 1)}
                 size="icon"
@@ -241,7 +259,7 @@ export function FormFieldsEditor({
                 <ChevronDown className="size-4" />
               </Button>
               <Button
-                aria-label="Remove field"
+                aria-label={m.form_fields_remove()}
                 onClick={() =>
                   commit(rows.filter((item) => item.uid !== row.uid))
                 }
@@ -261,13 +279,15 @@ export function FormFieldsEditor({
             />
           ) : null}
 
-          <p className="text-muted-foreground text-xs">Key: {row.field.key}</p>
+          <p className="text-muted-foreground text-xs">
+            {m.form_fields_key({ key: row.field.key })}
+          </p>
         </div>
       ))}
 
       <Button onClick={addField} size="sm" type="button" variant="outline">
         <Plus className="size-4" />
-        Add field
+        {m.form_fields_add()}
       </Button>
     </div>
   );

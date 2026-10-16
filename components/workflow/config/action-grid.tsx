@@ -33,6 +33,10 @@ import {
   isPluginActionVisible,
   isSystemActionVisible,
 } from "@/lib/bpma-features";
+import {
+  systemActionDescription,
+  systemActionLabel,
+} from "@/lib/i18n/action-labels";
 import { cn } from "@/lib/utils";
 import { getAllActions } from "@/plugins";
 
@@ -45,30 +49,30 @@ type ActionType = {
 };
 
 // System actions that don't have plugins
-const SYSTEM_ACTIONS: ActionType[] = [
+const SYSTEM_ACTION_DEFINITIONS: ActionType[] = [
   {
     category: "System",
-    description: "Make an HTTP request to any API",
+    description: "",
     id: "HTTP Request",
-    label: "HTTP Request",
+    label: "",
   },
   {
     category: "System",
-    description: "Query your database",
+    description: "",
     id: "Database Query",
-    label: "Database Query",
+    label: "",
   },
   {
     category: "System",
-    description: "Ask a person or team to review, approve or fill in a form",
+    description: "",
     id: "Human Task",
-    label: "Human Task",
+    label: "",
   },
   {
     category: "System",
-    description: "Branch based on a condition",
+    description: "",
     id: "Condition",
-    label: "Condition",
+    label: "",
   },
 ];
 
@@ -89,7 +93,13 @@ function useAllActions(): ActionType[] {
       }));
 
     return [
-      ...SYSTEM_ACTIONS.filter((action) => isSystemActionVisible(action.id)),
+      ...SYSTEM_ACTION_DEFINITIONS.filter((action) =>
+        isSystemActionVisible(action.id)
+      ).map((action) => ({
+        ...action,
+        description: systemActionDescription(action.id) ?? "",
+        label: systemActionLabel(action.id) ?? action.id,
+      })),
       ...mappedPluginActions,
     ];
   }, []);

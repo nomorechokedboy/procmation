@@ -20,18 +20,45 @@ import {
   type SavedWorkflow,
 } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
+import * as m from "@/paraglide/messages";
 
-type StatusAction = { label: string; status: ProcessStatus };
+type StatusActionId = "restore" | "publish" | "archive" | "unpublish";
+
+type StatusAction = { id: StatusActionId; status: ProcessStatus };
+
+function actionLabel(id: StatusActionId): string {
+  switch (id) {
+    case "restore":
+      return m.processes_action_restore();
+    case "publish":
+      return m.processes_action_publish();
+    case "archive":
+      return m.processes_action_archive();
+    default:
+      return m.processes_action_unpublish();
+  }
+}
+
+function statusLabel(status: ProcessStatus): string {
+  switch (status) {
+    case "draft":
+      return m.processes_status_draft();
+    case "published":
+      return m.processes_status_published();
+    default:
+      return m.processes_status_archived();
+  }
+}
 
 const STATUS_ACTIONS: Record<ProcessStatus, StatusAction[]> = {
-  archived: [{ label: "Restore", status: "draft" }],
+  archived: [{ id: "restore", status: "draft" }],
   draft: [
-    { label: "Publish", status: "published" },
-    { label: "Archive", status: "archived" },
+    { id: "publish", status: "published" },
+    { id: "archive", status: "archived" },
   ],
   published: [
-    { label: "Unpublish", status: "draft" },
-    { label: "Archive", status: "archived" },
+    { id: "unpublish", status: "draft" },
+    { id: "archive", status: "archived" },
   ],
 };
 
@@ -62,7 +89,7 @@ export default function ProcessesPage() {
       setProcesses(processList);
       setWorkflows(workflowList);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to load");
+      toast.error(err instanceof Error ? err.message : m.members_load_failed());
     } finally {
       setLoaded(true);
     }
@@ -82,11 +109,16 @@ export default function ProcessesPage() {
       await api.process.update(process.id, { status });
       toast.success(
         status === "published"
-          ? `${process.name} is now published`
-          : `${process.name} is now ${status}`
+          ? m.processes_now_published({ name: process.name })
+          : m.processes_now_status({
+              name: process.name,
+              status: statusLabel(status),
+            })
       );
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to update");
+      toast.error(
+        err instanceof Error ? err.message : m.processes_update_failed()
+      );
     }
     await load();
   };
@@ -106,15 +138,15 @@ export default function ProcessesPage() {
     <div className="pointer-events-auto fixed inset-0 z-50 overflow-y-auto bg-background p-4 sm:p-8">
       <div className="mx-auto max-w-3xl space-y-6">
         <div className="flex items-center justify-between gap-3">
-          <h1 className="font-semibold text-xl">Processes</h1>
+          <h1 className="font-semibold text-xl">{m.processes_title()}</h1>
           <div className="flex gap-2">
             {isAdmin ? (
               <Button onClick={() => setDialog({ mode: "create" })} size="sm">
-                New process
+                {m.processes_new()}
               </Button>
             ) : null}
             <Button asChild size="sm" variant="outline">
-              <Link href="/">Back to app</Link>
+              <Link href="/">{m.common_back_to_app()}</Link>
             </Button>
           </div>
         </div>
@@ -122,9 +154,9 @@ export default function ProcessesPage() {
         {isAdmin ? null : (
           <Card>
             <CardHeader>
-              <CardTitle>Admins only</CardTitle>
+              <CardTitle>{m.members_admins_only_title()}</CardTitle>
               <CardDescription>
-                Only admins can create and publish processes.
+                {m.processes_admins_only_description()}
               </CardDescription>
             </CardHeader>
           </Card>
@@ -133,10 +165,9 @@ export default function ProcessesPage() {
         {isAdmin && loaded && processes.length === 0 ? (
           <Card>
             <CardHeader>
-              <CardTitle>No processes yet</CardTitle>
+              <CardTitle>{m.processes_empty_title()}</CardTitle>
               <CardDescription>
-                Design a workflow in the editor, then publish it here as a
-                process people can start, such as a leave request.
+                {m.processes_empty_description()}
               </CardDescription>
             </CardHeader>
           </Card>
@@ -145,10 +176,8 @@ export default function ProcessesPage() {
         {isAdmin && processes.length > 0 ? (
           <Card>
             <CardHeader>
-              <CardTitle>All processes</CardTitle>
-              <CardDescription>
-                Only published processes can be started by members.
-              </CardDescription>
+              <CardTitle>{m.processes_all_title()}</CardTitle>
+              <CardDescription>{m.processes_all_description()}</CardDescription>
             </CardHeader>
             <CardContent className="divide-y">
               {processes.map((process) => (
@@ -160,20 +189,21 @@ export default function ProcessesPage() {
                       </p>
                       <p className="text-muted-foreground text-xs">
                         {process.category ? `${process.category}, ` : ""}
-                        {process.startFormFields.length}{" "}
                         {process.startFormFields.length === 1
-                          ? "start field"
-                          : "start fields"}
+                          ? m.processes_start_fields_one({ count: 1 })
+                          : m.processes_start_fields_other({
+                              count: process.startFormFields.length,
+                            })}
                       </p>
                     </div>
                     <Badge variant={STATUS_BADGE[process.status]}>
-                      {process.status}
+                      {statusLabel(process.status)}
                     </Badge>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button asChild size="sm" variant="outline">
                       <Link href={`/workflows/${process.workflowId}`}>
-                        Open in editor
+                        {m.processes_open_editor()}
                       </Link>
                     </Button>
                     <Button
@@ -181,16 +211,16 @@ export default function ProcessesPage() {
                       size="sm"
                       variant="outline"
                     >
-                      Edit start form
+                      {m.processes_edit_start_form()}
                     </Button>
                     {STATUS_ACTIONS[process.status].map((action) => (
                       <Button
-                        key={action.status}
+                        key={action.id}
                         onClick={() => changeStatus(process, action.status)}
                         size="sm"
                         variant="outline"
                       >
-                        {action.label}
+                        {actionLabel(action.id)}
                       </Button>
                     ))}
                   </div>

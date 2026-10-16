@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api-client";
 import { signIn } from "@/lib/auth-client";
+import * as m from "@/paraglide/messages";
 
 type InviteState =
   | { status: "loading" }
@@ -55,7 +56,7 @@ export default function InvitePage() {
       router.push("/");
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to accept invite");
+      setError(err instanceof Error ? err.message : m.invite_accept_failed());
       setLoading(false);
     }
   };
@@ -67,11 +68,11 @@ export default function InvitePage() {
   if (invite.status === "invalid") {
     return (
       <AuthShell
-        description="This invitation link is invalid, has already been used, or has expired. Ask an admin for a new one."
-        title="Invitation unavailable"
+        description={m.invite_invalid_description()}
+        title={m.invite_invalid_title()}
       >
         <Button asChild className="w-full" variant="outline">
-          <Link href="/login">Go to sign in</Link>
+          <Link href="/login">{m.invite_go_to_sign_in()}</Link>
         </Button>
       </AuthShell>
     );
@@ -79,16 +80,16 @@ export default function InvitePage() {
 
   return (
     <AuthShell
-      description={`You were invited as ${invite.role}. Choose a password to finish creating your account.`}
-      title="Join procmation"
+      description={m.invite_description({ role: invite.role })}
+      title={m.invite_title()}
     >
       <form className="space-y-4" onSubmit={handleSubmit}>
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">{m.login_email()}</Label>
           <Input disabled id="email" readOnly value={invite.email} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="name">Name</Label>
+          <Label htmlFor="name">{m.common_name()}</Label>
           <Input
             autoComplete="name"
             id="name"
@@ -98,7 +99,7 @@ export default function InvitePage() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password">{m.login_password()}</Label>
           <Input
             autoComplete="new-password"
             id="password"
@@ -109,12 +110,12 @@ export default function InvitePage() {
             value={password}
           />
           <p className="text-muted-foreground text-xs">
-            At least 8 characters.
+            {m.common_password_hint()}
           </p>
         </div>
         {error ? <p className="text-destructive text-sm">{error}</p> : null}
         <Button className="w-full" disabled={loading} type="submit">
-          {loading ? "Creating..." : "Create account"}
+          {loading ? m.common_creating() : m.invite_submit()}
         </Button>
       </form>
     </AuthShell>

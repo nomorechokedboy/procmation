@@ -38,6 +38,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { api, type Department } from "@/lib/api-client";
+import * as m from "@/paraglide/messages";
 
 const NO_PARENT = "none";
 
@@ -65,7 +66,7 @@ function ParentSelect({
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value={NO_PARENT}>No parent</SelectItem>
+        <SelectItem value={NO_PARENT}>{m.departments_no_parent()}</SelectItem>
         {departments
           .filter((department) => department.id !== excludeId)
           .map((department) => (
@@ -102,10 +103,12 @@ function EditDepartmentDialog({
         parentId: parentId === NO_PARENT ? null : parentId,
       });
       await onChanged();
-      toast.success("Department updated");
+      toast.success(m.departments_updated());
       onClose();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to update");
+      toast.error(
+        err instanceof Error ? err.message : m.processes_update_failed()
+      );
       setSaving(false);
     }
   };
@@ -115,13 +118,13 @@ function EditDepartmentDialog({
       <DialogContent>
         <form className="space-y-4" onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Edit department</DialogTitle>
+            <DialogTitle>{m.departments_edit_title()}</DialogTitle>
             <DialogDescription>
-              Rename it or move it under another department.
+              {m.departments_edit_description()}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
-            <Label htmlFor="edit-department-name">Name</Label>
+            <Label htmlFor="edit-department-name">{m.common_name()}</Label>
             <Input
               id="edit-department-name"
               onChange={(event) => setName(event.target.value)}
@@ -130,7 +133,7 @@ function EditDepartmentDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label>Parent</Label>
+            <Label>{m.departments_parent()}</Label>
             <ParentSelect
               departments={departments}
               excludeId={department.id}
@@ -140,7 +143,7 @@ function EditDepartmentDialog({
           </div>
           <DialogFooter>
             <Button disabled={saving} type="submit">
-              {saving ? "Saving..." : "Save"}
+              {saving ? m.common_saving() : m.common_save()}
             </Button>
           </DialogFooter>
         </form>
@@ -175,7 +178,9 @@ export function DepartmentsCard({
       setParentId(NO_PARENT);
       await onChanged();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to create");
+      toast.error(
+        err instanceof Error ? err.message : m.departments_create_failed()
+      );
     } finally {
       setCreating(false);
     }
@@ -188,9 +193,11 @@ export function DepartmentsCard({
     try {
       await api.department.delete(deleting.id);
       await onChanged();
-      toast.success("Department deleted");
+      toast.success(m.departments_deleted());
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete");
+      toast.error(
+        err instanceof Error ? err.message : m.departments_delete_failed()
+      );
     } finally {
       setDeleting(null);
     }
@@ -199,11 +206,8 @@ export function DepartmentsCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Departments</CardTitle>
-        <CardDescription>
-          Departments group people and can own tasks that anyone in them can
-          pick up.
-        </CardDescription>
+        <CardTitle>{m.departments_title()}</CardTitle>
+        <CardDescription>{m.departments_description()}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <form
@@ -211,7 +215,7 @@ export function DepartmentsCard({
           onSubmit={handleCreate}
         >
           <div className="flex-1 space-y-2">
-            <Label htmlFor="department-name">Name</Label>
+            <Label htmlFor="department-name">{m.common_name()}</Label>
             <Input
               id="department-name"
               onChange={(event) => setName(event.target.value)}
@@ -220,7 +224,7 @@ export function DepartmentsCard({
             />
           </div>
           <div className="space-y-2 sm:w-48">
-            <Label>Parent</Label>
+            <Label>{m.departments_parent()}</Label>
             <ParentSelect
               departments={departments}
               onChange={setParentId}
@@ -228,12 +232,14 @@ export function DepartmentsCard({
             />
           </div>
           <Button disabled={creating} type="submit">
-            {creating ? "Adding..." : "Add department"}
+            {creating ? m.departments_adding() : m.departments_add()}
           </Button>
         </form>
 
         {departments.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No departments yet.</p>
+          <p className="text-muted-foreground text-sm">
+            {m.departments_empty()}
+          </p>
         ) : (
           <div className="divide-y">
             {departments.map((department) => (
@@ -247,10 +253,17 @@ export function DepartmentsCard({
                   </p>
                   <p className="text-muted-foreground text-xs">
                     {department.parentId
-                      ? `Under ${nameById.get(department.parentId) ?? "unknown"}, `
+                      ? m.departments_under({
+                          name:
+                            nameById.get(department.parentId) ??
+                            m.departments_unknown(),
+                        })
                       : ""}
-                    {department.memberCount}{" "}
-                    {department.memberCount === 1 ? "member" : "members"}
+                    {department.memberCount === 1
+                      ? m.departments_member_one({ count: 1 })
+                      : m.departments_member_other({
+                          count: department.memberCount,
+                        })}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -259,14 +272,14 @@ export function DepartmentsCard({
                     size="sm"
                     variant="outline"
                   >
-                    Edit
+                    {m.common_edit()}
                   </Button>
                   <Button
                     onClick={() => setDeleting(department)}
                     size="sm"
                     variant="outline"
                   >
-                    Delete
+                    {m.common_delete()}
                   </Button>
                 </div>
               </div>
@@ -290,15 +303,18 @@ export function DepartmentsCard({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {deleting?.name}?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {m.departments_delete_title({ name: deleting?.name ?? "" })}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              People in it will have no department, and its sub-departments move
-              to the top level. This cannot be undone.
+              {m.departments_delete_description()}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+            <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>
+              {m.common_delete()}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -31,6 +31,7 @@ import {
   isPluginActionVisible,
   isSystemActionVisible,
 } from "@/lib/bpma-features";
+import { systemActionLabel } from "@/lib/i18n/action-labels";
 import {
   integrationsAtom,
   integrationsVersionAtom,
@@ -299,7 +300,9 @@ function useCategoryData() {
       string,
       Array<{ id: string; label: string }>
     > = {
-      System: SYSTEM_ACTIONS.filter((a) => isSystemActionVisible(a.id)),
+      System: SYSTEM_ACTIONS.filter((a) => isSystemActionVisible(a.id)).map(
+        (a) => ({ id: a.id, label: systemActionLabel(a.id) ?? a.label })
+      ),
     };
 
     for (const [category, actions] of Object.entries(pluginCategories)) {

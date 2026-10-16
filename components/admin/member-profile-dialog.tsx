@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { api, type Department, type Member } from "@/lib/api-client";
+import * as m from "@/paraglide/messages";
 
 const NONE = "none";
 
@@ -54,10 +55,10 @@ export function MemberProfileDialog({
         managerId: managerId === NONE ? null : managerId,
       });
       await onSaved();
-      toast.success("Profile updated");
+      toast.success(m.member_profile_updated());
       onClose();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save");
+      toast.error(err instanceof Error ? err.message : m.common_save_failed());
       setSaving(false);
     }
   };
@@ -69,13 +70,12 @@ export function MemberProfileDialog({
           <DialogHeader>
             <DialogTitle>{member.name || member.email}</DialogTitle>
             <DialogDescription>
-              Department and manager decide who can be asked to approve things
-              for this person.
+              {m.member_profile_description()}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-2">
-            <Label htmlFor="job-title">Job title</Label>
+            <Label htmlFor="job-title">{m.member_profile_job_title()}</Label>
             <Input
               id="job-title"
               maxLength={100}
@@ -85,13 +85,15 @@ export function MemberProfileDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Department</Label>
+            <Label>{m.departments_label()}</Label>
             <Select onValueChange={setDepartmentId} value={departmentId}>
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NONE}>No department</SelectItem>
+                <SelectItem value={NONE}>
+                  {m.member_profile_no_department()}
+                </SelectItem>
                 {departments.map((department) => (
                   <SelectItem key={department.id} value={department.id}>
                     {department.name}
@@ -102,13 +104,15 @@ export function MemberProfileDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Manager</Label>
+            <Label>{m.member_profile_manager()}</Label>
             <Select onValueChange={setManagerId} value={managerId}>
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NONE}>No manager</SelectItem>
+                <SelectItem value={NONE}>
+                  {m.member_profile_no_manager()}
+                </SelectItem>
                 {members
                   .filter((other) => other.id !== member.id)
                   .map((other) => (
@@ -122,7 +126,7 @@ export function MemberProfileDialog({
 
           <DialogFooter>
             <Button disabled={saving} type="submit">
-              {saving ? "Saving..." : "Save"}
+              {saving ? m.common_saving() : m.common_save()}
             </Button>
           </DialogFooter>
         </form>

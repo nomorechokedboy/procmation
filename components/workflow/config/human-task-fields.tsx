@@ -18,6 +18,7 @@ import { getTaskOutcomes, readConfigList } from "@/lib/process-branches";
 import { slugifyFieldKey } from "@/lib/process-form-validation";
 import type { AssigneeType, TaskOutcome } from "@/lib/types/human-task";
 import type { FormField } from "@/lib/types/process-form";
+import * as m from "@/paraglide/messages";
 
 type HumanTaskFieldsProps = {
   config: Record<string, unknown>;
@@ -25,11 +26,18 @@ type HumanTaskFieldsProps = {
   disabled: boolean;
 };
 
-const ASSIGNEE_LABELS: Record<AssigneeType, string> = {
-  department: "Anyone in a department",
-  manager: "The requester's manager",
-  user: "A specific person",
-};
+const ASSIGNEE_TYPES: AssigneeType[] = ["department", "manager", "user"];
+
+function assigneeLabel(type: AssigneeType): string {
+  switch (type) {
+    case "department":
+      return m.human_task_assignee_department();
+    case "manager":
+      return m.human_task_assignee_manager();
+    default:
+      return m.human_task_assignee_user();
+  }
+}
 
 function uniqueOutcomeId(label: string, taken: Set<string>): string {
   const base = slugifyFieldKey(label) || "outcome";
@@ -60,27 +68,26 @@ function OutcomesEditor({
 
   const add = () => {
     const taken = new Set(outcomes.map((outcome) => outcome.id));
-    const label = `Outcome ${outcomes.length + 1}`;
+    const label = m.human_task_new_outcome({ number: outcomes.length + 1 });
     onChange([...outcomes, { id: uniqueOutcomeId(label, taken), label }]);
   };
 
   return (
     <div className="space-y-2">
-      <Label>Outcomes</Label>
+      <Label>{m.human_task_outcomes()}</Label>
       <p className="text-muted-foreground text-xs">
-        Each outcome becomes an exit on the node. Connect it to the step that
-        should run when the assignee picks it.
+        {m.human_task_outcomes_hint()}
       </p>
       {outcomes.map((outcome) => (
         <div className="flex items-center gap-2" key={outcome.id}>
           <Input
-            aria-label={`Outcome ${outcome.id}`}
+            aria-label={`${m.human_task_outcome()} ${outcome.id}`}
             disabled={disabled}
             onChange={(event) => rename(outcome.id, event.target.value)}
             value={outcome.label}
           />
           <Button
-            aria-label={`Remove outcome ${outcome.label}`}
+            aria-label={m.human_task_remove_outcome({ label: outcome.label })}
             disabled={disabled || outcomes.length <= 1}
             onClick={() =>
               onChange(outcomes.filter((item) => item.id !== outcome.id))
@@ -101,7 +108,7 @@ function OutcomesEditor({
         variant="outline"
       >
         <Plus className="mr-1 size-4" />
-        Add outcome
+        {m.human_task_add_outcome()}
       </Button>
     </div>
   );
@@ -134,18 +141,18 @@ export function HumanTaskFields({
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="taskName">Task name</Label>
+        <Label htmlFor="taskName">{m.human_task_name()}</Label>
         <Input
           disabled={disabled}
           id="taskName"
           onChange={(event) => onUpdateConfig("taskName", event.target.value)}
-          placeholder="e.g., Manager approval"
+          placeholder={m.human_task_name_placeholder()}
           value={(config.taskName as string) || ""}
         />
       </div>
 
       <div className="space-y-2">
-        <Label>Assign to</Label>
+        <Label>{m.human_task_assign_to()}</Label>
         <Select
           disabled={disabled}
           onValueChange={(value) => onUpdateConfig("assigneeType", value)}
@@ -155,9 +162,9 @@ export function HumanTaskFields({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {(Object.keys(ASSIGNEE_LABELS) as AssigneeType[]).map((type) => (
+            {ASSIGNEE_TYPES.map((type) => (
               <SelectItem key={type} value={type}>
-                {ASSIGNEE_LABELS[type]}
+                {assigneeLabel(type)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -166,14 +173,14 @@ export function HumanTaskFields({
 
       {assigneeType === "user" && (
         <div className="space-y-2">
-          <Label>Person</Label>
+          <Label>{m.human_task_person()}</Label>
           <Select
             disabled={disabled}
             onValueChange={(value) => onUpdateConfig("assigneeUserId", value)}
             value={(config.assigneeUserId as string) || ""}
           >
             <SelectTrigger className="w-full" data-testid="assignee-user">
-              <SelectValue placeholder="Choose a person" />
+              <SelectValue placeholder={m.human_task_choose_person()} />
             </SelectTrigger>
             <SelectContent>
               {members.map((member) => (
@@ -188,7 +195,7 @@ export function HumanTaskFields({
 
       {assigneeType === "department" && (
         <div className="space-y-2">
-          <Label>Department</Label>
+          <Label>{m.departments_label()}</Label>
           <Select
             disabled={disabled}
             onValueChange={(value) =>
@@ -197,7 +204,7 @@ export function HumanTaskFields({
             value={(config.assigneeDepartmentId as string) || ""}
           >
             <SelectTrigger className="w-full" data-testid="assignee-department">
-              <SelectValue placeholder="Choose a department" />
+              <SelectValue placeholder={m.human_task_choose_department()} />
             </SelectTrigger>
             <SelectContent>
               {departments.map((department) => (
@@ -211,9 +218,9 @@ export function HumanTaskFields({
       )}
 
       <div className="space-y-2">
-        <Label>Form for the assignee</Label>
+        <Label>{m.human_task_form()}</Label>
         <p className="text-muted-foreground text-xs">
-          Optional. Fields the assignee fills in when completing the task.
+          {m.human_task_form_hint()}
         </p>
         <FormFieldsEditor
           initialFields={formFields}

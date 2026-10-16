@@ -7,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { LOCALE_NAMES } from "@/lib/i18n/locale-names";
 import * as m from "@/paraglide/messages";
 import {
   getLocale,
@@ -14,12 +15,6 @@ import {
   locales,
   setLocale,
 } from "@/paraglide/runtime";
-
-// Language names are shown in their own language so they stay readable
-const LOCALE_NAMES: Record<Locale, string> = {
-  en: "English",
-  vi: "Tiếng Việt",
-};
 
 export function LanguageSwitcher() {
   return (
