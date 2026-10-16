@@ -21,6 +21,7 @@ import {
   NodeTitle,
 } from "@/components/ai-elements/node";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { systemActionLabel } from "@/lib/i18n/action-labels";
 import {
   integrationIdsAtom,
   integrationsLoadedAtom,
@@ -33,6 +34,7 @@ import {
   selectedExecutionIdAtom,
   type WorkflowNodeData,
 } from "@/lib/workflow-store";
+import * as m from "@/paraglide/messages";
 import { findActionById, getIntegration } from "@/plugins";
 
 // Helper to get display name for AI model
@@ -74,15 +76,19 @@ const getModelDisplayName = (modelId: string): string => {
 
 // System action labels (non-plugin actions)
 const SYSTEM_ACTION_LABELS: Record<string, string> = {
-  Condition: "Condition",
   "Database Query": "Database",
   "Execute Code": "System",
   "HTTP Request": "System",
-  "Human Task": "Person or team",
 };
 
 // Helper to get integration name from action type
 const getIntegrationFromActionType = (actionType: string): string => {
+  if (actionType === "Condition") {
+    return m.action_condition();
+  }
+  if (actionType === "Human Task") {
+    return m.action_person_or_team();
+  }
   // Check if it's a system action first
   if (SYSTEM_ACTION_LABELS[actionType]) {
     return SYSTEM_ACTION_LABELS[actionType];
@@ -321,7 +327,11 @@ export const ActionNode = memo(({ data, selected, id }: ActionNodeProps) => {
 
   // Get human-readable label from registry if no custom label is set
   const actionInfo = findActionById(actionType);
-  const displayTitle = data.label || actionInfo?.label || actionType;
+  const displayTitle =
+    data.label ||
+    systemActionLabel(actionType) ||
+    actionInfo?.label ||
+    actionType;
   const displayDescription =
     data.description || getIntegrationFromActionType(actionType);
 

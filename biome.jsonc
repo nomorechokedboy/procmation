@@ -15,5 +15,13 @@
       "!plugins",
       "!paraglide"
     ]
+  },
+  "linter": {
+    "rules": {
+      "performance": {
+        // Paraglide messages are used as `import * as m` and tree-shaken
+        "noNamespaceImport": "off"
+      }
+    }
   }
 }
