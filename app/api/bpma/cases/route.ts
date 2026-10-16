@@ -1,15 +1,17 @@
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { readJsonObject } from "@/lib/api/read-json";
-import { db } from "@/lib/db";
-import { createCase, listCases } from "@/lib/db/bpma";
+import { listCases } from "@/lib/db/bpma";
 import {
   CASE_PRIORITIES,
   CASE_STATUSES,
   MAX_CASE_TITLE_LENGTH,
 } from "@/lib/db/case-options";
+import { db } from "@/lib/db";
 import type { CasePriority, CaseStatus } from "@/lib/db/schema";
 import { processDefinitions } from "@/lib/db/schema";
+import { validateFormValues } from "@/lib/process-form-validation";
+import { startProcessCase } from "@/lib/process-runner";
 import { requireUser } from "@/lib/session";
 
 // GET /api/bpma/cases - cases the user started or takes part in.
@@ -37,16 +39,18 @@ export async function GET(request: Request) {
   }
 
   const rows = await listCases({
+    visibleTo: viewAll ? undefined : guard.user.id,
+    status: (status as CaseStatus | null) ?? undefined,
     priority: (priority as CasePriority | null) ?? undefined,
     processDefinitionId: params.get("processId") ?? undefined,
-    status: (status as CaseStatus | null) ?? undefined,
-    visibleTo: viewAll ? undefined : guard.user.id,
   });
 
   return NextResponse.json(rows);
 }
 
-// POST /api/bpma/cases - open a case for a published process
+// POST /api/bpma/cases - open a case for a published process and start it.
+// Body: { processDefinitionId, title, priority?, dueAt?, metadata?, values? }
+// where values answers the process start form.
 export async function POST(request: Request) {
   const guard = await requireUser(request);
   if (!guard.ok) {
@@ -55,10 +59,7 @@ export async function POST(request: Request) {
 
   const body = await readJsonObject(request);
   if (!body) {
-    return NextResponse.json(
-      { error: "Invalid request body" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
   const title = typeof body.title === "string" ? body.title.trim() : "";
@@ -98,7 +99,11 @@ export async function POST(request: Request) {
   }
 
   const [definition] = await db
-    .select({ status: processDefinitions.status })
+    .select({
+      status: processDefinitions.status,
+      workflowId: processDefinitions.workflowId,
+      startFormFields: processDefinitions.startFormFields,
+    })
     .from(processDefinitions)
     .where(eq(processDefinitions.id, body.processDefinitionId));
   if (!definition) {
@@ -111,14 +116,36 @@ export async function POST(request: Request) {
     );
   }
 
-  const created = await createCase({
-    dueAt,
-    initiatorId: guard.user.id,
-    metadata: metadata as Record<string, unknown>,
-    priority,
-    processDefinitionId: body.processDefinitionId,
-    title,
-  });
+  const startValues = validateFormValues(
+    definition.startFormFields,
+    body.values ?? {}
+  );
+  if (!startValues.ok) {
+    return NextResponse.json({ error: startValues.error }, { status: 400 });
+  }
 
-  return NextResponse.json(created, { status: 201 });
+  try {
+    const created = await startProcessCase({
+      processDefinitionId: body.processDefinitionId,
+      workflowId: definition.workflowId,
+      title,
+      priority,
+      initiatorId: guard.user.id,
+      metadata: metadata as Record<string, unknown>,
+      dueAt,
+      startValues: startValues.values,
+      requester: {
+        id: guard.user.id,
+        name: guard.user.name,
+        email: guard.user.email,
+      },
+    });
+    return NextResponse.json(created, { status: 201 });
+  } catch (error) {
+    console.error("[cases] failed to start process:", error);
+    return NextResponse.json(
+      { error: "The process could not be started" },
+      { status: 500 }
+    );
+  }
 }

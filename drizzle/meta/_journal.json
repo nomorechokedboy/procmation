@@ -57,6 +57,13 @@
       "when": 1792053089270,
       "tag": "0007_complex_blacklash",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792113867466,
+      "tag": "0008_famous_lockheed",
+      "breakpoints": true
     }
   ]
 }

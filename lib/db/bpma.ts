@@ -1,6 +1,14 @@
 import "server-only";
 
-import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  inArray,
+  isNull,
+  or,
+  sql,
+} from "drizzle-orm";
 import { pushNotificationToUser } from "@/lib/notifications/sse-hub";
 import type { FormField } from "@/lib/types/process-form";
 import { db } from "./index";
@@ -9,11 +17,12 @@ import {
   type CasePriority,
   type CaseStatus,
   type CaseTimelineEntry,
-  cases,
   caseTimeline,
+  cases,
   formSubmissions,
   type NewNotification,
   notifications,
+  processInstances,
   type Task,
   type TaskStatus,
   type TimelineEventType,
@@ -40,11 +49,11 @@ export async function addTimelineEvent(
   }
 ) {
   await tx.insert(caseTimeline).values({
-    actorId: event.actorId ?? null,
     caseId: event.caseId,
-    data: event.data ?? {},
     eventType: event.eventType,
+    actorId: event.actorId ?? null,
     nodeId: event.nodeId ?? null,
+    data: event.data ?? {},
   });
 }
 
@@ -62,42 +71,45 @@ async function nextCaseNumber(tx: Tx): Promise<string> {
   return `CASE-${new Date().getFullYear()}-${String(sequence).padStart(5, "0")}`;
 }
 
-export function createCase(input: {
+export type NewCaseInput = {
   processDefinitionId: string;
   title: string;
   priority: CasePriority;
   initiatorId: string;
   metadata: Record<string, unknown>;
   dueAt: Date | null;
-}): Promise<Case> {
-  return db.transaction(async (tx) => {
-    const caseNumber = await nextCaseNumber(tx);
-    const [created] = await tx
-      .insert(cases)
-      .values({
-        caseNumber,
-        dueAt: input.dueAt,
-        initiatorId: input.initiatorId,
-        metadata: input.metadata,
-        participants: [input.initiatorId],
-        priority: input.priority,
-        processDefinitionId: input.processDefinitionId,
-        title: input.title,
-      })
-      .returning();
+};
 
-    await addTimelineEvent(tx, {
-      actorId: input.initiatorId,
-      caseId: created.id,
-      data: {
-        processDefinitionId: input.processDefinitionId,
-        title: input.title,
-      },
-      eventType: "case_created",
-    });
+export async function createCaseInTx(
+  tx: Tx,
+  input: NewCaseInput
+): Promise<Case> {
+  const caseNumber = await nextCaseNumber(tx);
+  const [created] = await tx
+    .insert(cases)
+    .values({
+      caseNumber,
+      processDefinitionId: input.processDefinitionId,
+      title: input.title,
+      priority: input.priority,
+      initiatorId: input.initiatorId,
+      participants: [input.initiatorId],
+      metadata: input.metadata,
+      dueAt: input.dueAt,
+    })
+    .returning();
 
-    return created;
+  await addTimelineEvent(tx, {
+    caseId: created.id,
+    eventType: "case_created",
+    actorId: input.initiatorId,
+    data: {
+      title: input.title,
+      processDefinitionId: input.processDefinitionId,
+    },
   });
+
+  return created;
 }
 
 function participantCondition(userId: string) {
@@ -170,7 +182,7 @@ export async function getCaseDetail(record: Case): Promise<{
       : Promise.resolve([] as Task[]),
   ]);
 
-  return { case: record, tasks: caseTasks, timeline };
+  return { case: record, timeline, tasks: caseTasks };
 }
 
 export type CasePatch = {
@@ -206,10 +218,10 @@ export function updateCase(
 
     if (patch.status && patch.status !== current.status) {
       await addTimelineEvent(tx, {
-        actorId,
         caseId: id,
-        data: { from: current.status, to: patch.status },
         eventType: "status_changed",
+        actorId,
+        data: { from: current.status, to: patch.status },
       });
     }
 
@@ -219,10 +231,10 @@ export function updateCase(
     );
     if (changedKeys.length > 0) {
       await addTimelineEvent(tx, {
-        actorId,
         caseId: id,
-        data: { changed: changedKeys },
         eventType: "case_updated",
+        actorId,
+        data: { changed: changedKeys },
       });
     }
 
@@ -312,10 +324,10 @@ export function completeTask(input: {
     const [updated] = await tx
       .update(tasks)
       .set({
-        completedAt: new Date(),
-        completedById: input.completedById,
-        outcome: input.outcome,
         status: "completed",
+        outcome: input.outcome,
+        completedById: input.completedById,
+        completedAt: new Date(),
       })
       .where(and(eq(tasks.id, task.id), eq(tasks.status, "pending")))
       .returning();
@@ -326,34 +338,80 @@ export function completeTask(input: {
     const hasForm = (task.formFields as FormField[]).length > 0;
     if (hasForm) {
       await tx.insert(formSubmissions).values({
-        data: input.values,
         instanceId: task.instanceId,
-        submittedById: input.completedById,
         taskId: task.id,
+        submittedById: input.completedById,
+        data: input.values,
       });
+    }
+
+    // The run continues once no other task of the instance is waiting
+    const [stillPending] = await tx
+      .select({ id: tasks.id })
+      .from(tasks)
+      .where(
+        and(eq(tasks.instanceId, task.instanceId), eq(tasks.status, "pending"))
+      )
+      .limit(1);
+    if (!stillPending) {
+      await tx
+        .update(processInstances)
+        .set({ status: "running", updatedAt: new Date() })
+        .where(
+          and(
+            eq(processInstances.id, task.instanceId),
+            eq(processInstances.status, "waiting")
+          )
+        );
     }
 
     const caseId = await findCaseIdForInstance(tx, task.instanceId);
     if (caseId) {
       await addTimelineEvent(tx, {
-        actorId: input.completedById,
         caseId,
-        data: { name: task.name, outcome: input.outcome },
         eventType: "task_completed",
+        actorId: input.completedById,
         nodeId: task.nodeId,
+        data: { name: task.name, outcome: input.outcome },
       });
       if (hasForm) {
         await addTimelineEvent(tx, {
-          actorId: input.completedById,
           caseId,
-          data: { name: task.name },
           eventType: "form_submitted",
+          actorId: input.completedById,
           nodeId: task.nodeId,
+          data: { name: task.name },
         });
       }
     }
 
     return { ok: true, task: updated } as const;
+  });
+}
+
+// Undo a completion when the run could not be resumed, so the task is not
+// left finished while the process is still waiting for it.
+export async function reopenTask(task: Task): Promise<void> {
+  await db.transaction(async (tx) => {
+    await tx.delete(formSubmissions).where(eq(formSubmissions.taskId, task.id));
+    await tx
+      .update(tasks)
+      .set({
+        status: "pending",
+        outcome: null,
+        completedById: null,
+        completedAt: null,
+      })
+      .where(eq(tasks.id, task.id));
+    await tx
+      .update(processInstances)
+      .set({ status: "waiting", updatedAt: new Date() })
+      .where(
+        and(
+          eq(processInstances.id, task.instanceId),
+          eq(processInstances.status, "running")
+        )
+      );
   });
 }
 
@@ -381,15 +439,15 @@ export async function reassignTask(input: {
     const caseId = await findCaseIdForInstance(tx, task.instanceId);
     if (caseId) {
       await addTimelineEvent(tx, {
-        actorId: input.actorId,
         caseId,
-        data: { from: task.assigneeId, to: input.newAssigneeId },
         eventType: "task_reassigned",
+        actorId: input.actorId,
         nodeId: task.nodeId,
+        data: { from: task.assigneeId, to: input.newAssigneeId },
       });
     }
 
-    return { caseId, updated };
+    return { updated, caseId };
   });
 
   if (!result) {
@@ -397,12 +455,12 @@ export async function reassignTask(input: {
   }
 
   await createNotification({
-    body: task.name,
-    caseId: result.caseId,
-    taskId: task.id,
-    title: "A task was assigned to you",
-    type: "task_assigned",
     userId: input.newAssigneeId,
+    type: "task_assigned",
+    title: "A task was assigned to you",
+    body: task.name,
+    taskId: task.id,
+    caseId: result.caseId,
   });
 
   return { ok: true, task: result.updated };
@@ -440,9 +498,7 @@ export async function countUnreadNotifications(userId: string) {
   const [row] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(notifications)
-    .where(
-      and(eq(notifications.userId, userId), eq(notifications.read, false))
-    );
+    .where(and(eq(notifications.userId, userId), eq(notifications.read, false)));
   return row?.count ?? 0;
 }
 
@@ -459,7 +515,5 @@ export function markAllNotificationsRead(userId: string) {
   return db
     .update(notifications)
     .set({ read: true })
-    .where(
-      and(eq(notifications.userId, userId), eq(notifications.read, false))
-    );
+    .where(and(eq(notifications.userId, userId), eq(notifications.read, false)));
 }

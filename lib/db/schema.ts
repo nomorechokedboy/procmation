@@ -14,6 +14,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import type { IntegrationType } from "../types/integration";
+import type { TaskOutcome } from "../types/human-task";
 import type { FormField } from "../types/process-form";
 import { generateId } from "../utils/id";
 
@@ -385,6 +386,8 @@ export const tasks = pgTable(
     nodeId: text("node_id").notNull(),
     // The branch the assignee chose, for example "approve" or "reject"
     outcome: text("outcome"),
+    // The choices the assignee can pick from; empty means no choice is needed
+    outcomes: jsonb("outcomes").notNull().$type<TaskOutcome[]>().default([]),
     status: text("status").notNull().default("pending").$type<TaskStatus>(),
   },
   (table) => [

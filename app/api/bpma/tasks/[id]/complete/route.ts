@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
+import { resumeHook } from "workflow/api";
 import { readJsonObject } from "@/lib/api/read-json";
 import {
   canActOnTask,
   completeTask,
   getDepartmentIdOf,
   getTask,
+  reopenTask,
 } from "@/lib/db/bpma";
+import { taskToken } from "@/lib/process-branches";
+import type { HumanTaskDecision } from "@/lib/types/human-task";
 import { validateFormValues } from "@/lib/process-form-validation";
 import { requireUser } from "@/lib/session";
 import type { FormField } from "@/lib/types/process-form";
@@ -53,6 +57,16 @@ export async function POST(request: Request, { params }: Params) {
     outcome = body.outcome.trim();
   }
 
+  if (task.outcomes.length > 0) {
+    const allowed = task.outcomes.map((item) => item.id);
+    if (!(outcome && allowed.includes(outcome))) {
+      return NextResponse.json(
+        { error: `Choose an outcome: ${allowed.join(", ")}` },
+        { status: 400 }
+      );
+    }
+  }
+
   const validated = validateFormValues(
     task.formFields as FormField[],
     body.values ?? {}
@@ -71,6 +85,24 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json(
       { error: "Task is already completed or cancelled" },
       { status: 409 }
+    );
+  }
+
+  // Let the waiting process continue. If it cannot be reached, put the task
+  // back so it is not finished while the process still waits for it.
+  const decision: HumanTaskDecision = {
+    outcome: outcome ?? "",
+    values: validated.values,
+    by: guard.user.id,
+  };
+  try {
+    await resumeHook(taskToken(task.instanceId, task.nodeId), decision);
+  } catch (error) {
+    console.error("[tasks] failed to resume process:", error);
+    await reopenTask(task);
+    return NextResponse.json(
+      { error: "The process could not be resumed. Try again." },
+      { status: 502 }
     );
   }
 
