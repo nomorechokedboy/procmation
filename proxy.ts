@@ -9,6 +9,30 @@ const PUBLIC_API_PREFIXES = ["/api/auth", "/api/setup", "/api/invite/"];
 // Workflow webhooks authenticate with API keys, not sessions
 const WEBHOOK_PATTERN = /^\/api\/workflows\/[^/]+\/webhook$/;
 
+// The workflow engine delivers queued steps by calling these endpoints on the
+// server itself. Those calls carry no session, so let them through, but only
+// when the request is addressed to a loopback host and, if a forwarding
+// header is present, it names a loopback client. Requests arriving through a
+// reverse proxy carry the public host name and the visitor's address.
+const WORKFLOW_ENGINE_PREFIX = "/.well-known/workflow/";
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+const LOOPBACK_ADDRESSES = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
+
+function isInternalWorkflowCall(request: NextRequest): boolean {
+  if (!request.nextUrl.pathname.startsWith(WORKFLOW_ENGINE_PREFIX)) {
+    return false;
+  }
+  const host = request.headers.get("host")?.split(":")[0] ?? "";
+  if (!LOOPBACK_HOSTS.has(host)) {
+    return false;
+  }
+  const client = request.headers
+    .get("x-forwarded-for")
+    ?.split(",")[0]
+    ?.trim();
+  return client === undefined || LOOPBACK_ADDRESSES.has(client);
+}
+
 function isPublic(pathname: string): boolean {
   return (
     PUBLIC_PAGE_PREFIXES.some((prefix) => pathname.startsWith(prefix)) ||
@@ -20,7 +44,11 @@ function isPublic(pathname: string): boolean {
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (isPublic(pathname) || getSessionCookie(request)) {
+  if (
+    isPublic(pathname) ||
+    isInternalWorkflowCall(request) ||
+    getSessionCookie(request)
+  ) {
     return NextResponse.next();
   }
 
