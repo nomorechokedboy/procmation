@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useInputChange } from "@/hooks/use-input-change";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useStableCallback } from "@/hooks/use-stable-callback";
 import { api, type Integration } from "@/lib/api-client";
 import { getIntegration, getIntegrationLabels } from "@/plugins";
 import { ConfirmOverlay } from "./confirm-overlay";
@@ -143,10 +145,11 @@ export function EditConnectionOverlay({
   } | null>(null);
   const [name, setName] = useState(integration.name);
   const [config, setConfig] = useState<Record<string, string>>({});
+  const handleNameChange = useInputChange(setName);
 
-  const updateConfig = (key: string, value: string) => {
+  const updateConfig = useStableCallback((key: string, value: string) => {
     setConfig((prev) => ({ ...prev, [key]: value }));
-  };
+  });
 
   const doSave = async () => {
     try {
@@ -364,7 +367,7 @@ export function EditConnectionOverlay({
           <Label htmlFor="name">Label (Optional)</Label>
           <Input
             id="name"
-            onChange={(e) => setName(e.target.value)}
+            onChange={handleNameChange}
             placeholder="e.g. Production, Personal, Work"
             value={name}
           />

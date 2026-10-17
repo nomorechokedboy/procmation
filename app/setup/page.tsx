@@ -6,6 +6,7 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useInputChange } from "@/hooks/use-input-change";
 import { api } from "@/lib/api-client";
 import { signIn } from "@/lib/auth-client";
 import * as m from "@/paraglide/messages";
@@ -18,6 +19,9 @@ export default function SetupPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const handleNameChange = useInputChange(setName);
+  const handleEmailChange = useInputChange(setEmail);
+  const handlePasswordChange = useInputChange(setPassword);
 
   // Setup only exists until the first admin has been created
   useEffect(() => {
@@ -66,7 +70,7 @@ export default function SetupPage() {
           <Input
             autoComplete="name"
             id="name"
-            onChange={(event) => setName(event.target.value)}
+            onChange={handleNameChange}
             required
             value={name}
           />
@@ -76,7 +80,7 @@ export default function SetupPage() {
           <Input
             autoComplete="email"
             id="email"
-            onChange={(event) => setEmail(event.target.value)}
+            onChange={handleEmailChange}
             required
             type="email"
             value={email}
@@ -88,7 +92,7 @@ export default function SetupPage() {
             autoComplete="new-password"
             id="password"
             minLength={8}
-            onChange={(event) => setPassword(event.target.value)}
+            onChange={handlePasswordChange}
             required
             type="password"
             value={password}

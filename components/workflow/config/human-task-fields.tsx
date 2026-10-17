@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useStableCallback } from "@/hooks/use-stable-callback";
 import { api, type Department, type Member } from "@/lib/api-client";
 import { getTaskOutcomes, readConfigList } from "@/lib/process-branches";
 import { slugifyFieldKey } from "@/lib/process-form-validation";
@@ -66,11 +67,11 @@ function OutcomesEditor({
       )
     );
 
-  const add = () => {
+  const add = useStableCallback(() => {
     const taken = new Set(outcomes.map((outcome) => outcome.id));
     const label = m.human_task_new_outcome({ number: outcomes.length + 1 });
     onChange([...outcomes, { id: uniqueOutcomeId(label, taken), label }]);
-  };
+  });
 
   return (
     <div className="space-y-2">

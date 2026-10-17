@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useStableCallback } from "@/hooks/use-stable-callback";
 
 export type SchemaField = {
   id?: string;
@@ -35,9 +36,9 @@ export function SchemaBuilder({
   disabled,
   level = 0,
 }: SchemaBuilderProps) {
-  const addField = () => {
+  const addField = useStableCallback(() => {
     onChange([...schema, { id: nanoid(), name: "", type: "string" }]);
-  };
+  });
 
   const resetDependentFields = (
     field: SchemaField,

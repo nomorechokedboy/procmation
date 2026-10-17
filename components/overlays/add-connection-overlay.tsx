@@ -7,7 +7,9 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { IntegrationIcon } from "@/components/ui/integration-icon";
 import { Label } from "@/components/ui/label";
+import { useInputChange } from "@/hooks/use-input-change";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useStableCallback } from "@/hooks/use-stable-callback";
 import {
   aiGatewayStatusAtom,
   aiGatewayTeamsAtom,
@@ -66,6 +68,7 @@ export function AddConnectionOverlay({
   const { push, closeAll } = useOverlay();
   const [searchQuery, setSearchQuery] = useState("");
   const isMobile = useIsMobile();
+  const handleSearchQueryChange = useInputChange(setSearchQuery);
 
   // AI Gateway state
   const aiGatewayStatus = useAtomValue(aiGatewayStatusAtom);
@@ -140,7 +143,7 @@ export function AddConnectionOverlay({
           <Input
             autoFocus={!isMobile}
             className="pl-9"
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={handleSearchQueryChange}
             placeholder="Search services..."
             value={searchQuery}
           />
@@ -258,10 +261,11 @@ export function ConfigureConnectionOverlay({
   } | null>(null);
   const [name, setName] = useState("");
   const [config, setConfig] = useState<Record<string, string>>({});
+  const handleNameChange = useInputChange(setName);
 
-  const updateConfig = (key: string, value: string) => {
+  const updateConfig = useStableCallback((key: string, value: string) => {
     setConfig((prev) => ({ ...prev, [key]: value }));
-  };
+  });
 
   const doSave = async () => {
     try {
@@ -450,7 +454,7 @@ export function ConfigureConnectionOverlay({
           <Label htmlFor="name">Label (Optional)</Label>
           <Input
             id="name"
-            onChange={(e) => setName(e.target.value)}
+            onChange={handleNameChange}
             placeholder="e.g. Production, Personal, Work"
             value={name}
           />

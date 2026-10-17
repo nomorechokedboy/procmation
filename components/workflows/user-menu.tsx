@@ -33,6 +33,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useStableCallback } from "@/hooks/use-stable-callback";
 import { api } from "@/lib/api-client";
 import { signOut, useSession } from "@/lib/auth-client";
 import { SHOW_GENERIC_WORKFLOW_TOOLS } from "@/lib/bpma-features";
@@ -44,6 +45,10 @@ import {
   locales,
   setLocale,
 } from "@/paraglide/runtime";
+
+function handleLocaleChange(value: string) {
+  setLocale(value as Locale);
+}
 
 export const UserMenu = () => {
   const { data: session, isPending } = useSession();
@@ -61,9 +66,14 @@ export const UserMenu = () => {
     }
   }, [session?.user]);
 
-  const handleLogout = async () => {
+  const handleLogout = useStableCallback(async () => {
     await signOut();
-  };
+  });
+  const openSettings = useStableCallback(() => openOverlay(SettingsOverlay));
+  const openIntegrations = useStableCallback(() =>
+    openOverlay(IntegrationsOverlay)
+  );
+  const openApiKeys = useStableCallback(() => openOverlay(ApiKeysOverlay));
 
   // OAuth users can't edit their profile
   const isOAuthUser =
@@ -131,18 +141,18 @@ export const UserMenu = () => {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         {!isOAuthUser && (
-          <DropdownMenuItem onClick={() => openOverlay(SettingsOverlay)}>
+          <DropdownMenuItem onClick={openSettings}>
             <Settings className="size-4" />
             <span>{m.user_menu_settings()}</span>
           </DropdownMenuItem>
         )}
         {SHOW_GENERIC_WORKFLOW_TOOLS ? (
-          <DropdownMenuItem onClick={() => openOverlay(IntegrationsOverlay)}>
+          <DropdownMenuItem onClick={openIntegrations}>
             <Plug className="size-4" />
             <span>{m.user_menu_connections()}</span>
           </DropdownMenuItem>
         ) : null}
-        <DropdownMenuItem onClick={() => openOverlay(ApiKeysOverlay)}>
+        <DropdownMenuItem onClick={openApiKeys}>
           <Key className="size-4" />
           <span>{m.user_menu_api_keys()}</span>
         </DropdownMenuItem>
@@ -189,7 +199,7 @@ export const UserMenu = () => {
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
             <DropdownMenuRadioGroup
-              onValueChange={(value) => setLocale(value as Locale)}
+              onValueChange={handleLocaleChange}
               value={getLocale()}
             >
               {locales.map((locale) => (

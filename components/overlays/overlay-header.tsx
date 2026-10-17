@@ -2,6 +2,7 @@
 
 import { ChevronLeftIcon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useStableCallback } from "@/hooks/use-stable-callback";
 import { cn } from "@/lib/utils";
 import { useOverlay, useOverlayPosition } from "./overlay-provider";
 import type { OverlayHeaderProps } from "./types";
@@ -25,21 +26,21 @@ export function OverlayHeader({
   // This can be overridden by the prop
   const showBackButton = showBackButtonProp ?? false;
 
-  const handleBack = () => {
+  const handleBack = useStableCallback(() => {
     if (onBack) {
       onBack();
     } else {
       pop();
     }
-  };
+  });
 
-  const handleClose = () => {
+  const handleClose = useStableCallback(() => {
     if (onClose) {
       onClose();
     } else {
       closeAll();
     }
-  };
+  });
 
   return (
     <div className={cn("relative flex flex-col gap-1.5 p-6 pb-0", className)}>

@@ -28,6 +28,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useInputChange } from "@/hooks/use-input-change";
+import { useStableCallback } from "@/hooks/use-stable-callback";
 import { useIsTouch } from "@/hooks/use-touch";
 import {
   isPluginActionVisible,
@@ -192,6 +194,7 @@ export function ActionGrid({
   isNewlyCreated,
 }: ActionGridProps) {
   const [filter, setFilter] = useState("");
+  const handleFilterChange = useInputChange(setFilter);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
     new Set()
   );
@@ -204,11 +207,11 @@ export function ActionGrid({
   const inputRef = useRef<HTMLInputElement>(null);
   const isTouch = useIsTouch();
 
-  const toggleViewMode = () => {
+  const toggleViewMode = useStableCallback(() => {
     const newMode = viewMode === "list" ? "grid" : "list";
     setViewMode(newMode);
     localStorage.setItem(VIEW_MODE_KEY, newMode);
-  };
+  });
 
   const toggleGroup = (category: string) => {
     setCollapsedGroups((prev) => {
@@ -302,7 +305,7 @@ export function ActionGrid({
             data-testid="action-search-input"
             disabled={disabled}
             id="action-filter"
-            onChange={(e) => setFilter(e.target.value)}
+            onChange={handleFilterChange}
             placeholder="Search actions..."
             ref={inputRef}
             value={filter}

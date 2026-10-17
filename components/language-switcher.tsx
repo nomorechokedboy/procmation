@@ -16,12 +16,13 @@ import {
   setLocale,
 } from "@/paraglide/runtime";
 
+function handleValueChange(value: string) {
+  setLocale(value as Locale);
+}
+
 export function LanguageSwitcher() {
   return (
-    <Select
-      onValueChange={(value) => setLocale(value as Locale)}
-      value={getLocale()}
-    >
+    <Select onValueChange={handleValueChange} value={getLocale()}>
       <SelectTrigger
         aria-label={m.language_label()}
         className="h-8 w-auto gap-2 text-xs"

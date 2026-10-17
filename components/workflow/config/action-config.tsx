@@ -26,6 +26,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useStableCallback } from "@/hooks/use-stable-callback";
 import { aiGatewayStatusAtom } from "@/lib/ai-gateway/state";
 import {
   isPluginActionVisible,
@@ -376,23 +377,25 @@ export function ActionConfig({
     setCategory(newCategory || "");
   }, [actionType]);
 
-  const handleCategoryChange = (newCategory: string) => {
+  const handleCategoryChange = useStableCallback((newCategory: string) => {
     setCategory(newCategory);
     // Auto-select the first action in the new category
     const firstAction = categories[newCategory]?.[0];
     if (firstAction) {
       onUpdateConfig("actionType", firstAction.id);
     }
-  };
+  });
 
-  const handleActionTypeChange = (value: string) => {
+  const handleActionTypeChange = useStableCallback((value: string) => {
     onUpdateConfig("actionType", value);
-  };
+  });
 
   // Adapter for plugin config components that expect (key, value: unknown)
-  const handlePluginUpdateConfig = (key: string, value: unknown) => {
-    onUpdateConfig(key, String(value));
-  };
+  const handlePluginUpdateConfig = useStableCallback(
+    (key: string, value: unknown) => {
+      onUpdateConfig(key, String(value));
+    }
+  );
 
   // Get dynamic config fields for plugin actions
   const pluginAction = actionType ? findActionById(actionType) : null;
@@ -444,7 +447,7 @@ export function ActionConfig({
     }
   };
 
-  const handleAddSecondaryConnection = () => {
+  const handleAddSecondaryConnection = useStableCallback(() => {
     if (shouldUseManagedKeys) {
       push(AiGatewayConsentOverlay, {
         onConsent: handleConsentSuccess,
@@ -453,7 +456,7 @@ export function ActionConfig({
     } else {
       openConnectionOverlay();
     }
-  };
+  });
 
   return (
     <>

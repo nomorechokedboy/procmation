@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useInputChange } from "@/hooks/use-input-change";
 import {
   api,
   type Department,
@@ -49,12 +50,13 @@ function RoleSelect({
   onChange: (role: UserRole) => void;
   disabled?: boolean;
 }) {
+  const handleValueChange = useCallback(
+    (role: string) => onChange(role as UserRole),
+    [onChange]
+  );
+
   return (
-    <Select
-      disabled={disabled}
-      onValueChange={(role) => onChange(role as UserRole)}
-      value={value}
-    >
+    <Select disabled={disabled} onValueChange={handleValueChange} value={value}>
       <SelectTrigger className="w-32">
         <SelectValue />
       </SelectTrigger>
@@ -66,6 +68,79 @@ function RoleSelect({
         ))}
       </SelectContent>
     </Select>
+  );
+}
+
+function MemberRow({
+  member,
+  details,
+  onEditProfile,
+  onRoleChange,
+}: {
+  member: Member;
+  details: string[];
+  onEditProfile: (member: Member) => void;
+  onRoleChange: (memberId: string, role: UserRole) => void;
+}) {
+  const handleEdit = useCallback(
+    () => onEditProfile(member),
+    [member, onEditProfile]
+  );
+  const handleRole = useCallback(
+    (newRole: UserRole) => onRoleChange(member.id, newRole),
+    [member.id, onRoleChange]
+  );
+
+  return (
+    <div className="flex items-center justify-between gap-3 py-3">
+      <div className="min-w-0">
+        <p className="truncate font-medium text-sm">
+          {member.name || member.email}
+        </p>
+        <p className="truncate text-muted-foreground text-xs">{member.email}</p>
+        {details.length > 0 ? (
+          <p className="truncate text-muted-foreground text-xs">
+            {details.join(" / ")}
+          </p>
+        ) : null}
+      </div>
+      <div className="flex items-center gap-2">
+        <Button onClick={handleEdit} size="sm" variant="outline">
+          {m.members_profile_button()}
+        </Button>
+        <RoleSelect onChange={handleRole} value={member.role} />
+      </div>
+    </div>
+  );
+}
+
+function InviteRow({
+  invite,
+  onRevoke,
+}: {
+  invite: InvitationSummary;
+  onRevoke: (inviteId: string) => void;
+}) {
+  const handleRevoke = useCallback(
+    () => onRevoke(invite.id),
+    [invite.id, onRevoke]
+  );
+
+  return (
+    <div className="flex items-center justify-between gap-3 py-3">
+      <div className="min-w-0">
+        <p className="truncate font-medium text-sm">{invite.email}</p>
+        <p className="text-muted-foreground text-xs">
+          {m.members_invite_expires({
+            date: new Date(invite.expiresAt).toLocaleDateString(getLocale()),
+            role: roleLabel(invite.role),
+          })}
+        </p>
+      </div>
+      <Button onClick={handleRevoke} size="sm" variant="outline">
+        {m.members_revoke()}
+      </Button>
+    </div>
   );
 }
 
@@ -81,6 +156,7 @@ export default function MembersPage() {
   const [role, setRole] = useState<UserRole>("member");
   const [creating, setCreating] = useState(false);
   const [latestInviteUrl, setLatestInviteUrl] = useState("");
+  const handleEmailChange = useInputChange(setEmail);
 
   const load = useCallback(async () => {
     try {
@@ -103,10 +179,12 @@ export default function MembersPage() {
     }
   }, [isAdmin, load]);
 
-  const copy = async (text: string) => {
-    await navigator.clipboard.writeText(text);
+  const handleCopyLatest = useCallback(async () => {
+    await navigator.clipboard.writeText(latestInviteUrl);
     toast.success(m.members_invite_copied());
-  };
+  }, [latestInviteUrl]);
+
+  const closeProfile = useCallback(() => setEditingMember(null), []);
 
   const handleInvite = async (event: FormEvent) => {
     event.preventDefault();
@@ -125,28 +203,34 @@ export default function MembersPage() {
     }
   };
 
-  const handleRoleChange = async (memberId: string, newRole: UserRole) => {
-    try {
-      await api.member.updateRole(memberId, newRole);
-      toast.success(m.members_role_updated());
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : m.members_role_update_failed()
-      );
-    }
-    await load();
-  };
+  const handleRoleChange = useCallback(
+    async (memberId: string, newRole: UserRole) => {
+      try {
+        await api.member.updateRole(memberId, newRole);
+        toast.success(m.members_role_updated());
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : m.members_role_update_failed()
+        );
+      }
+      await load();
+    },
+    [load]
+  );
 
-  const handleRevoke = async (inviteId: string) => {
-    try {
-      await api.invite.revoke(inviteId);
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : m.members_revoke_failed()
-      );
-    }
-    await load();
-  };
+  const handleRevoke = useCallback(
+    async (inviteId: string) => {
+      try {
+        await api.invite.revoke(inviteId);
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : m.members_revoke_failed()
+        );
+      }
+      await load();
+    },
+    [load]
+  );
 
   if (isPending) {
     return null;
@@ -191,7 +275,7 @@ export default function MembersPage() {
                     <Label htmlFor="invite-email">{m.login_email()}</Label>
                     <Input
                       id="invite-email"
-                      onChange={(event) => setEmail(event.target.value)}
+                      onChange={handleEmailChange}
                       required
                       type="email"
                       value={email}
@@ -212,7 +296,7 @@ export default function MembersPage() {
                       {latestInviteUrl}
                     </code>
                     <Button
-                      onClick={() => copy(latestInviteUrl)}
+                      onClick={handleCopyLatest}
                       size="sm"
                       variant="outline"
                     >
@@ -244,41 +328,15 @@ export default function MembersPage() {
                           name: manager.name || manager.email || "",
                         })
                       : null,
-                  ].filter(Boolean);
+                  ].filter((detail): detail is string => Boolean(detail));
                   return (
-                    <div
-                      className="flex items-center justify-between gap-3 py-3"
+                    <MemberRow
+                      details={details}
                       key={member.id}
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate font-medium text-sm">
-                          {member.name || member.email}
-                        </p>
-                        <p className="truncate text-muted-foreground text-xs">
-                          {member.email}
-                        </p>
-                        {details.length > 0 ? (
-                          <p className="truncate text-muted-foreground text-xs">
-                            {details.join(" / ")}
-                          </p>
-                        ) : null}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          onClick={() => setEditingMember(member)}
-                          size="sm"
-                          variant="outline"
-                        >
-                          {m.members_profile_button()}
-                        </Button>
-                        <RoleSelect
-                          onChange={(newRole) =>
-                            handleRoleChange(member.id, newRole)
-                          }
-                          value={member.role}
-                        />
-                      </div>
-                    </div>
+                      member={member}
+                      onEditProfile={setEditingMember}
+                      onRoleChange={handleRoleChange}
+                    />
                   );
                 })}
               </CardContent>
@@ -296,31 +354,11 @@ export default function MembersPage() {
                 </CardHeader>
                 <CardContent className="divide-y">
                   {invites.map((invite) => (
-                    <div
-                      className="flex items-center justify-between gap-3 py-3"
+                    <InviteRow
+                      invite={invite}
                       key={invite.id}
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate font-medium text-sm">
-                          {invite.email}
-                        </p>
-                        <p className="text-muted-foreground text-xs">
-                          {m.members_invite_expires({
-                            date: new Date(invite.expiresAt).toLocaleDateString(
-                              getLocale()
-                            ),
-                            role: roleLabel(invite.role),
-                          })}
-                        </p>
-                      </div>
-                      <Button
-                        onClick={() => handleRevoke(invite.id)}
-                        size="sm"
-                        variant="outline"
-                      >
-                        {m.members_revoke()}
-                      </Button>
-                    </div>
+                      onRevoke={handleRevoke}
+                    />
                   ))}
                 </CardContent>
               </Card>
@@ -333,7 +371,7 @@ export default function MembersPage() {
             departments={departments}
             member={editingMember}
             members={members}
-            onClose={() => setEditingMember(null)}
+            onClose={closeProfile}
             onSaved={load}
           />
         ) : null}

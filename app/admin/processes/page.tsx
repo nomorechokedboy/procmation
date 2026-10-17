@@ -69,6 +69,81 @@ const STATUS_BADGE: Record<ProcessStatus, "default" | "secondary" | "outline"> =
     published: "default",
   };
 
+function StatusActionButton({
+  action,
+  process,
+  onChangeStatus,
+}: {
+  action: StatusAction;
+  process: ProcessSummary;
+  onChangeStatus: (process: ProcessSummary, status: ProcessStatus) => void;
+}) {
+  const handleClick = useCallback(
+    () => onChangeStatus(process, action.status),
+    [onChangeStatus, process, action.status]
+  );
+
+  return (
+    <Button onClick={handleClick} size="sm" variant="outline">
+      {actionLabel(action.id)}
+    </Button>
+  );
+}
+
+function ProcessRow({
+  process,
+  onEditStartForm,
+  onChangeStatus,
+}: {
+  process: ProcessSummary;
+  onEditStartForm: (process: ProcessSummary) => void;
+  onChangeStatus: (process: ProcessSummary, status: ProcessStatus) => void;
+}) {
+  const handleEdit = useCallback(
+    () => onEditStartForm(process),
+    [onEditStartForm, process]
+  );
+
+  return (
+    <div className="space-y-3 py-4">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate font-medium text-sm">{process.name}</p>
+          <p className="text-muted-foreground text-xs">
+            {process.category ? `${process.category}, ` : ""}
+            {process.startFormFields.length === 1
+              ? m.processes_start_fields_one({ count: 1 })
+              : m.processes_start_fields_other({
+                  count: process.startFormFields.length,
+                })}
+          </p>
+        </div>
+        <Badge variant={STATUS_BADGE[process.status]}>
+          {statusLabel(process.status)}
+        </Badge>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button asChild size="sm" variant="outline">
+          <Link href={`/workflows/${process.workflowId}`}>
+            {m.processes_open_editor()}
+          </Link>
+        </Button>
+        <Button onClick={handleEdit} size="sm" variant="outline">
+          {m.processes_edit_start_form()}
+        </Button>
+        {STATUS_ACTIONS[process.status].map((action) => (
+          <StatusActionButton
+            action={action}
+            key={action.id}
+            onChangeStatus={onChangeStatus}
+            process={process}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function ProcessesPage() {
   const { data: session, isPending } = useSession();
   const isAdmin = session?.user.role === "admin";
@@ -101,27 +176,34 @@ export default function ProcessesPage() {
     }
   }, [isAdmin, load]);
 
-  const changeStatus = async (
-    process: ProcessSummary,
-    status: ProcessStatus
-  ) => {
-    try {
-      await api.process.update(process.id, { status });
-      toast.success(
-        status === "published"
-          ? m.processes_now_published({ name: process.name })
-          : m.processes_now_status({
-              name: process.name,
-              status: statusLabel(status),
-            })
-      );
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : m.processes_update_failed()
-      );
-    }
-    await load();
-  };
+  const changeStatus = useCallback(
+    async (process: ProcessSummary, status: ProcessStatus) => {
+      try {
+        await api.process.update(process.id, { status });
+        toast.success(
+          status === "published"
+            ? m.processes_now_published({ name: process.name })
+            : m.processes_now_status({
+                name: process.name,
+                status: statusLabel(status),
+              })
+        );
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : m.processes_update_failed()
+        );
+      }
+      await load();
+    },
+    [load]
+  );
+
+  const openCreate = useCallback(() => setDialog({ mode: "create" }), []);
+  const closeDialog = useCallback(() => setDialog(null), []);
+  const editStartForm = useCallback(
+    (process: ProcessSummary) => setDialog({ mode: "edit", process }),
+    []
+  );
 
   if (isPending) {
     return null;
@@ -141,7 +223,7 @@ export default function ProcessesPage() {
           <h1 className="font-semibold text-xl">{m.processes_title()}</h1>
           <div className="flex gap-2">
             {isAdmin ? (
-              <Button onClick={() => setDialog({ mode: "create" })} size="sm">
+              <Button onClick={openCreate} size="sm">
                 {m.processes_new()}
               </Button>
             ) : null}
@@ -181,50 +263,12 @@ export default function ProcessesPage() {
             </CardHeader>
             <CardContent className="divide-y">
               {processes.map((process) => (
-                <div className="space-y-3 py-4" key={process.id}>
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="truncate font-medium text-sm">
-                        {process.name}
-                      </p>
-                      <p className="text-muted-foreground text-xs">
-                        {process.category ? `${process.category}, ` : ""}
-                        {process.startFormFields.length === 1
-                          ? m.processes_start_fields_one({ count: 1 })
-                          : m.processes_start_fields_other({
-                              count: process.startFormFields.length,
-                            })}
-                      </p>
-                    </div>
-                    <Badge variant={STATUS_BADGE[process.status]}>
-                      {statusLabel(process.status)}
-                    </Badge>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button asChild size="sm" variant="outline">
-                      <Link href={`/workflows/${process.workflowId}`}>
-                        {m.processes_open_editor()}
-                      </Link>
-                    </Button>
-                    <Button
-                      onClick={() => setDialog({ mode: "edit", process })}
-                      size="sm"
-                      variant="outline"
-                    >
-                      {m.processes_edit_start_form()}
-                    </Button>
-                    {STATUS_ACTIONS[process.status].map((action) => (
-                      <Button
-                        key={action.id}
-                        onClick={() => changeStatus(process, action.status)}
-                        size="sm"
-                        variant="outline"
-                      >
-                        {actionLabel(action.id)}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
+                <ProcessRow
+                  key={process.id}
+                  onChangeStatus={changeStatus}
+                  onEditStartForm={editStartForm}
+                  process={process}
+                />
               ))}
             </CardContent>
           </Card>
@@ -233,7 +277,7 @@ export default function ProcessesPage() {
         {dialog?.mode === "create" ? (
           <ProcessDialog
             mode="create"
-            onClose={() => setDialog(null)}
+            onClose={closeDialog}
             onSaved={load}
             workflows={availableWorkflows}
           />
@@ -241,7 +285,7 @@ export default function ProcessesPage() {
         {dialog?.mode === "edit" ? (
           <ProcessDialog
             mode="edit"
-            onClose={() => setDialog(null)}
+            onClose={closeDialog}
             onSaved={load}
             process={dialog.process}
           />

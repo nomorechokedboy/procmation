@@ -21,6 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useInputChange } from "@/hooks/use-input-change";
+import { useStableCallback } from "@/hooks/use-stable-callback";
 import { api, type ProcessSummary, type SavedWorkflow } from "@/lib/api-client";
 import { validateFormFields } from "@/lib/process-form-validation";
 import type { FormField } from "@/lib/types/process-form";
@@ -44,13 +46,14 @@ export function ProcessDialog(props: ProcessDialogProps) {
   const editing = props.mode === "edit" ? props.process : null;
   const [workflowId, setWorkflowId] = useState("");
   const [category, setCategory] = useState(editing?.category ?? "");
+  const handleCategoryChange = useInputChange(setCategory);
   const [fields, setFields] = useState<FormField[]>(
     editing?.startFormFields ?? []
   );
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const handleSubmit = async (event: FormEvent) => {
+  const handleSubmit = useStableCallback(async (event: FormEvent) => {
     event.preventDefault();
     setError("");
 
@@ -86,10 +89,15 @@ export function ProcessDialog(props: ProcessDialogProps) {
       setError(err instanceof Error ? err.message : m.common_save_failed());
       setSaving(false);
     }
-  };
+  });
+  const handleOpenChange = useStableCallback((open: boolean) => {
+    if (!open) {
+      props.onClose();
+    }
+  });
 
   return (
-    <Dialog onOpenChange={(open) => !open && props.onClose()} open>
+    <Dialog onOpenChange={handleOpenChange} open>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <form className="space-y-4" onSubmit={handleSubmit}>
           <DialogHeader>
@@ -141,7 +149,7 @@ export function ProcessDialog(props: ProcessDialogProps) {
             <Input
               id="process-category"
               maxLength={60}
-              onChange={(event) => setCategory(event.target.value)}
+              onChange={handleCategoryChange}
               placeholder={m.process_dialog_category_placeholder()}
               value={category}
             />

@@ -31,6 +31,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useStableCallback } from "@/hooks/use-stable-callback";
 import { api } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
 import { SHOW_GENERIC_WORKFLOW_TOOLS } from "@/lib/bpma-features";
@@ -963,17 +964,7 @@ function ToolbarActions({
   const selectedEdge = edges.find((edge) => edge.id === selectedEdgeId);
   const hasSelection = selectedNode || selectedEdge;
 
-  // For non-owners viewing public workflows, don't show toolbar actions
-  // (Duplicate button is now in the main toolbar next to Sign In)
-  if (workflowId && !state.isOwner) {
-    return null;
-  }
-
-  if (!workflowId) {
-    return null;
-  }
-
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = useStableCallback(() => {
     const isNode = Boolean(selectedNodeId);
     const itemType = isNode ? "Node" : "Connection";
 
@@ -990,9 +981,9 @@ function ToolbarActions({
       },
       title: `Delete ${itemType}`,
     });
-  };
+  });
 
-  const handleAddStep = () => {
+  const handleAddStep = useStableCallback(() => {
     // Get the ReactFlow wrapper (the visible canvas container)
     const flowWrapper = document.querySelector(".react-flow");
     if (!flowWrapper) {
@@ -1055,7 +1046,17 @@ function ToolbarActions({
     state.addNode(newNode);
     state.setSelectedNodeId(newNode.id);
     state.setActiveTab("properties");
-  };
+  });
+
+  // For non-owners viewing public workflows, don't show toolbar actions
+  // (Duplicate button is now in the main toolbar next to Sign In)
+  if (workflowId && !state.isOwner) {
+    return null;
+  }
+
+  if (!workflowId) {
+    return null;
+  }
 
   return (
     <>
@@ -1225,12 +1226,12 @@ function DownloadButton({
 }) {
   const { open: openOverlay } = useOverlay();
 
-  const handleClick = () => {
+  const handleClick = useStableCallback(() => {
     openOverlay(ExportWorkflowOverlay, {
       isDownloading: state.isDownloading,
       onExport: actions.handleDownload,
     });
-  };
+  });
 
   return (
     <Button
