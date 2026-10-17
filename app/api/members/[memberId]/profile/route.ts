@@ -25,7 +25,7 @@ async function createsManagerCycle(memberId: string, managerId: string) {
       JOIN chain c ON p.user_id = c.manager_id
       WHERE c.depth < ${MAX_DEPTH}
     )
-    SELECT 1 FROM chain WHERE user_id = ${memberId} LIMIT 1
+    SELECT 1 FROM chain WHERE user_id = ${memberId} OR manager_id = ${memberId} LIMIT 1
   `);
   return found.length > 0;
 }

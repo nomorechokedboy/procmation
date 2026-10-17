@@ -8,6 +8,7 @@ import {
   RefreshCw,
   Trash2,
 } from "lucide-react";
+import type { ChangeEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -24,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { CodeEditor } from "@/components/ui/code-editor";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useStableCallback } from "@/hooks/use-stable-callback";
 import { api } from "@/lib/api-client";
 import { SHOW_GENERIC_WORKFLOW_TOOLS } from "@/lib/bpma-features";
 import { integrationsAtom } from "@/lib/integrations-store";
@@ -76,6 +78,7 @@ const MultiSelectionPanel = ({
   selectedEdges: { id: string; selected?: boolean }[];
   onDelete: () => void;
 }) => {
+  const handleOnClickH6 = useStableCallback(() => setShowDeleteAlert(true));
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
 
   const nodeText = selectedNodes.length === 1 ? "node" : "nodes";
@@ -113,7 +116,7 @@ const MultiSelectionPanel = ({
           <div className="flex items-center gap-2 pt-4">
             <Button
               className="text-muted-foreground"
-              onClick={() => setShowDeleteAlert(true)}
+              onClick={handleOnClickH6}
               size="sm"
               variant="ghost"
             >
@@ -145,6 +148,32 @@ const MultiSelectionPanel = ({
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Complex UI logic with multiple conditions
 export const PanelInner = () => {
+  const handleOnChangeH1 = useStableCallback(
+    (e: ChangeEvent<HTMLInputElement>) => handleUpdateLabel(e.target.value)
+  );
+  const handleOnChangeH2 = useStableCallback(
+    (e: ChangeEvent<HTMLInputElement>) =>
+      handleUpdateDescription(e.target.value)
+  );
+  const handleOnClickH3 = useStableCallback(() => setShowDeleteNodeAlert(true));
+  const handleOnClickH4 = useStableCallback(() => setShowDeleteRunsAlert(true));
+  const handleOnSelectActionH5 = useStableCallback((actionType) => {
+    handleUpdateConfig("actionType", actionType);
+    // Clear newly created tracking once action is selected
+    if (selectedNode?.id === newlyCreatedNodeId) {
+      setNewlyCreatedNodeId(null);
+    }
+  });
+  const handleOnClickH7 = useStableCallback(() => setShowDeleteEdgeAlert(true));
+  const handleOnChangeH8 = useStableCallback(
+    (e: ChangeEvent<HTMLInputElement>) =>
+      handleUpdateWorkspaceName(e.target.value)
+  );
+  const handleOnClickH9 = useStableCallback(() => setShowClearDialog(true));
+  const handleOnClickH10 = useStableCallback(() => setShowDeleteDialog(true));
+  const handleOnClickH11 = useStableCallback(() =>
+    setShowDeleteRunsAlert(true)
+  );
   const [selectedNodeId] = useAtom(selectedNodeAtom);
   const [selectedEdgeId] = useAtom(selectedEdgeAtom);
   const [nodes] = useAtom(nodesAtom);
@@ -518,7 +547,7 @@ export const PanelInner = () => {
               <div className="flex items-center gap-2 pt-4">
                 <Button
                   className="text-muted-foreground"
-                  onClick={() => setShowDeleteEdgeAlert(true)}
+                  onClick={handleOnClickH7}
                   size="sm"
                   variant="ghost"
                 >
@@ -600,7 +629,7 @@ export const PanelInner = () => {
                 <Input
                   disabled={!isOwner}
                   id="workflow-name"
-                  onChange={(e) => handleUpdateWorkspaceName(e.target.value)}
+                  onChange={handleOnChangeH8}
                   value={currentWorkflowName}
                 />
               </div>
@@ -626,7 +655,7 @@ export const PanelInner = () => {
                 <div className="flex items-center gap-2 pt-4">
                   <Button
                     className="text-muted-foreground"
-                    onClick={() => setShowClearDialog(true)}
+                    onClick={handleOnClickH9}
                     size="sm"
                     variant="ghost"
                   >
@@ -635,7 +664,7 @@ export const PanelInner = () => {
                   </Button>
                   <Button
                     className="text-muted-foreground"
-                    onClick={() => setShowDeleteDialog(true)}
+                    onClick={handleOnClickH10}
                     size="sm"
                     variant="ghost"
                   >
@@ -664,7 +693,7 @@ export const PanelInner = () => {
                 </Button>
                 <Button
                   className="text-muted-foreground"
-                  onClick={() => setShowDeleteRunsAlert(true)}
+                  onClick={handleOnClickH11}
                   size="sm"
                   variant="ghost"
                 >
@@ -801,13 +830,7 @@ export const PanelInner = () => {
                 <ActionGrid
                   disabled={isGenerating}
                   isNewlyCreated={selectedNode?.id === newlyCreatedNodeId}
-                  onSelectAction={(actionType) => {
-                    handleUpdateConfig("actionType", actionType);
-                    // Clear newly created tracking once action is selected
-                    if (selectedNode?.id === newlyCreatedNodeId) {
-                      setNewlyCreatedNodeId(null);
-                    }
-                  }}
+                  onSelectAction={handleOnSelectActionH5}
                 />
               </div>
             )}
@@ -859,7 +882,7 @@ export const PanelInner = () => {
                     <Input
                       disabled={isGenerating || !isOwner}
                       id="label"
-                      onChange={(e) => handleUpdateLabel(e.target.value)}
+                      onChange={handleOnChangeH1}
                       value={selectedNode.data.label}
                     />
                   </div>
@@ -871,7 +894,7 @@ export const PanelInner = () => {
                     <Input
                       disabled={isGenerating || !isOwner}
                       id="description"
-                      onChange={(e) => handleUpdateDescription(e.target.value)}
+                      onChange={handleOnChangeH2}
                       placeholder="Optional description"
                       value={selectedNode.data.description || ""}
                     />
@@ -913,7 +936,7 @@ export const PanelInner = () => {
                   )}
                   <Button
                     className="text-muted-foreground"
-                    onClick={() => setShowDeleteNodeAlert(true)}
+                    onClick={handleOnClickH3}
                     size="sm"
                     variant="ghost"
                   >
@@ -1018,7 +1041,7 @@ export const PanelInner = () => {
               </Button>
               <Button
                 className="text-muted-foreground"
-                onClick={() => setShowDeleteRunsAlert(true)}
+                onClick={handleOnClickH4}
                 size="sm"
                 variant="ghost"
               >

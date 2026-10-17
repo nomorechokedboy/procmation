@@ -3,11 +3,13 @@
 import { Copy, Key, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Bound } from "@/components/ui/bound";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { useInputChange } from "@/hooks/use-input-change";
+import { useStableCallback } from "@/hooks/use-stable-callback";
 import { ConfirmOverlay } from "./confirm-overlay";
 import { Overlay } from "./overlay";
 import { useOverlay } from "./overlay-provider";
@@ -95,6 +97,7 @@ function CreateApiKeyOverlay({
  * Main API Keys management overlay.
  */
 export function ApiKeysOverlay({ overlayId }: ApiKeysOverlayProps) {
+  const handleOnClickH2 = useStableCallback(() => setNewlyCreatedKey(null));
   const { push, closeAll } = useOverlay();
   const [loading, setLoading] = useState(true);
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
@@ -148,7 +151,7 @@ export function ApiKeysOverlay({ overlayId }: ApiKeysOverlayProps) {
     }
   };
 
-  const openDeleteConfirm = (keyId: string) => {
+  const openDeleteConfirm = useStableCallback((keyId: string) => {
     push(ConfirmOverlay, {
       confirmLabel: "Delete",
       confirmVariant: "destructive" as const,
@@ -158,12 +161,12 @@ export function ApiKeysOverlay({ overlayId }: ApiKeysOverlayProps) {
       onConfirm: () => handleDelete(keyId),
       title: "Delete API Key",
     });
-  };
+  });
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = useStableCallback((text: string) => {
     navigator.clipboard.writeText(text);
     toast.success("Copied to clipboard");
-  };
+  });
 
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleDateString("en-US", {
@@ -206,17 +209,17 @@ export function ApiKeysOverlay({ overlayId }: ApiKeysOverlayProps) {
                 <code className="flex-1 rounded bg-muted px-2 py-1 font-mono text-xs">
                   {newlyCreatedKey}
                 </code>
-                <Button
-                  onClick={() => copyToClipboard(newlyCreatedKey)}
-                  size="sm"
-                  variant="outline"
-                >
-                  <Copy className="size-4" />
-                </Button>
+                <Bound args={[newlyCreatedKey]} fn={copyToClipboard}>
+                  {(onCopy) => (
+                    <Button onClick={onCopy} size="sm" variant="outline">
+                      <Copy className="size-4" />
+                    </Button>
+                  )}
+                </Bound>
               </div>
               <Button
                 className="mt-2"
-                onClick={() => setNewlyCreatedKey(null)}
+                onClick={handleOnClickH2}
                 size="sm"
                 variant="ghost"
               >
@@ -257,18 +260,22 @@ export function ApiKeysOverlay({ overlayId }: ApiKeysOverlayProps) {
                         : null}
                     </p>
                   </div>
-                  <Button
-                    disabled={deleting === apiKey.id}
-                    onClick={() => openDeleteConfirm(apiKey.id)}
-                    size="sm"
-                    variant="ghost"
-                  >
-                    {deleting === apiKey.id ? (
-                      <Spinner className="size-4" />
-                    ) : (
-                      <Trash2 className="size-4 text-destructive" />
+                  <Bound args={[apiKey.id]} fn={openDeleteConfirm}>
+                    {(onDelete) => (
+                      <Button
+                        disabled={deleting === apiKey.id}
+                        onClick={onDelete}
+                        size="sm"
+                        variant="ghost"
+                      >
+                        {deleting === apiKey.id ? (
+                          <Spinner className="size-4" />
+                        ) : (
+                          <Trash2 className="size-4 text-destructive" />
+                        )}
+                      </Button>
                     )}
-                  </Button>
+                  </Bound>
                 </div>
               ))}
             </div>

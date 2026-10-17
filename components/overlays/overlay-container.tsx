@@ -11,6 +11,7 @@ import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { Drawer as DrawerPrimitive } from "vaul";
 import { Dialog, DialogPortal } from "@/components/ui/dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useStableCallback } from "@/hooks/use-stable-callback";
 import { cn } from "@/lib/utils";
 import { useOverlay } from "./overlay-provider";
 
@@ -295,6 +296,11 @@ function DesktopOverlayContainer() {
  * using CSS transforms to animate visibility while preserving component state
  */
 function MobileOverlayContainer() {
+  const handleOnOpenChangeH1 = useStableCallback((open) => {
+    if (!open) {
+      closeAll();
+    }
+  });
   const { stack, closeAll, pop } = useOverlay();
   const shouldReduceMotion = useReducedMotion();
   const [minHeight, setMinHeight] = useState<number>(0);
@@ -364,11 +370,7 @@ function MobileOverlayContainer() {
   return (
     <DrawerPrimitive.Root
       onAnimationEnd={handleAnimationEnd}
-      onOpenChange={(open) => {
-        if (!open) {
-          closeAll();
-        }
-      }}
+      onOpenChange={handleOnOpenChangeH1}
       open={isOpen}
     >
       <DrawerPrimitive.Portal>

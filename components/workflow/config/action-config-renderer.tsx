@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
+import type { ChangeEvent } from "react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { TemplateBadgeInput } from "@/components/ui/template-badge-input";
 import { TemplateBadgeTextarea } from "@/components/ui/template-badge-textarea";
+import { useStableCallback } from "@/hooks/use-stable-callback";
 import {
   type ActionConfigField,
   type ActionConfigFieldBase,
@@ -58,11 +60,14 @@ function TemplateTextareaField({
 }
 
 function TextInputField({ field, value, onChange, disabled }: FieldProps) {
+  const handleOnChangeH1 = useStableCallback(
+    (e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)
+  );
   return (
     <Input
       disabled={disabled}
       id={field.key}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={handleOnChangeH1}
       placeholder={field.placeholder}
       value={value}
     />
@@ -70,12 +75,15 @@ function TextInputField({ field, value, onChange, disabled }: FieldProps) {
 }
 
 function NumberInputField({ field, value, onChange, disabled }: FieldProps) {
+  const handleOnChangeH2 = useStableCallback(
+    (e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)
+  );
   return (
     <Input
       disabled={disabled}
       id={field.key}
       min={field.min}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={handleOnChangeH2}
       placeholder={field.placeholder}
       type="number"
       value={value}
@@ -105,10 +113,13 @@ function SelectField({ field, value, onChange, disabled }: FieldProps) {
 }
 
 function SchemaBuilderField(props: FieldProps) {
+  const handleOnChangeH3 = useStableCallback((schema) =>
+    props.onChange(JSON.stringify(schema))
+  );
   return (
     <SchemaBuilder
       disabled={props.disabled}
-      onChange={(schema) => props.onChange(JSON.stringify(schema))}
+      onChange={handleOnChangeH3}
       schema={props.value ? (JSON.parse(props.value) as SchemaField[]) : []}
     />
   );
@@ -129,12 +140,20 @@ const FIELD_RENDERERS: Record<
 /**
  * Renders a single base field
  */
-function renderField(
-  field: ActionConfigFieldBase,
-  config: Record<string, unknown>,
-  onUpdateConfig: (key: string, value: unknown) => void,
-  disabled?: boolean
-) {
+function FieldRow({
+  field,
+  config,
+  onUpdateConfig,
+  disabled,
+}: {
+  field: ActionConfigFieldBase;
+  config: Record<string, unknown>;
+  onUpdateConfig: (key: string, value: unknown) => void;
+  disabled?: boolean;
+}) {
+  const handleOnChangeH4 = useStableCallback((val: unknown) =>
+    onUpdateConfig(field.key, val)
+  );
   // Check conditional rendering
   if (field.showWhen) {
     const dependentValue = config[field.showWhen.field];
@@ -156,7 +175,7 @@ function renderField(
       <FieldRenderer
         disabled={disabled}
         field={field}
-        onChange={(val) => onUpdateConfig(field.key, val)}
+        onChange={handleOnChangeH4}
         value={value}
       />
     </div>
@@ -181,13 +200,14 @@ function FieldGroup({
   disabled?: boolean;
   defaultExpanded?: boolean;
 }) {
+  const handleOnClickH5 = useStableCallback(() => setIsExpanded(!isExpanded));
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   return (
     <div className="space-y-2">
       <button
         className="ml-1 flex items-center gap-1 text-left"
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={handleOnClickH5}
         type="button"
       >
         <span className="font-medium text-sm">{label}</span>
@@ -199,9 +219,15 @@ function FieldGroup({
       </button>
       {isExpanded ? (
         <div className="ml-1 space-y-4 border-primary/50 border-l-2 py-2 pl-3">
-          {fields.map((field) =>
-            renderField(field, config, onUpdateConfig, disabled)
-          )}
+          {fields.map((field) => (
+            <FieldRow
+              config={config}
+              disabled={disabled}
+              field={field}
+              key={field.key}
+              onUpdateConfig={onUpdateConfig}
+            />
+          ))}
         </div>
       ) : null}
     </div>
@@ -242,7 +268,15 @@ export function ActionConfigRenderer({
           );
         }
 
-        return renderField(field, config, onUpdateConfig, disabled);
+        return (
+          <FieldRow
+            config={config}
+            disabled={disabled}
+            field={field}
+            key={field.key}
+            onUpdateConfig={onUpdateConfig}
+          />
+        );
       })}
     </>
   );

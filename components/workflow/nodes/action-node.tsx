@@ -14,6 +14,7 @@ import {
   Zap,
 } from "lucide-react";
 import Image from "next/image";
+import type { MouseEvent as ReactMouseEvent } from "react";
 import { memo, useEffect, useState } from "react";
 import {
   Node,
@@ -21,6 +22,7 @@ import {
   NodeTitle,
 } from "@/components/ai-elements/node";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { useStableCallback } from "@/hooks/use-stable-callback";
 import { systemActionLabel } from "@/lib/i18n/action-labels";
 import {
   integrationIdsAtom,
@@ -207,16 +209,19 @@ const ModelBadge = ({ model }: { model: string }) => {
 
 // Generated image thumbnail with zoom dialog
 function GeneratedImageThumbnail({ base64 }: { base64: string }) {
+  const handleOnClickH1 = useStableCallback(
+    (e: ReactMouseEvent<HTMLButtonElement>) => {
+      e.stopPropagation();
+      setDialogOpen(true);
+    }
+  );
   const [dialogOpen, setDialogOpen] = useState(false);
 
   return (
     <>
       <button
         className="relative size-12 cursor-zoom-in overflow-hidden rounded-lg transition-transform hover:scale-105"
-        onClick={(e) => {
-          e.stopPropagation();
-          setDialogOpen(true);
-        }}
+        onClick={handleOnClickH1}
         type="button"
       >
         <Image

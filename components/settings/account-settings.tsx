@@ -1,6 +1,8 @@
+import type { ChangeEvent } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useStableCallback } from "@/hooks/use-stable-callback";
 
 type AccountSettingsProps = {
   accountName: string;
@@ -15,6 +17,12 @@ export function AccountSettings({
   onNameChange,
   onEmailChange,
 }: AccountSettingsProps) {
+  const handleOnChangeH1 = useStableCallback(
+    (e: ChangeEvent<HTMLInputElement>) => onNameChange(e.target.value)
+  );
+  const handleOnChangeH2 = useStableCallback(
+    (e: ChangeEvent<HTMLInputElement>) => onEmailChange(e.target.value)
+  );
   return (
     <Card className="border-0 py-0 shadow-none">
       <CardContent className="space-y-4 p-0">
@@ -24,7 +32,7 @@ export function AccountSettings({
           </Label>
           <Input
             id="accountName"
-            onChange={(e) => onNameChange(e.target.value)}
+            onChange={handleOnChangeH1}
             placeholder="Your name"
             value={accountName}
           />
@@ -36,7 +44,7 @@ export function AccountSettings({
           </Label>
           <Input
             id="accountEmail"
-            onChange={(e) => onEmailChange(e.target.value)}
+            onChange={handleOnChangeH2}
             placeholder="your.email@example.com"
             type="email"
             value={accountEmail}

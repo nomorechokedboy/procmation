@@ -1,8 +1,9 @@
 "use client";
 
 import { Plus, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { type ChangeEvent, useEffect, useState } from "react";
 import { FormFieldsEditor } from "@/components/process/form-fields-editor";
+import { Bound } from "@/components/ui/bound";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,12 +61,20 @@ function OutcomesEditor({
   disabled: boolean;
   onChange: (outcomes: TaskOutcome[]) => void;
 }) {
-  const rename = (id: string, label: string) =>
-    onChange(
-      outcomes.map((outcome) =>
-        outcome.id === id ? { ...outcome, label } : outcome
+  const rename = useStableCallback(
+    (id: string, event: ChangeEvent<HTMLInputElement>) =>
+      onChange(
+        outcomes.map((outcome) =>
+          outcome.id === id
+            ? { ...outcome, label: event.target.value }
+            : outcome
+        )
       )
-    );
+  );
+  const remove = useStableCallback((id: string) =>
+    onChange(outcomes.filter((item) => item.id !== id))
+  );
+  const canRemove = outcomes.length > 1;
 
   const add = useStableCallback(() => {
     const taken = new Set(outcomes.map((outcome) => outcome.id));
@@ -81,24 +90,32 @@ function OutcomesEditor({
       </p>
       {outcomes.map((outcome) => (
         <div className="flex items-center gap-2" key={outcome.id}>
-          <Input
-            aria-label={`${m.human_task_outcome()} ${outcome.id}`}
-            disabled={disabled}
-            onChange={(event) => rename(outcome.id, event.target.value)}
-            value={outcome.label}
-          />
-          <Button
-            aria-label={m.human_task_remove_outcome({ label: outcome.label })}
-            disabled={disabled || outcomes.length <= 1}
-            onClick={() =>
-              onChange(outcomes.filter((item) => item.id !== outcome.id))
-            }
-            size="icon"
-            type="button"
-            variant="ghost"
-          >
-            <Trash2 className="size-4" />
-          </Button>
+          <Bound args={[outcome.id]} fn={rename}>
+            {(onRename) => (
+              <Input
+                aria-label={`${m.human_task_outcome()} ${outcome.id}`}
+                disabled={disabled}
+                onChange={onRename}
+                value={outcome.label}
+              />
+            )}
+          </Bound>
+          <Bound args={[outcome.id]} fn={remove}>
+            {(onRemove) => (
+              <Button
+                aria-label={m.human_task_remove_outcome({
+                  label: outcome.label,
+                })}
+                disabled={disabled || !canRemove}
+                onClick={onRemove}
+                size="icon"
+                type="button"
+                variant="ghost"
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            )}
+          </Bound>
         </div>
       ))}
       <Button
@@ -120,6 +137,24 @@ export function HumanTaskFields({
   onUpdateConfig,
   disabled,
 }: HumanTaskFieldsProps) {
+  const handleOnChangeH3 = useStableCallback((event) =>
+    onUpdateConfig("taskName", event.target.value)
+  );
+  const handleOnValueChangeH4 = useStableCallback((value) =>
+    onUpdateConfig("assigneeType", value)
+  );
+  const handleOnValueChangeH5 = useStableCallback((value) =>
+    onUpdateConfig("assigneeUserId", value)
+  );
+  const handleOnValueChangeH6 = useStableCallback((value) =>
+    onUpdateConfig("assigneeDepartmentId", value)
+  );
+  const handleOnChangeH7 = useStableCallback((fields) =>
+    onUpdateConfig("formFields", JSON.stringify(fields))
+  );
+  const handleOnChangeH8 = useStableCallback((next) =>
+    onUpdateConfig("outcomes", JSON.stringify(next))
+  );
   const [departments, setDepartments] = useState<Department[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
 
@@ -146,7 +181,7 @@ export function HumanTaskFields({
         <Input
           disabled={disabled}
           id="taskName"
-          onChange={(event) => onUpdateConfig("taskName", event.target.value)}
+          onChange={handleOnChangeH3}
           placeholder={m.human_task_name_placeholder()}
           value={(config.taskName as string) || ""}
         />
@@ -156,7 +191,7 @@ export function HumanTaskFields({
         <Label>{m.human_task_assign_to()}</Label>
         <Select
           disabled={disabled}
-          onValueChange={(value) => onUpdateConfig("assigneeType", value)}
+          onValueChange={handleOnValueChangeH4}
           value={assigneeType}
         >
           <SelectTrigger className="w-full" data-testid="assignee-type">
@@ -177,7 +212,7 @@ export function HumanTaskFields({
           <Label>{m.human_task_person()}</Label>
           <Select
             disabled={disabled}
-            onValueChange={(value) => onUpdateConfig("assigneeUserId", value)}
+            onValueChange={handleOnValueChangeH5}
             value={(config.assigneeUserId as string) || ""}
           >
             <SelectTrigger className="w-full" data-testid="assignee-user">
@@ -199,9 +234,7 @@ export function HumanTaskFields({
           <Label>{m.departments_label()}</Label>
           <Select
             disabled={disabled}
-            onValueChange={(value) =>
-              onUpdateConfig("assigneeDepartmentId", value)
-            }
+            onValueChange={handleOnValueChangeH6}
             value={(config.assigneeDepartmentId as string) || ""}
           >
             <SelectTrigger className="w-full" data-testid="assignee-department">
@@ -225,15 +258,13 @@ export function HumanTaskFields({
         </p>
         <FormFieldsEditor
           initialFields={formFields}
-          onChange={(fields) =>
-            onUpdateConfig("formFields", JSON.stringify(fields))
-          }
+          onChange={handleOnChangeH7}
         />
       </div>
 
       <OutcomesEditor
         disabled={disabled}
-        onChange={(next) => onUpdateConfig("outcomes", JSON.stringify(next))}
+        onChange={handleOnChangeH8}
         outcomes={outcomes}
       />
     </div>

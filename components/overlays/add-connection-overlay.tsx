@@ -2,8 +2,10 @@
 
 import { useAtomValue, useSetAtom } from "jotai";
 import { Search } from "lucide-react";
+import type { ChangeEvent } from "react";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { Bound } from "@/components/ui/bound";
 import { Input } from "@/components/ui/input";
 import { IntegrationIcon } from "@/components/ui/integration-icon";
 import { Label } from "@/components/ui/label";
@@ -100,7 +102,7 @@ export function AddConnectionOverlay({
     });
   }, [push, closeAll, onSuccess]);
 
-  const handleSelectType = (type: IntegrationType) => {
+  const handleSelectType = useStableCallback((type: IntegrationType) => {
     // If selecting AI Gateway and managed keys are available, show consent modal
     if (type === "ai-gateway" && shouldUseManagedKeys) {
       showConsentModalWithCallbacks();
@@ -129,7 +131,7 @@ export function AddConnectionOverlay({
 
     // Push to configure overlay
     push(ConfigureConnectionOverlay, { onSuccess, type });
-  };
+  });
 
   return (
     <Overlay overlayId={overlayId} title="Add Connection">
@@ -157,26 +159,29 @@ export function AddConnectionOverlay({
             filteredTypes.map((type) => {
               const description = getDescription(type);
               return (
-                <button
-                  className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-muted/50"
-                  key={type}
-                  onClick={() => handleSelectType(type)}
-                  type="button"
-                >
-                  <IntegrationIcon
-                    className="size-5 shrink-0"
-                    integration={type === "ai-gateway" ? "vercel" : type}
-                  />
-                  <span className="min-w-0 flex-1 truncate">
-                    <span className="font-medium">{getLabel(type)}</span>
-                    {description && (
-                      <span className="text-muted-foreground text-xs">
-                        {" "}
-                        - {description}
+                <Bound args={[type]} fn={handleSelectType} key={type}>
+                  {(onSelect) => (
+                    <button
+                      className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-muted/50"
+                      onClick={onSelect}
+                      type="button"
+                    >
+                      <IntegrationIcon
+                        className="size-5 shrink-0"
+                        integration={type === "ai-gateway" ? "vercel" : type}
+                      />
+                      <span className="min-w-0 flex-1 truncate">
+                        <span className="font-medium">{getLabel(type)}</span>
+                        {description && (
+                          <span className="text-muted-foreground text-xs">
+                            {" "}
+                            - {description}
+                          </span>
+                        )}
                       </span>
-                    )}
-                  </span>
-                </button>
+                    </button>
+                  )}
+                </Bound>
               );
             })
           )}
@@ -214,13 +219,16 @@ function SecretField({
   value: string;
   onChange: (key: string, value: string) => void;
 }) {
+  const handleOnChangeH2 = useStableCallback(
+    (e: ChangeEvent<HTMLInputElement>) => onChange(configKey, e.target.value)
+  );
   return (
     <div className="space-y-2">
       <Label htmlFor={fieldId}>{label}</Label>
       <Input
         className="flex-1"
         id={fieldId}
-        onChange={(e) => onChange(configKey, e.target.value)}
+        onChange={handleOnChangeH2}
         placeholder={placeholder}
         type="password"
         value={value}
@@ -266,6 +274,10 @@ export function ConfigureConnectionOverlay({
   const updateConfig = useStableCallback((key: string, value: string) => {
     setConfig((prev) => ({ ...prev, [key]: value }));
   });
+  const updateConfigFromEvent = useStableCallback(
+    (key: string, event: ChangeEvent<HTMLInputElement>) =>
+      updateConfig(key, event.target.value)
+  );
 
   const doSave = async () => {
     try {
@@ -401,13 +413,17 @@ export function ConfigureConnectionOverlay({
       return (
         <div className="space-y-2" key={field.id}>
           <Label htmlFor={field.id}>{field.label}</Label>
-          <Input
-            id={field.id}
-            onChange={(e) => updateConfig(field.configKey, e.target.value)}
-            placeholder={field.placeholder}
-            type={field.type}
-            value={config[field.configKey] || ""}
-          />
+          <Bound args={[field.configKey]} fn={updateConfigFromEvent}>
+            {(onChange) => (
+              <Input
+                id={field.id}
+                onChange={onChange}
+                placeholder={field.placeholder}
+                type={field.type}
+                value={config[field.configKey] || ""}
+              />
+            )}
+          </Bound>
           {field.helpText || field.helpLink ? (
             <p className="text-muted-foreground text-xs">
               {field.helpText}

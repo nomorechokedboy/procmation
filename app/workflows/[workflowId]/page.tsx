@@ -4,11 +4,13 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import type { MouseEvent as ReactMouseEvent } from "react";
 import { use, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { NodeConfigPanel } from "@/components/workflow/node-config-panel";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useStableCallback } from "@/hooks/use-stable-callback";
 import { api } from "@/lib/api-client";
 import {
   integrationsAtom,
@@ -103,6 +105,22 @@ function checkNodeIntegration(
 }
 
 const WorkflowEditor = ({ params }: WorkflowPageProps) => {
+  const handleOnMouseDownH1 = useStableCallback(
+    (e: ReactMouseEvent<HTMLButtonElement>) => e.stopPropagation()
+  );
+  const handleOnClickH2 = useStableCallback(
+    (e: ReactMouseEvent<HTMLButtonElement>) => {
+      e.stopPropagation();
+      setIsPanelAnimating(true);
+      setPanelCollapsed(true);
+      setTimeout(() => setIsPanelAnimating(false), 350);
+    }
+  );
+  const handleOnClickH3 = useStableCallback(() => {
+    setIsPanelAnimating(true);
+    setPanelCollapsed(false);
+    setTimeout(() => setIsPanelAnimating(false), 350);
+  });
   const { workflowId } = use(params);
   const searchParams = useSearchParams();
   const isMobile = useIsMobile();
@@ -680,11 +698,7 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
       {!isMobile && panelCollapsed && (
         <button
           className="pointer-events-auto absolute top-1/2 right-0 z-20 flex size-6 -translate-y-1/2 items-center justify-center rounded-l-full border border-r-0 bg-background shadow-sm transition-colors hover:bg-muted"
-          onClick={() => {
-            setIsPanelAnimating(true);
-            setPanelCollapsed(false);
-            setTimeout(() => setIsPanelAnimating(false), 350);
-          }}
+          onClick={handleOnClickH3}
           type="button"
         >
           <ChevronLeft className="size-4" />
@@ -719,13 +733,8 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
             {!(isDraggingResize || panelCollapsed) && (
               <button
                 className="absolute top-1/2 left-0 flex size-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border bg-background opacity-0 shadow-sm transition-opacity hover:bg-muted group-hover:opacity-100"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsPanelAnimating(true);
-                  setPanelCollapsed(true);
-                  setTimeout(() => setIsPanelAnimating(false), 350);
-                }}
-                onMouseDown={(e) => e.stopPropagation()}
+                onClick={handleOnClickH2}
+                onMouseDown={handleOnMouseDownH1}
                 type="button"
               >
                 <ChevronRight className="size-4" />

@@ -64,6 +64,12 @@ function DatabaseQueryFields({
   onUpdateConfig: (key: string, value: string) => void;
   disabled: boolean;
 }) {
+  const handleOnChangeH1 = useStableCallback((value) =>
+    onUpdateConfig("dbQuery", value || "")
+  );
+  const handleOnChangeH2 = useStableCallback((schema) =>
+    onUpdateConfig("dbSchema", JSON.stringify(schema))
+  );
   return (
     <>
       <div className="space-y-2">
@@ -72,7 +78,7 @@ function DatabaseQueryFields({
           <CodeEditor
             defaultLanguage="sql"
             height="150px"
-            onChange={(value) => onUpdateConfig("dbQuery", value || "")}
+            onChange={handleOnChangeH1}
             options={{
               fontSize: 12,
               lineNumbers: "on",
@@ -93,9 +99,7 @@ function DatabaseQueryFields({
         <Label>Schema (Optional)</Label>
         <SchemaBuilder
           disabled={disabled}
-          onChange={(schema) =>
-            onUpdateConfig("dbSchema", JSON.stringify(schema))
-          }
+          onChange={handleOnChangeH2}
           schema={
             config.dbSchema
               ? (JSON.parse(config.dbSchema as string) as SchemaField[])
@@ -117,13 +121,25 @@ function HttpRequestFields({
   onUpdateConfig: (key: string, value: string) => void;
   disabled: boolean;
 }) {
+  const handleOnValueChangeH3 = useStableCallback((value) =>
+    onUpdateConfig("httpMethod", value)
+  );
+  const handleOnChangeH4 = useStableCallback((value) =>
+    onUpdateConfig("endpoint", value)
+  );
+  const handleOnChangeH5 = useStableCallback((value) =>
+    onUpdateConfig("httpHeaders", value || "{}")
+  );
+  const handleOnChangeH6 = useStableCallback((value) =>
+    onUpdateConfig("httpBody", value || "{}")
+  );
   return (
     <>
       <div className="space-y-2">
         <Label htmlFor="httpMethod">HTTP Method</Label>
         <Select
           disabled={disabled}
-          onValueChange={(value) => onUpdateConfig("httpMethod", value)}
+          onValueChange={handleOnValueChangeH3}
           value={(config.httpMethod as string) || "POST"}
         >
           <SelectTrigger className="w-full" id="httpMethod">
@@ -143,7 +159,7 @@ function HttpRequestFields({
         <TemplateBadgeInput
           disabled={disabled}
           id="endpoint"
-          onChange={(value) => onUpdateConfig("endpoint", value)}
+          onChange={handleOnChangeH4}
           placeholder="https://api.example.com/endpoint or {{NodeName.url}}"
           value={(config.endpoint as string) || ""}
         />
@@ -154,7 +170,7 @@ function HttpRequestFields({
           <CodeEditor
             defaultLanguage="json"
             height="100px"
-            onChange={(value) => onUpdateConfig("httpHeaders", value || "{}")}
+            onChange={handleOnChangeH5}
             options={{
               fontSize: 12,
               lineNumbers: "off",
@@ -175,7 +191,7 @@ function HttpRequestFields({
           <CodeEditor
             defaultLanguage="json"
             height="120px"
-            onChange={(value) => onUpdateConfig("httpBody", value || "{}")}
+            onChange={handleOnChangeH6}
             options={{
               domReadOnly: config.httpMethod === "GET" || disabled,
               fontSize: 12,
@@ -208,13 +224,16 @@ function ConditionFields({
   onUpdateConfig: (key: string, value: string) => void;
   disabled: boolean;
 }) {
+  const handleOnChangeH7 = useStableCallback((value) =>
+    onUpdateConfig("condition", value)
+  );
   return (
     <div className="space-y-2">
       <Label htmlFor="condition">Condition Expression</Label>
       <TemplateBadgeInput
         disabled={disabled}
         id="condition"
-        onChange={(value) => onUpdateConfig("condition", value)}
+        onChange={handleOnChangeH7}
         placeholder="e.g., 5 > 3, status === 200, {{PreviousNode.value}} > 100"
         value={(config.condition as string) || ""}
       />
@@ -358,6 +377,9 @@ export function ActionConfig({
   disabled,
   isOwner = true,
 }: ActionConfigProps) {
+  const handleOnChangeH8 = useStableCallback((id) =>
+    onUpdateConfig("integrationId", id)
+  );
   const actionType = (config.actionType as string) || "";
   const categories = useCategoryData();
   const integrations = useMemo(() => getAllIntegrations(), []);
@@ -552,7 +574,7 @@ export function ActionConfig({
           <IntegrationSelector
             disabled={disabled}
             integrationType={integrationType}
-            onChange={(id) => onUpdateConfig("integrationId", id)}
+            onChange={handleOnChangeH8}
             value={(config.integrationId as string) || ""}
           />
         </div>

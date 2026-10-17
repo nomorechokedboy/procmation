@@ -15,6 +15,7 @@ import {
 import Image from "next/image";
 import type { JSX } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Bound } from "@/components/ui/bound";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { api } from "@/lib/api-client";
 import {
@@ -225,6 +226,7 @@ function CollapsibleSection({
   isError?: boolean;
   externalLink?: string;
 }) {
+  const handleOnClickH2 = useStableCallback(() => setIsOpen(!isOpen));
   const [isOpen, setIsOpen] = useState(defaultExpanded);
 
   return (
@@ -232,7 +234,7 @@ function CollapsibleSection({
       <div className="mb-2 flex w-full items-center justify-between">
         <button
           className="flex items-center gap-1.5"
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={handleOnClickH2}
           type="button"
         >
           {isOpen ? (
@@ -716,7 +718,7 @@ export function WorkflowRuns({
     return () => clearInterval(interval);
   }, [isActive, currentWorkflowId, expandedRuns, refreshExecutionLogs]);
 
-  const toggleRun = async (executionId: string) => {
+  const toggleRun = useStableCallback(async (executionId: string) => {
     const newExpanded = new Set(expandedRuns);
     if (newExpanded.has(executionId)) {
       newExpanded.delete(executionId);
@@ -726,9 +728,9 @@ export function WorkflowRuns({
       await loadExecutionLogs(executionId);
     }
     setExpandedRuns(newExpanded);
-  };
+  });
 
-  const selectRun = (executionId: string) => {
+  const selectRun = useStableCallback((executionId: string) => {
     // If already selected, deselect it
     if (selectedExecutionId === executionId) {
       setSelectedExecutionId(null);
@@ -742,9 +744,9 @@ export function WorkflowRuns({
     // Update global execution logs atom with logs for this execution
     const executionLogEntries = logs[executionId] || [];
     setExecutionLogs(createExecutionLogsMap(executionLogEntries));
-  };
+  });
 
-  const toggleLog = (logId: string) => {
+  const toggleLog = useStableCallback((logId: string) => {
     const newExpanded = new Set(expandedLogs);
     if (newExpanded.has(logId)) {
       newExpanded.delete(logId);
@@ -752,7 +754,7 @@ export function WorkflowRuns({
       newExpanded.add(logId);
     }
     setExpandedLogs(newExpanded);
-  };
+  });
 
   const getStatusIcon = useStableCallback((status: string) => {
     switch (status) {
@@ -824,66 +826,78 @@ export function WorkflowRuns({
             key={execution.id}
           >
             <div className="flex w-full items-center gap-3 p-4">
-              <button
-                className="flex size-5 shrink-0 items-center justify-center rounded-full border-0 transition-colors hover:bg-muted"
-                onClick={() => toggleRun(execution.id)}
-                type="button"
-              >
-                <div
-                  className={cn(
-                    "flex size-5 items-center justify-center rounded-full border-0",
-                    getStatusDotClass(execution.status)
-                  )}
-                >
-                  {getStatusIcon(execution.status)}
-                </div>
-              </button>
-
-              <button
-                className="min-w-0 flex-1 text-left transition-colors hover:opacity-80"
-                onClick={() => selectRun(execution.id)}
-                type="button"
-              >
-                <div className="mb-1 flex items-center gap-2">
-                  <span className="font-semibold text-sm">
-                    Run #{executions.length - index}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 font-mono text-muted-foreground text-xs">
-                  <span>{getRelativeTime(execution.startedAt)}</span>
-                  {execution.duration ? (
-                    <>
-                      <span>•</span>
-                      <span className="tabular-nums">
-                        {Number.parseInt(execution.duration, 10) < 1000
-                          ? `${execution.duration}ms`
-                          : `${(Number.parseInt(execution.duration, 10) / 1000).toFixed(2)}s`}
-                      </span>
-                    </>
-                  ) : null}
-                  {executionLogs.length > 0 && (
-                    <>
-                      <span>•</span>
-                      <span>
-                        {executionLogs.length}{" "}
-                        {executionLogs.length === 1 ? "step" : "steps"}
-                      </span>
-                    </>
-                  )}
-                </div>
-              </button>
-
-              <button
-                className="flex shrink-0 items-center justify-center rounded p-1 transition-colors hover:bg-muted"
-                onClick={() => toggleRun(execution.id)}
-                type="button"
-              >
-                {isExpanded ? (
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                ) : (
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <Bound args={[execution.id]} fn={toggleRun}>
+                {(onToggleRun) => (
+                  <button
+                    className="flex size-5 shrink-0 items-center justify-center rounded-full border-0 transition-colors hover:bg-muted"
+                    onClick={onToggleRun}
+                    type="button"
+                  >
+                    <div
+                      className={cn(
+                        "flex size-5 items-center justify-center rounded-full border-0",
+                        getStatusDotClass(execution.status)
+                      )}
+                    >
+                      {getStatusIcon(execution.status)}
+                    </div>
+                  </button>
                 )}
-              </button>
+              </Bound>
+
+              <Bound args={[execution.id]} fn={selectRun}>
+                {(onSelectRun) => (
+                  <button
+                    className="min-w-0 flex-1 text-left transition-colors hover:opacity-80"
+                    onClick={onSelectRun}
+                    type="button"
+                  >
+                    <div className="mb-1 flex items-center gap-2">
+                      <span className="font-semibold text-sm">
+                        Run #{executions.length - index}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 font-mono text-muted-foreground text-xs">
+                      <span>{getRelativeTime(execution.startedAt)}</span>
+                      {execution.duration ? (
+                        <>
+                          <span>•</span>
+                          <span className="tabular-nums">
+                            {Number.parseInt(execution.duration, 10) < 1000
+                              ? `${execution.duration}ms`
+                              : `${(Number.parseInt(execution.duration, 10) / 1000).toFixed(2)}s`}
+                          </span>
+                        </>
+                      ) : null}
+                      {executionLogs.length > 0 && (
+                        <>
+                          <span>•</span>
+                          <span>
+                            {executionLogs.length}{" "}
+                            {executionLogs.length === 1 ? "step" : "steps"}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </button>
+                )}
+              </Bound>
+
+              <Bound args={[execution.id]} fn={toggleRun}>
+                {(onToggleRun) => (
+                  <button
+                    className="flex shrink-0 items-center justify-center rounded p-1 transition-colors hover:bg-muted"
+                    onClick={onToggleRun}
+                    type="button"
+                  >
+                    {isExpanded ? (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </button>
+                )}
+              </Bound>
             </div>
 
             {isExpanded && (
@@ -895,16 +909,19 @@ export function WorkflowRuns({
                 ) : (
                   <div className="p-4">
                     {executionLogs.map((log, logIndex) => (
-                      <ExecutionLogEntry
-                        getStatusDotClass={getStatusDotClass}
-                        getStatusIcon={getStatusIcon}
-                        isExpanded={expandedLogs.has(log.id)}
-                        isFirst={logIndex === 0}
-                        isLast={logIndex === executionLogs.length - 1}
-                        key={log.id}
-                        log={log}
-                        onToggle={() => toggleLog(log.id)}
-                      />
+                      <Bound args={[log.id]} fn={toggleLog} key={log.id}>
+                        {(onToggleLog) => (
+                          <ExecutionLogEntry
+                            getStatusDotClass={getStatusDotClass}
+                            getStatusIcon={getStatusIcon}
+                            isExpanded={expandedLogs.has(log.id)}
+                            isFirst={logIndex === 0}
+                            isLast={logIndex === executionLogs.length - 1}
+                            log={log}
+                            onToggle={onToggleLog}
+                          />
+                        )}
+                      </Bound>
                     ))}
                   </div>
                 )}

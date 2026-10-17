@@ -2,6 +2,8 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import { nanoid } from "nanoid";
+import type { ChangeEvent } from "react";
+import { Bound } from "@/components/ui/bound";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,27 +64,46 @@ export function SchemaBuilder({
     return updated;
   };
 
-  const updateField = (index: number, updates: Partial<SchemaField>) => {
-    const newSchema = [...schema];
-    newSchema[index] = { ...newSchema[index], ...updates };
+  const updateField = useStableCallback(
+    (index: number, updates: Partial<SchemaField>) => {
+      const newSchema = [...schema];
+      newSchema[index] = { ...newSchema[index], ...updates };
 
-    // Reset dependent fields when type changes
-    if (updates.type) {
-      newSchema[index] = resetDependentFields(newSchema[index], updates.type);
+      // Reset dependent fields when type changes
+      if (updates.type) {
+        newSchema[index] = resetDependentFields(newSchema[index], updates.type);
+      }
+
+      onChange(newSchema);
     }
+  );
 
-    onChange(newSchema);
-  };
-
-  const removeField = (index: number) => {
+  const removeField = useStableCallback((index: number) => {
     onChange(schema.filter((_, i) => i !== index));
-  };
+  });
 
-  const updateNestedFields = (index: number, fields: SchemaField[]) => {
-    const newSchema = [...schema];
-    newSchema[index].fields = fields;
-    onChange(newSchema);
-  };
+  const updateNestedFields = useStableCallback(
+    (index: number, fields: SchemaField[]) => {
+      const newSchema = [...schema];
+      newSchema[index].fields = fields;
+      onChange(newSchema);
+    }
+  );
+
+  const changeName = useStableCallback(
+    (index: number, event: ChangeEvent<HTMLInputElement>) =>
+      updateField(index, { name: event.target.value })
+  );
+  const changeDescription = useStableCallback(
+    (index: number, event: ChangeEvent<HTMLInputElement>) =>
+      updateField(index, { description: event.target.value })
+  );
+  const changeType = useStableCallback((index: number, value: string) =>
+    updateField(index, { type: value as SchemaField["type"] })
+  );
+  const changeItemType = useStableCallback((index: number, value: string) =>
+    updateField(index, { itemType: value as SchemaField["itemType"] })
+  );
 
   const indentClass = level > 0 ? "ml-4 border-l-2 border-muted pl-4" : "";
 
@@ -100,13 +121,17 @@ export function SchemaBuilder({
                 >
                   Property Name
                 </Label>
-                <Input
-                  disabled={disabled}
-                  id={`field-name-${level}-${index}`}
-                  onChange={(e) => updateField(index, { name: e.target.value })}
-                  placeholder="propertyName"
-                  value={field.name}
-                />
+                <Bound args={[index]} fn={changeName}>
+                  {(onNameChange) => (
+                    <Input
+                      disabled={disabled}
+                      id={`field-name-${level}-${index}`}
+                      onChange={onNameChange}
+                      placeholder="propertyName"
+                      value={field.name}
+                    />
+                  )}
+                </Bound>
               </div>
               <div className="flex-1 space-y-2">
                 <Label
@@ -115,39 +140,43 @@ export function SchemaBuilder({
                 >
                   Type
                 </Label>
-                <Select
-                  disabled={disabled}
-                  onValueChange={(value) =>
-                    updateField(index, {
-                      type: value as SchemaField["type"],
-                    })
-                  }
-                  value={field.type}
-                >
-                  <SelectTrigger
-                    className="w-full"
-                    id={`field-type-${level}-${index}`}
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="string">String</SelectItem>
-                    <SelectItem value="number">Number</SelectItem>
-                    <SelectItem value="boolean">Boolean</SelectItem>
-                    <SelectItem value="array">Array</SelectItem>
-                    <SelectItem value="object">Object</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Bound args={[index]} fn={changeType}>
+                  {(onTypeChange) => (
+                    <Select
+                      disabled={disabled}
+                      onValueChange={onTypeChange}
+                      value={field.type}
+                    >
+                      <SelectTrigger
+                        className="w-full"
+                        id={`field-type-${level}-${index}`}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="string">String</SelectItem>
+                        <SelectItem value="number">Number</SelectItem>
+                        <SelectItem value="boolean">Boolean</SelectItem>
+                        <SelectItem value="array">Array</SelectItem>
+                        <SelectItem value="object">Object</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                </Bound>
               </div>
               <div className="flex items-end">
-                <Button
-                  disabled={disabled}
-                  onClick={() => removeField(index)}
-                  size="icon"
-                  variant="ghost"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <Bound args={[index]} fn={removeField}>
+                  {(onRemove) => (
+                    <Button
+                      disabled={disabled}
+                      onClick={onRemove}
+                      size="icon"
+                      variant="ghost"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </Bound>
               </div>
             </div>
 
@@ -159,52 +188,60 @@ export function SchemaBuilder({
                 >
                   Array Item Type
                 </Label>
-                <Select
-                  disabled={disabled}
-                  onValueChange={(value) =>
-                    updateField(index, {
-                      itemType: value as SchemaField["itemType"],
-                    })
-                  }
-                  value={field.itemType || "string"}
-                >
-                  <SelectTrigger
-                    className="w-full"
-                    id={`field-item-type-${level}-${index}`}
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="string">String</SelectItem>
-                    <SelectItem value="number">Number</SelectItem>
-                    <SelectItem value="boolean">Boolean</SelectItem>
-                    <SelectItem value="object">Object</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Bound args={[index]} fn={changeItemType}>
+                  {(onItemTypeChange) => (
+                    <Select
+                      disabled={disabled}
+                      onValueChange={onItemTypeChange}
+                      value={field.itemType || "string"}
+                    >
+                      <SelectTrigger
+                        className="w-full"
+                        id={`field-item-type-${level}-${index}`}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="string">String</SelectItem>
+                        <SelectItem value="number">Number</SelectItem>
+                        <SelectItem value="boolean">Boolean</SelectItem>
+                        <SelectItem value="object">Object</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                </Bound>
               </div>
             )}
 
             {field.type === "object" && (
               <div className="mt-2">
                 <Label className="mb-2 block">Object Properties</Label>
-                <SchemaBuilder
-                  disabled={disabled}
-                  level={level + 1}
-                  onChange={(fields) => updateNestedFields(index, fields)}
-                  schema={field.fields || []}
-                />
+                <Bound args={[index]} fn={updateNestedFields}>
+                  {(onNestedChange) => (
+                    <SchemaBuilder
+                      disabled={disabled}
+                      level={level + 1}
+                      onChange={onNestedChange}
+                      schema={field.fields || []}
+                    />
+                  )}
+                </Bound>
               </div>
             )}
 
             {field.type === "array" && field.itemType === "object" && (
               <div className="mt-2">
                 <Label className="mb-2 block">Array Item Properties</Label>
-                <SchemaBuilder
-                  disabled={disabled}
-                  level={level + 1}
-                  onChange={(fields) => updateNestedFields(index, fields)}
-                  schema={field.fields || []}
-                />
+                <Bound args={[index]} fn={updateNestedFields}>
+                  {(onNestedChange) => (
+                    <SchemaBuilder
+                      disabled={disabled}
+                      level={level + 1}
+                      onChange={onNestedChange}
+                      schema={field.fields || []}
+                    />
+                  )}
+                </Bound>
               </div>
             )}
 
@@ -212,15 +249,17 @@ export function SchemaBuilder({
               <Label className="ml-1" htmlFor={`field-desc-${level}-${index}`}>
                 Description (optional)
               </Label>
-              <Input
-                disabled={disabled}
-                id={`field-desc-${level}-${index}`}
-                onChange={(e) =>
-                  updateField(index, { description: e.target.value })
-                }
-                placeholder="Description for the AI"
-                value={field.description || ""}
-              />
+              <Bound args={[index]} fn={changeDescription}>
+                {(onDescriptionChange) => (
+                  <Input
+                    disabled={disabled}
+                    id={`field-desc-${level}-${index}`}
+                    onChange={onDescriptionChange}
+                    placeholder="Description for the AI"
+                    value={field.description || ""}
+                  />
+                )}
+              </Bound>
             </div>
           </div>
         );

@@ -1,5 +1,6 @@
 import { Label } from "@/components/ui/label";
 import { TemplateBadgeInput } from "@/components/ui/template-badge-input";
+import { useStableCallback } from "@/hooks/use-stable-callback";
 
 type ConditionConfigProps = {
   config: Record<string, unknown>;
@@ -12,13 +13,16 @@ export function ConditionConfig({
   onUpdateConfig,
   disabled,
 }: ConditionConfigProps) {
+  const handleOnChangeH1 = useStableCallback((value) =>
+    onUpdateConfig("condition", value)
+  );
   return (
     <div className="space-y-2">
       <Label htmlFor="condition">Condition Expression</Label>
       <TemplateBadgeInput
         disabled={disabled}
         id="condition"
-        onChange={(value) => onUpdateConfig("condition", value)}
+        onChange={handleOnChangeH1}
         placeholder="e.g., 5 > 3, status === 200, {{PreviousNode.value}} > 100"
         value={(config.condition as string) || ""}
       />
