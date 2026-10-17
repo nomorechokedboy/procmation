@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  FilePlus,
+  Inbox,
   Key,
   Languages,
   ListChecks,
@@ -155,6 +157,18 @@ export const UserMenu = () => {
         <DropdownMenuItem onClick={openApiKeys}>
           <Key className="size-4" />
           <span>{m.user_menu_api_keys()}</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/tasks">
+            <Inbox className="size-4" />
+            <span>{m.nav_my_tasks()}</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/cases/new">
+            <FilePlus className="size-4" />
+            <span>{m.nav_start_case()}</span>
+          </Link>
         </DropdownMenuItem>
         {session.user.role === "admin" && (
           <>

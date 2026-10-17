@@ -836,7 +836,11 @@ type Serialized<T> = {
 
 export type CaseRecord = Serialized<Case>;
 export type CaseTimelineRecord = Serialized<CaseTimelineEntry>;
-export type TaskRecord = Serialized<Task>;
+export type TaskRecord = Serialized<Task> & {
+  caseId: string | null;
+  caseNumber: string | null;
+  caseTitle: string | null;
+};
 export type NotificationRecord = Serialized<Notification>;
 
 export type CaseDetail = {
@@ -852,6 +856,7 @@ export const caseApi = {
     priority?: CasePriority;
     dueAt?: string | null;
     metadata?: Record<string, unknown>;
+    values?: Record<string, unknown>;
   }) =>
     apiCall<CaseRecord>("/api/bpma/cases", {
       body: JSON.stringify(data),
