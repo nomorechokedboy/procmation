@@ -212,11 +212,11 @@ export function AiGatewayConsentOverlay({
                           <div className="size-4 rounded-full bg-white" />
                         )}
                         <span>{team.name}</span>
-                        {team.isPersonal && (
+                        {team.isPersonal ? (
                           <span className="text-muted-foreground text-xs">
                             (Personal)
                           </span>
-                        )}
+                        ) : null}
                       </div>
                     </SelectItem>
                     {team.isPersonal && index < teams.length - 1 && (
@@ -229,12 +229,12 @@ export function AiGatewayConsentOverlay({
           )}
         </div>
 
-        {error && (
+        {error ? (
           <div className="flex items-start gap-3 rounded-md border border-red-500/30 bg-red-500/10 p-3">
             <X className="mt-0.5 size-4 shrink-0 text-red-500" />
             <p className="text-red-700 text-sm dark:text-red-400">{error}</p>
           </div>
-        )}
+        ) : null}
       </div>
     </Overlay>
   );

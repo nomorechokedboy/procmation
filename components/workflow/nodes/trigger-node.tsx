@@ -23,7 +23,7 @@ export const TriggerNode = memo(({ data, selected }: TriggerNodeProps) => {
   const triggerType = (data.config?.triggerType as string) || "Manual";
   const displayTitle = data.label || triggerType;
   const displayDescription = data.description || "Trigger";
-  const status = data.status;
+  const { status } = data;
 
   // Select icon based on trigger type
   let TriggerIcon = Play;
@@ -64,11 +64,11 @@ export const TriggerNode = memo(({ data, selected }: TriggerNodeProps) => {
         <TriggerIcon className="size-12 text-blue-500" strokeWidth={1.5} />
         <div className="flex flex-col items-center gap-1 text-center">
           <NodeTitle className="text-base">{displayTitle}</NodeTitle>
-          {displayDescription && (
+          {displayDescription ? (
             <NodeDescription className="text-xs">
               {displayDescription}
             </NodeDescription>
-          )}
+          ) : null}
         </div>
       </div>
     </Node>

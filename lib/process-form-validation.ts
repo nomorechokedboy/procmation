@@ -15,12 +15,19 @@ type ValidationResult =
   | { ok: true; fields: FormField[] }
   | { ok: false; error: string };
 
+const NON_ALPHANUMERIC_RUN_REGEX = /[^a-z0-9]+/g;
+const EDGE_UNDERSCORES_REGEX = /^_+|_+$/g;
+const STARTS_WITH_LETTER_REGEX = /^[a-z]/;
+const TRAILING_UNDERSCORE_REGEX = /_$/;
+
 export function slugifyFieldKey(label: string): string {
   const slug = label
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
-  return /^[a-z]/.test(slug) ? slug : `field_${slug}`.replace(/_$/, "");
+    .replace(NON_ALPHANUMERIC_RUN_REGEX, "_")
+    .replace(EDGE_UNDERSCORES_REGEX, "");
+  return STARTS_WITH_LETTER_REGEX.test(slug)
+    ? slug
+    : `field_${slug}`.replace(TRAILING_UNDERSCORE_REGEX, "");
 }
 
 function validateOptions(
@@ -58,6 +65,68 @@ function validateOptions(
   return { ok: true, options: cleaned };
 }
 
+type FieldResult =
+  | { ok: true; field: FormField }
+  | { ok: false; error: string };
+
+// Validates one raw field and records its key so duplicates are caught
+type RawField =
+  | {
+      label?: unknown;
+      key?: unknown;
+      type?: unknown;
+      required?: unknown;
+      helpText?: unknown;
+      options?: unknown;
+    }
+  | null
+  | undefined;
+
+function validateField(raw: RawField, keys: Set<string>): FieldResult {
+  const label = typeof raw?.label === "string" ? raw.label.trim() : "";
+  const key = typeof raw?.key === "string" ? raw.key.trim() : "";
+  const type = raw?.type as FormFieldType;
+
+  if (!label) {
+    return { error: "Every field needs a label", ok: false };
+  }
+  if (label.length > 120) {
+    return {
+      error: `Label "${label.slice(0, 20)}..." is too long`,
+      ok: false,
+    };
+  }
+  if (!KEY_PATTERN.test(key)) {
+    return {
+      error: `"${label}" has an invalid key. Use lowercase letters, numbers and underscores, starting with a letter`,
+      ok: false,
+    };
+  }
+  if (keys.has(key)) {
+    return { error: `Two fields use the key "${key}"`, ok: false };
+  }
+  keys.add(key);
+  if (!FIELD_TYPES.includes(type)) {
+    return { error: `"${label}" has an unknown field type`, ok: false };
+  }
+
+  const field: FormField = { key, label, type };
+  if (raw?.required === true) {
+    field.required = true;
+  }
+  if (typeof raw?.helpText === "string" && raw.helpText.trim()) {
+    field.helpText = raw.helpText.trim();
+  }
+  if (type === "select") {
+    const options = validateOptions(raw?.options, label);
+    if (!options.ok) {
+      return options;
+    }
+    field.options = options.options;
+  }
+  return { field, ok: true };
+}
+
 /**
  * Validates and normalizes form fields. Used by the API before saving and by
  * the editor before submitting, so both sides agree on what is valid.
@@ -74,48 +143,11 @@ export function validateFormFields(value: unknown): ValidationResult {
   const fields: FormField[] = [];
 
   for (const raw of value) {
-    const label = typeof raw?.label === "string" ? raw.label.trim() : "";
-    const key = typeof raw?.key === "string" ? raw.key.trim() : "";
-    const type = raw?.type as FormFieldType;
-
-    if (!label) {
-      return { error: "Every field needs a label", ok: false };
+    const result = validateField(raw, keys);
+    if (!result.ok) {
+      return result;
     }
-    if (label.length > 120) {
-      return {
-        error: `Label "${label.slice(0, 20)}..." is too long`,
-        ok: false,
-      };
-    }
-    if (!KEY_PATTERN.test(key)) {
-      return {
-        error: `"${label}" has an invalid key. Use lowercase letters, numbers and underscores, starting with a letter`,
-        ok: false,
-      };
-    }
-    if (keys.has(key)) {
-      return { error: `Two fields use the key "${key}"`, ok: false };
-    }
-    keys.add(key);
-    if (!FIELD_TYPES.includes(type)) {
-      return { error: `"${label}" has an unknown field type`, ok: false };
-    }
-
-    const field: FormField = { key, label, type };
-    if (raw.required === true) {
-      field.required = true;
-    }
-    if (typeof raw.helpText === "string" && raw.helpText.trim()) {
-      field.helpText = raw.helpText.trim();
-    }
-    if (type === "select") {
-      const options = validateOptions(raw.options, label);
-      if (!options.ok) {
-        return options;
-      }
-      field.options = options.options;
-    }
-    fields.push(field);
+    fields.push(result.field);
   }
 
   return { fields, ok: true };

@@ -64,7 +64,7 @@ type VercelEnvVariable = {
 };
 
 type VercelEnvResponse = {
-  envs: VercelEnvVariable[];
+  envs?: VercelEnvVariable[];
 };
 
 export type GetProjectResult = {
@@ -288,7 +288,7 @@ export async function triggerDeployment(
       };
     }
 
-    const latestDeployment = deploymentsResult.deployments[0];
+    const [latestDeployment] = deploymentsResult.deployments;
 
     // Trigger a redeploy
     const deployment = await vercelRequest<VercelDeployment>(
@@ -612,7 +612,7 @@ async function createNewEnv(
 
 function formatEnvResponse(created: unknown) {
   const createdEnv = Array.isArray(created) ? created[0] : created;
-  const typedEnv = createdEnv as VercelEnvVariable;
+  const typedEnv = createdEnv as Partial<VercelEnvVariable>;
 
   return {
     env: {

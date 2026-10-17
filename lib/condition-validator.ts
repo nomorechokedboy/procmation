@@ -129,15 +129,10 @@ function checkBracketExpressions(expression: string): ValidationResult {
   BRACKET_EXPRESSION_PATTERN.lastIndex = 0;
 
   // Use exec loop for compatibility
-  let match: RegExpExecArray | null = null;
-  while (true) {
-    match = BRACKET_EXPRESSION_PATTERN.exec(expression);
-    if (match === null) {
-      break;
-    }
-
-    const beforeBracket = match[1];
-    const insideBracket = match[2].trim();
+  let match = BRACKET_EXPRESSION_PATTERN.exec(expression);
+  while (match !== null) {
+    const [, beforeBracket, rawInsideBracket] = match;
+    const insideBracket = rawInsideBracket.trim();
 
     // Check if the part before the bracket is a valid variable (__v0, __v1, etc.)
     if (!VALID_BRACKET_ACCESS_PATTERN.test(beforeBracket)) {
@@ -154,6 +149,8 @@ function checkBracketExpressions(expression: string): ValidationResult {
         valid: false,
       };
     }
+
+    match = BRACKET_EXPRESSION_PATTERN.exec(expression);
   }
 
   // Check for standalone array literals (brackets not preceded by a variable)
@@ -178,20 +175,17 @@ function checkMethodCalls(expression: string): ValidationResult {
   METHOD_CALL_PATTERN.lastIndex = 0;
 
   // Use exec loop for compatibility
-  let match: RegExpExecArray | null = null;
-  while (true) {
-    match = METHOD_CALL_PATTERN.exec(expression);
-    if (match === null) {
-      break;
-    }
-
-    const methodName = match[1];
+  let match = METHOD_CALL_PATTERN.exec(expression);
+  while (match !== null) {
+    const [, methodName] = match;
     if (!ALLOWED_METHODS.has(methodName)) {
       return {
         error: `Method "${methodName}" is not allowed in conditions. Allowed methods: ${Array.from(ALLOWED_METHODS).join(", ")}`,
         valid: false,
       };
     }
+
+    match = METHOD_CALL_PATTERN.exec(expression);
   }
 
   return { valid: true };

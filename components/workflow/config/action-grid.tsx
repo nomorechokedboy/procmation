@@ -117,7 +117,7 @@ function GroupIcon({
   group: { category: string; actions: ActionType[] };
 }) {
   // For plugin categories, use the integration icon from the first action
-  const firstAction = group.actions[0];
+  const [firstAction] = group.actions;
   if (firstAction?.integration) {
     return (
       <IntegrationIcon
@@ -258,7 +258,7 @@ export function ActionGrid({
     const groups: Record<string, ActionType[]> = {};
 
     for (const action of filteredActions) {
-      const category = action.category;
+      const { category } = action;
       if (!groups[category]) {
         groups[category] = [];
       }
@@ -476,12 +476,12 @@ export function ActionGrid({
                     >
                       <span className="min-w-0 flex-1 truncate">
                         <span className="font-medium">{action.label}</span>
-                        {action.description && (
+                        {action.description ? (
                           <span className="text-muted-foreground text-xs">
                             {" "}
                             - {action.description}
                           </span>
-                        )}
+                        ) : null}
                       </span>
                     </button>
                   ))}

@@ -48,7 +48,7 @@ export function WorkflowContextMenu({
 
   const handleDeleteNode = useCallback(() => {
     if (menuState?.nodeId) {
-      const nodeId = menuState.nodeId;
+      const { nodeId } = menuState;
       onClose();
       openOverlay(ConfirmOverlay, {
         confirmLabel: "Delete",
@@ -65,7 +65,7 @@ export function WorkflowContextMenu({
 
   const handleDeleteEdge = useCallback(() => {
     if (menuState?.edgeId) {
-      const edgeId = menuState.edgeId;
+      const { edgeId } = menuState;
       onClose();
       openOverlay(ConfirmOverlay, {
         confirmLabel: "Delete",

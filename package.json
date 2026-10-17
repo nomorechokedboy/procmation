@@ -15,10 +15,10 @@
     "dev": "pnpm i18n && pnpm discover-plugins && next dev",
     "discover-plugins": "tsx scripts/discover-plugins.ts",
     "fix": "ultracite fix",
+    "i18n": "paraglide-js compile --project ./project.inlang --outdir ./paraglide",
     "start": "next start",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "i18n": "paraglide-js compile --project ./project.inlang --outdir ./paraglide",
     "type-check": "pnpm i18n && tsc --noEmit"
   },
   "dependencies": {

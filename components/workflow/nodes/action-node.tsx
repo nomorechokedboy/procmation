@@ -281,7 +281,7 @@ export const ActionNode = memo(({ data, selected, id }: ActionNodeProps) => {
   }
 
   const actionType = (data.config?.actionType as string) || "";
-  const status = data.status;
+  const { status } = data;
 
   // Check if this node has a generated image from the selected execution
   const nodeLog = executionLogs[id];
@@ -412,11 +412,11 @@ export const ActionNode = memo(({ data, selected, id }: ActionNodeProps) => {
         )}
         <div className="flex flex-col items-center gap-1 text-center">
           <NodeTitle className="text-base">{displayTitle}</NodeTitle>
-          {displayDescription && (
+          {displayDescription ? (
             <NodeDescription className="text-xs">
               {displayDescription}
             </NodeDescription>
-          )}
+          ) : null}
           {/* Model badge for AI nodes */}
           {aiModel && <ModelBadge model={aiModel} />}
         </div>

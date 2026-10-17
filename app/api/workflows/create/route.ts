@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     }
 
     // Ensure there's always a trigger node (only add one if nodes array is empty)
-    let nodes = body.nodes;
+    let { nodes } = body;
     if (nodes.length === 0) {
       nodes = [createDefaultTriggerNode()];
     }

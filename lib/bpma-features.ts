@@ -1,7 +1,8 @@
 // The editor started life as a general workflow builder. These switches keep
-// that surface hidden so users focus on business-process features. Flip
-// SHOW_GENERIC_WORKFLOW_TOOLS to bring everything back.
-export const SHOW_GENERIC_WORKFLOW_TOOLS = false;
+// that surface hidden so users focus on business-process features. Set
+// NEXT_PUBLIC_SHOW_GENERIC_WORKFLOW_TOOLS=true to bring everything back.
+export const SHOW_GENERIC_WORKFLOW_TOOLS =
+  process.env.NEXT_PUBLIC_SHOW_GENERIC_WORKFLOW_TOOLS === "true";
 
 // Plugin actions that stay available while the generic tools are hidden,
 // by action id (for example "resend/send-email" once M4 needs it)

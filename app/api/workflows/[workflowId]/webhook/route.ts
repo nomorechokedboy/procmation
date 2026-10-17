@@ -68,7 +68,6 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
 };
 
-// biome-ignore lint/nursery/useMaxParams: Background execution requires all workflow context
 async function executeWorkflowBackground(
   executionId: string,
   workflowId: string,
@@ -154,7 +153,7 @@ export async function POST(
       (node) => node.data.type === "trigger"
     );
 
-    if (!triggerNode || triggerNode.data.config?.triggerType !== "Webhook") {
+    if (triggerNode?.data.config?.triggerType !== "Webhook") {
       return NextResponse.json(
         { error: "This workflow is not configured for webhook triggers" },
         { headers: corsHeaders, status: 400 }

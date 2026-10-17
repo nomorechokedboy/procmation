@@ -92,7 +92,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body: CreateIntegrationRequest = await request.json();
+    const body: Partial<CreateIntegrationRequest> = await request.json();
 
     if (!(body.type && body.config)) {
       return NextResponse.json(

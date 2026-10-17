@@ -54,6 +54,23 @@ export async function GET(
   return NextResponse.json(process);
 }
 
+// An error message when the workflow is not ready to publish, nothing when it is
+async function checkCanPublish(
+  workflowId: string
+): Promise<string | undefined> {
+  const [workflow] = await db
+    .select({ nodes: workflows.nodes })
+    .from(workflows)
+    .where(eq(workflows.id, workflowId))
+    .limit(1);
+  const hasTrigger = (workflow?.nodes ?? []).some(
+    (node) => node?.data?.type === "trigger"
+  );
+  return hasTrigger
+    ? undefined
+    : "Add a trigger step to the workflow before publishing";
+}
+
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ processId: string }> }
@@ -105,19 +122,9 @@ export async function PATCH(
     }
 
     if (body.status === "published") {
-      const [workflow] = await db
-        .select({ nodes: workflows.nodes })
-        .from(workflows)
-        .where(eq(workflows.id, current.workflowId))
-        .limit(1);
-      const hasTrigger = (workflow?.nodes ?? []).some(
-        (node) => node?.data?.type === "trigger"
-      );
-      if (!hasTrigger) {
-        return NextResponse.json(
-          { error: "Add a trigger step to the workflow before publishing" },
-          { status: 409 }
-        );
+      const publishError = await checkCanPublish(current.workflowId);
+      if (publishError) {
+        return NextResponse.json({ error: publishError }, { status: 409 });
       }
       updates.publishedAt = new Date();
     }

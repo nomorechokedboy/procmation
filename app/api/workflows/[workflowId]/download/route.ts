@@ -30,20 +30,25 @@ async function readDirectoryRecursive(
   const files: Record<string, string> = {};
   const entries = await readdir(dirPath, { withFileTypes: true });
 
-  for (const entry of entries) {
-    const fullPath = join(dirPath, entry.name);
+  const results = await Promise.all(
+    entries.map(async (entry): Promise<Record<string, string>> => {
+      const fullPath = join(dirPath, entry.name);
 
-    if (entry.isDirectory()) {
-      // Recursively read subdirectories
-      const subFiles = await readDirectoryRecursive(fullPath, baseDir);
-      Object.assign(files, subFiles);
-    } else if (entry.isFile()) {
-      // Read file content
-      const content = await readFile(fullPath, "utf-8");
-      // Use relative path from base directory
-      const relativePath = fullPath.substring(baseDir.length + 1);
-      files[relativePath] = content;
-    }
+      if (entry.isDirectory()) {
+        // Recursively read subdirectories
+        return await readDirectoryRecursive(fullPath, baseDir);
+      }
+      if (entry.isFile()) {
+        // Read file content, keyed by path relative to the base directory
+        const content = await readFile(fullPath, "utf-8");
+        return { [fullPath.slice(baseDir.length + 1)]: content };
+      }
+      return {};
+    })
+  );
+
+  for (const result of results) {
+    Object.assign(files, result);
   }
 
   return files;
@@ -172,7 +177,7 @@ function generateEnvExample(): string {
   > = {};
 
   for (const envVar of envVars) {
-    const prefix = envVar.name.split("_")[0];
+    const [prefix] = envVar.name.split("_");
     if (!groupedByPrefix[prefix]) {
       groupedByPrefix[prefix] = [];
     }

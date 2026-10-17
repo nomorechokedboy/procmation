@@ -21,7 +21,7 @@ export async function PATCH(
   if (!(body.role && ROLES.includes(body.role))) {
     return NextResponse.json({ error: "Invalid role" }, { status: 400 });
   }
-  const role = body.role;
+  const { role } = body;
 
   const result = await db.transaction(async (tx) => {
     // Lock the admin rows so two concurrent demotions cannot remove the last admin

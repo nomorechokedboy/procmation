@@ -46,16 +46,18 @@ export function Overlay({
   return (
     <div className={cn("flex flex-col", className)}>
       {/* Header with smart back button detection */}
-      {(title || description) && (
+      {title || description ? (
         <SmartOverlayHeader
           description={description}
           overlayId={overlayId}
           title={title}
         />
-      )}
+      ) : null}
 
       {/* Content area */}
-      {children && <div className="flex-1 overflow-y-auto p-6">{children}</div>}
+      {children ? (
+        <div className="flex-1 overflow-y-auto p-6">{children}</div>
+      ) : null}
 
       {/* Footer with actions */}
       <OverlayFooter actions={actions} />

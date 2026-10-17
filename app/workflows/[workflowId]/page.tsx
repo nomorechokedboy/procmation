@@ -139,8 +139,8 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
   // Start visible if sidebar has already been shown (switching between workflows)
   const [panelVisible, setPanelVisible] = useState(hasSidebarBeenShown);
   const [isDraggingResize, setIsDraggingResize] = useState(false);
-  const isResizing = useRef(false);
-  const hasReadCookies = useRef(false);
+  const isResizing = useRef<boolean>(false);
+  const hasReadCookies = useRef<boolean>(false);
 
   // Read sidebar preferences from cookies on mount (after hydration)
   useEffect(() => {
@@ -170,7 +170,7 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
   }, [setPanelCollapsed]);
 
   // Save sidebar width to cookie when it changes (skip initial render)
-  const hasInitialized = useRef(false);
+  const hasInitialized = useRef<boolean>(false);
   useEffect(() => {
     if (!hasInitialized.current) {
       hasInitialized.current = true;
@@ -304,11 +304,11 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
         const workflowData = await api.ai.generate(prompt);
 
         // Clear selection on all nodes
-        const nodesWithoutSelection = (workflowData.nodes || []).map(
+        const nodesWithoutSelection = workflowData.nodes.map(
           (node: WorkflowNode) => ({ ...node, selected: false })
         );
         setNodes(nodesWithoutSelection);
-        setEdges(workflowData.edges || []);
+        setEdges(workflowData.edges);
         setCurrentWorkflowName(workflowData.name || "AI Generated Workflow");
 
         await api.workflow.update(workflowId, {
@@ -358,9 +358,7 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
       setEdges(workflow.edges);
       setCurrentWorkflowId(workflow.id);
       setCurrentWorkflowName(workflow.name);
-      setCurrentWorkflowVisibility(
-        (workflow.visibility as WorkflowVisibility) ?? "private"
-      );
+      setCurrentWorkflowVisibility(workflow.visibility as WorkflowVisibility);
       setIsWorkflowOwner(workflow.isOwner !== false); // Default to true if not set
       setHasUnsavedChanges(false);
       setWorkflowNotFound(false);
@@ -387,7 +385,7 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
 
   useEffect(() => {
     const loadWorkflowData = async () => {
-      const isGeneratingParam = searchParams?.get("generating") === "true";
+      const isGeneratingParam = searchParams.get("generating") === "true";
       const storedPrompt = sessionStorage.getItem("ai-prompt");
       const storedWorkflowId = sessionStorage.getItem("generating-workflow-id");
 
@@ -572,8 +570,7 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
       }
 
       // Handle run shortcut
-      if (handleRunShortcut(e, target)) {
-      }
+      handleRunShortcut(e, target);
     };
 
     // Use capture phase only to ensure we can intercept before other handlers
@@ -665,7 +662,7 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
   return (
     <div className="flex h-dvh w-full flex-col overflow-hidden">
       {/* Workflow not found overlay */}
-      {workflowNotFound && (
+      {workflowNotFound ? (
         <div className="pointer-events-auto absolute inset-0 z-20 flex items-center justify-center">
           <div className="rounded-lg border bg-background p-8 text-center shadow-lg">
             <h1 className="mb-2 font-semibold text-2xl">Workflow Not Found</h1>
@@ -677,7 +674,7 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
             </Button>
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Expand button when panel is collapsed */}
       {!isMobile && panelCollapsed && (

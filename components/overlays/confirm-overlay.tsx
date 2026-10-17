@@ -84,11 +84,11 @@ export function ConfirmOverlay({
   return (
     <Overlay actions={actions} overlayId={overlayId} title={title}>
       <div className="flex gap-4">
-        {destructive && (
+        {destructive ? (
           <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-destructive/10">
             <AlertTriangleIcon className="size-5 text-destructive" />
           </div>
-        )}
+        ) : null}
         <p
           className={cn("text-muted-foreground text-sm", destructive && "pt-2")}
         >

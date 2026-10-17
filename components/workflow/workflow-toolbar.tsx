@@ -748,7 +748,6 @@ function useWorkflowActions(state: ReturnType<typeof useWorkflowState>) {
     triggerExecute,
     setTriggerExecute,
     router,
-    session,
   } = state;
 
   const { handleSave, handleExecute } = useWorkflowHandlers({
@@ -1086,7 +1085,7 @@ function ToolbarActions({
           <Settings2 className="size-4" />
         </Button>
         {/* Delete - Show when node or edge is selected */}
-        {hasSelection && (
+        {hasSelection ? (
           <Button
             className="border hover:bg-black/5 dark:hover:bg-white/5"
             onClick={handleDeleteConfirm}
@@ -1096,7 +1095,7 @@ function ToolbarActions({
           >
             <Trash2 className="size-4" />
           </Button>
-        )}
+        ) : null}
       </ButtonGroup>
 
       {/* Add Step - Desktop Horizontal */}
@@ -1164,17 +1163,17 @@ function ToolbarActions({
       {/* Save/Download - Mobile Vertical */}
       <ButtonGroup className="flex lg:hidden" orientation="vertical">
         <SaveButton handleSave={actions.handleSave} state={state} />
-        {SHOW_GENERIC_WORKFLOW_TOOLS && (
+        {SHOW_GENERIC_WORKFLOW_TOOLS ? (
           <DownloadButton actions={actions} state={state} />
-        )}
+        ) : null}
       </ButtonGroup>
 
       {/* Save/Download - Desktop Horizontal */}
       <ButtonGroup className="hidden lg:flex" orientation="horizontal">
         <SaveButton handleSave={actions.handleSave} state={state} />
-        {SHOW_GENERIC_WORKFLOW_TOOLS && (
+        {SHOW_GENERIC_WORKFLOW_TOOLS ? (
           <DownloadButton actions={actions} state={state} />
-        )}
+        ) : null}
       </ButtonGroup>
 
       {/* Visibility Toggle */}

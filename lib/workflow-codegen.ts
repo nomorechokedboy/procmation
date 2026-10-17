@@ -103,16 +103,16 @@ export function generateWorkflowCode(
 
   // Helper to process @nodeId:DisplayName.field format for template strings
   function processAtFormat(trimmed: string, match: string): string {
-    const withoutAt = trimmed.substring(1);
+    const withoutAt = trimmed.slice(1);
     const colonIndex = withoutAt.indexOf(":");
     if (colonIndex === -1) {
       return match;
     }
 
-    const nodeId = withoutAt.substring(0, colonIndex);
-    const rest = withoutAt.substring(colonIndex + 1);
+    const nodeId = withoutAt.slice(0, colonIndex);
+    const rest = withoutAt.slice(colonIndex + 1);
     const dotIndex = rest.indexOf(".");
-    const fieldPath = dotIndex === -1 ? "" : rest.substring(dotIndex + 1);
+    const fieldPath = dotIndex === -1 ? "" : rest.slice(dotIndex + 1);
 
     const varName = nodeIdToVarName.get(nodeId);
     if (!varName) {
@@ -129,9 +129,9 @@ export function generateWorkflowCode(
 
   // Helper to process $nodeId.field format for template strings
   function processDollarFormat(trimmed: string, match: string): string {
-    const withoutDollar = trimmed.substring(1);
+    const withoutDollar = trimmed.slice(1);
     const parts = withoutDollar.split(".");
-    const nodeId = parts[0];
+    const [nodeId] = parts;
     const fieldPath = parts.slice(1).join(".");
 
     const varName = nodeIdToVarName.get(nodeId);
@@ -152,16 +152,16 @@ export function generateWorkflowCode(
     trimmed: string,
     match: string
   ): string {
-    const withoutAt = trimmed.substring(1);
+    const withoutAt = trimmed.slice(1);
     const colonIndex = withoutAt.indexOf(":");
     if (colonIndex === -1) {
       return match;
     }
 
-    const nodeId = withoutAt.substring(0, colonIndex);
-    const rest = withoutAt.substring(colonIndex + 1);
+    const nodeId = withoutAt.slice(0, colonIndex);
+    const rest = withoutAt.slice(colonIndex + 1);
     const dotIndex = rest.indexOf(".");
-    const fieldPath = dotIndex === -1 ? "" : rest.substring(dotIndex + 1);
+    const fieldPath = dotIndex === -1 ? "" : rest.slice(dotIndex + 1);
 
     const varName = nodeIdToVarName.get(nodeId);
     if (!varName) {
@@ -181,9 +181,9 @@ export function generateWorkflowCode(
     trimmed: string,
     match: string
   ): string {
-    const withoutDollar = trimmed.substring(1);
+    const withoutDollar = trimmed.slice(1);
     const parts = withoutDollar.split(".");
-    const nodeId = parts[0];
+    const [nodeId] = parts;
     const fieldPath = parts.slice(1).join(".");
 
     const varName = nodeIdToVarName.get(nodeId);
@@ -848,8 +848,7 @@ export function generateWorkflowCode(
     const nextNodes = edgesBySource.get(nodeId) || [];
 
     if (nextNodes.length > 0) {
-      const trueNode = nextNodes[0];
-      const falseNode = nextNodes[1];
+      const [trueNode, falseNode] = nextNodes;
 
       // Convert template references in condition to JavaScript expressions (not template literal syntax)
       const convertedCondition = condition
@@ -1031,7 +1030,7 @@ export function generateWorkflowCode(
     // Multiple children - generate Promise.all with async IIFEs
     const lines: string[] = [`${indent}await Promise.all([`];
 
-    for (let i = 0; i < unvisited.length; i++) {
+    for (let i = 0; i < unvisited.length; i += 1) {
       const childId = unvisited[i];
       const isLast = i === unvisited.length - 1;
       const comma = isLast ? "" : ",";
@@ -1114,7 +1113,7 @@ export function generateWorkflowCode(
 
     // Multiple branches - wrap each in async IIFE
     const lines: string[] = [`${indent}await Promise.all([`];
-    for (let i = 0; i < unvisited.length; i++) {
+    for (let i = 0; i < unvisited.length; i += 1) {
       lines.push(
         ...generateAsyncIIFEBranch(
           unvisited[i],

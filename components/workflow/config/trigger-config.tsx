@@ -49,7 +49,7 @@ export function TriggerConfig({
         <Select
           disabled={disabled}
           onValueChange={(value) => onUpdateConfig("triggerType", value)}
-          value={(config?.triggerType as string) || "Manual"}
+          value={(config.triggerType as string) || "Manual"}
         >
           <SelectTrigger className="w-full" id="triggerType">
             <SelectValue placeholder="Select trigger type" />
@@ -78,7 +78,7 @@ export function TriggerConfig({
       </div>
 
       {/* Webhook fields */}
-      {config?.triggerType === "Webhook" && (
+      {config.triggerType === "Webhook" && (
         <>
           <div className="space-y-2">
             <Label className="ml-1">Webhook URL</Label>
@@ -106,7 +106,7 @@ export function TriggerConfig({
                 onUpdateConfig("webhookSchema", JSON.stringify(schema))
               }
               schema={
-                config?.webhookSchema
+                config.webhookSchema
                   ? (JSON.parse(
                       config.webhookSchema as string
                     ) as SchemaField[])
@@ -134,7 +134,7 @@ export function TriggerConfig({
                   scrollBeyondLastLine: false,
                   wordWrap: "on",
                 }}
-                value={(config?.webhookMockRequest as string) || ""}
+                value={(config.webhookMockRequest as string) || ""}
               />
             </div>
             <p className="text-muted-foreground text-xs">
@@ -145,7 +145,7 @@ export function TriggerConfig({
       )}
 
       {/* Schedule fields */}
-      {config?.triggerType === "Schedule" && (
+      {config.triggerType === "Schedule" && (
         <>
           <div className="space-y-2">
             <Label className="ml-1" htmlFor="scheduleCron">
@@ -156,7 +156,7 @@ export function TriggerConfig({
               id="scheduleCron"
               onChange={(e) => onUpdateConfig("scheduleCron", e.target.value)}
               placeholder="0 9 * * * (every day at 9am)"
-              value={(config?.scheduleCron as string) || ""}
+              value={(config.scheduleCron as string) || ""}
             />
           </div>
           <div className="space-y-2">
@@ -169,7 +169,7 @@ export function TriggerConfig({
               onValueChange={(value) =>
                 onUpdateConfig("scheduleTimezone", value)
               }
-              value={(config?.scheduleTimezone as string) || "America/New_York"}
+              value={(config.scheduleTimezone as string) || "America/New_York"}
             />
           </div>
         </>

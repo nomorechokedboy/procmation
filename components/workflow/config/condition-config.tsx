@@ -20,7 +20,7 @@ export function ConditionConfig({
         id="condition"
         onChange={(value) => onUpdateConfig("condition", value)}
         placeholder="e.g., 5 > 3, status === 200, {{PreviousNode.value}} > 100"
-        value={(config?.condition as string) || ""}
+        value={(config.condition as string) || ""}
       />
       <p className="text-muted-foreground text-xs">
         Enter a JavaScript expression that evaluates to true or false. You can

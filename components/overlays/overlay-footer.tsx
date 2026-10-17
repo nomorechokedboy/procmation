@@ -15,7 +15,7 @@ function ActionButton({ action }: { action: OverlayAction }) {
       onClick={action.onClick}
       variant={action.variant ?? "default"}
     >
-      {action.loading && <Loader2 className="mr-2 size-4 animate-spin" />}
+      {action.loading ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
       {action.label}
     </Button>
   );
@@ -83,7 +83,7 @@ export function OverlayFooter({
       )}
 
       {/* Secondary + Primary actions on the right: [secondary] [primary] */}
-      {hasRightActions && (
+      {hasRightActions ? (
         <div className="flex flex-col-reverse gap-2 sm:flex-row">
           {rightSecondary.map((action) => (
             <ActionButton action={action} key={action.label} />
@@ -92,7 +92,7 @@ export function OverlayFooter({
             <ActionButton action={action} key={action.label} />
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

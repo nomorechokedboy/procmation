@@ -244,19 +244,19 @@ function CollapsibleSection({
           </span>
         </button>
         <div className="flex items-center gap-1">
-          {externalLink && (
+          {externalLink ? (
             <Button asChild className="h-7 px-2" size="sm" variant="ghost">
               <a href={externalLink} rel="noopener noreferrer" target="_blank">
                 <ExternalLink className="h-3 w-3" />
               </a>
             </Button>
-          )}
+          ) : null}
           {copyData !== undefined && (
             <CopyButton data={copyData} isError={isError} />
           )}
         </div>
       </div>
-      {isOpen && children}
+      {isOpen ? children : null}
     </div>
   );
 }
@@ -464,17 +464,17 @@ function ExecutionLogEntry({
               </div>
             </div>
 
-            {log.duration && (
+            {log.duration ? (
               <span className="shrink-0 font-mono text-muted-foreground text-xs tabular-nums">
                 {Number.parseInt(log.duration, 10) < 1000
                   ? `${log.duration}ms`
                   : `${(Number.parseInt(log.duration, 10) / 1000).toFixed(2)}s`}
               </span>
-            )}
+            ) : null}
           </div>
         </button>
 
-        {isExpanded && (
+        {isExpanded ? (
           <div className="mt-2 mb-2 space-y-3 px-3">
             {log.input !== null && log.input !== undefined && (
               <CollapsibleSection copyData={log.input} title="Input">
@@ -490,7 +490,7 @@ function ExecutionLogEntry({
                 output={log.output}
               />
             )}
-            {log.error && (
+            {log.error ? (
               <CollapsibleSection
                 copyData={log.error}
                 defaultExpanded
@@ -501,14 +501,14 @@ function ExecutionLogEntry({
                   {log.error}
                 </pre>
               </CollapsibleSection>
-            )}
+            ) : null}
             {!(log.input || log.output || log.error) && (
               <div className="rounded-lg border bg-muted/30 py-4 text-center text-muted-foreground text-xs">
                 No data recorded
               </div>
             )}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
@@ -634,7 +634,7 @@ export function WorkflowRuns({
       return;
     }
 
-    const latestExecution = executions[0];
+    const [latestExecution] = executions;
 
     // Check if this is a new running execution that we haven't auto-expanded yet
     if (
@@ -701,9 +701,11 @@ export function WorkflowRuns({
         setExecutions(data as WorkflowExecution[]);
 
         // Also refresh logs for expanded runs
-        for (const executionId of expandedRuns) {
-          await refreshExecutionLogs(executionId);
-        }
+        await Promise.all(
+          Array.from(expandedRuns, (executionId) =>
+            refreshExecutionLogs(executionId)
+          )
+        );
       } catch (error) {
         console.error("Failed to poll executions:", error);
       }
@@ -848,7 +850,7 @@ export function WorkflowRuns({
                 </div>
                 <div className="flex items-center gap-2 font-mono text-muted-foreground text-xs">
                   <span>{getRelativeTime(execution.startedAt)}</span>
-                  {execution.duration && (
+                  {execution.duration ? (
                     <>
                       <span>•</span>
                       <span className="tabular-nums">
@@ -857,7 +859,7 @@ export function WorkflowRuns({
                           : `${(Number.parseInt(execution.duration, 10) / 1000).toFixed(2)}s`}
                       </span>
                     </>
-                  )}
+                  ) : null}
                   {executionLogs.length > 0 && (
                     <>
                       <span>•</span>

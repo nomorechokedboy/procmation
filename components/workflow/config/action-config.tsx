@@ -80,7 +80,7 @@ function DatabaseQueryFields({
               scrollBeyondLastLine: false,
               wordWrap: "off",
             }}
-            value={(config?.dbQuery as string) || ""}
+            value={(config.dbQuery as string) || ""}
           />
         </div>
         <p className="text-muted-foreground text-xs">
@@ -96,7 +96,7 @@ function DatabaseQueryFields({
             onUpdateConfig("dbSchema", JSON.stringify(schema))
           }
           schema={
-            config?.dbSchema
+            config.dbSchema
               ? (JSON.parse(config.dbSchema as string) as SchemaField[])
               : []
           }
@@ -123,7 +123,7 @@ function HttpRequestFields({
         <Select
           disabled={disabled}
           onValueChange={(value) => onUpdateConfig("httpMethod", value)}
-          value={(config?.httpMethod as string) || "POST"}
+          value={(config.httpMethod as string) || "POST"}
         >
           <SelectTrigger className="w-full" id="httpMethod">
             <SelectValue placeholder="Select method" />
@@ -144,7 +144,7 @@ function HttpRequestFields({
           id="endpoint"
           onChange={(value) => onUpdateConfig("endpoint", value)}
           placeholder="https://api.example.com/endpoint or {{NodeName.url}}"
-          value={(config?.endpoint as string) || ""}
+          value={(config.endpoint as string) || ""}
         />
       </div>
       <div className="space-y-2">
@@ -162,32 +162,32 @@ function HttpRequestFields({
               scrollBeyondLastLine: false,
               wordWrap: "off",
             }}
-            value={(config?.httpHeaders as string) || "{}"}
+            value={(config.httpHeaders as string) || "{}"}
           />
         </div>
       </div>
       <div className="space-y-2">
         <Label htmlFor="httpBody">Body (JSON)</Label>
         <div
-          className={`overflow-hidden rounded-md border ${config?.httpMethod === "GET" ? "opacity-50" : ""}`}
+          className={`overflow-hidden rounded-md border ${config.httpMethod === "GET" ? "opacity-50" : ""}`}
         >
           <CodeEditor
             defaultLanguage="json"
             height="120px"
             onChange={(value) => onUpdateConfig("httpBody", value || "{}")}
             options={{
-              domReadOnly: config?.httpMethod === "GET" || disabled,
+              domReadOnly: config.httpMethod === "GET" || disabled,
               fontSize: 12,
               lineNumbers: "off",
               minimap: { enabled: false },
-              readOnly: config?.httpMethod === "GET" || disabled,
+              readOnly: config.httpMethod === "GET" || disabled,
               scrollBeyondLastLine: false,
               wordWrap: "off",
             }}
-            value={(config?.httpBody as string) || "{}"}
+            value={(config.httpBody as string) || "{}"}
           />
         </div>
-        {config?.httpMethod === "GET" && (
+        {config.httpMethod === "GET" && (
           <p className="text-muted-foreground text-xs">
             Body is disabled for GET requests
           </p>
@@ -215,7 +215,7 @@ function ConditionFields({
         id="condition"
         onChange={(value) => onUpdateConfig("condition", value)}
         placeholder="e.g., 5 > 3, status === 200, {{PreviousNode.value}} > 100"
-        value={(config?.condition as string) || ""}
+        value={(config.condition as string) || ""}
       />
       <p className="text-muted-foreground text-xs">
         Enter a JavaScript expression that evaluates to true or false. You can
@@ -357,7 +357,7 @@ export function ActionConfig({
   disabled,
   isOwner = true,
 }: ActionConfigProps) {
-  const actionType = (config?.actionType as string) || "";
+  const actionType = (config.actionType as string) || "";
   const categories = useCategoryData();
   const integrations = useMemo(() => getAllIntegrations(), []);
 
@@ -506,18 +506,19 @@ export function ActionConfig({
               <SelectValue placeholder="Select action" />
             </SelectTrigger>
             <SelectContent>
-              {category &&
-                categories[category]?.map((action) => (
-                  <SelectItem key={action.id} value={action.id}>
-                    {action.label}
-                  </SelectItem>
-                ))}
+              {category
+                ? categories[category]?.map((action) => (
+                    <SelectItem key={action.id} value={action.id}>
+                      {action.label}
+                    </SelectItem>
+                  ))
+                : null}
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      {integrationType && isOwner && (
+      {integrationType && isOwner ? (
         <div className="space-y-2">
           <div className="ml-1 flex items-center justify-between">
             <div className="flex items-center gap-1">
@@ -549,14 +550,14 @@ export function ActionConfig({
             disabled={disabled}
             integrationType={integrationType}
             onChange={(id) => onUpdateConfig("integrationId", id)}
-            value={(config?.integrationId as string) || ""}
+            value={(config.integrationId as string) || ""}
           />
         </div>
-      )}
+      ) : null}
 
       {/* System actions - hardcoded config fields */}
       <SystemActionFields
-        actionType={(config?.actionType as string) || ""}
+        actionType={(config.actionType as string) || ""}
         config={config}
         disabled={disabled}
         onUpdateConfig={onUpdateConfig}

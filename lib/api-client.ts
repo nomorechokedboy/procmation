@@ -301,23 +301,24 @@ export const aiApi = {
       buffer: "",
       currentData: existingWorkflow
         ? {
-            edges: existingWorkflow.edges || [],
+            edges: existingWorkflow.edges,
             name: existingWorkflow.name,
-            nodes: existingWorkflow.nodes || [],
+            nodes: existingWorkflow.nodes,
           }
         : { edges: [], nodes: [] },
     };
 
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-
-        if (done) {
-          break;
-        }
-
-        processStreamChunk(value, decoder, onUpdate, state);
+    const readUntilDone = async (): Promise<void> => {
+      const { done, value } = await reader.read();
+      if (done) {
+        return;
       }
+      processStreamChunk(value, decoder, onUpdate, state);
+      await readUntilDone();
+    };
+
+    try {
+      await readUntilDone();
 
       return state.currentData;
     } finally {

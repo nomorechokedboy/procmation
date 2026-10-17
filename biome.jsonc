@@ -13,7 +13,9 @@
       "!lib/utils.ts",
       "!hooks/use-mobile.ts",
       "!plugins",
-      "!paraglide"
+      "!paraglide",
+      "!drizzle",
+      "!lib/next-boilerplate"
     ]
   },
   "linter": {
@@ -21,6 +23,14 @@
       "performance": {
         // Paraglide messages are used as `import * as m` and tree-shaken
         "noNamespaceImport": "off"
+      },
+      "style": {
+        // The codebase uses `type` aliases throughout. Interfaces have no
+        // implicit index signature, which breaks React Flow's node generics.
+        "useConsistentTypeDefinitions": {
+          "level": "error",
+          "options": { "style": "type" }
+        }
       }
     }
   }
