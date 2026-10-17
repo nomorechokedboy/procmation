@@ -572,14 +572,14 @@ export const PanelInner = () => {
             >
               Properties
             </TabsTrigger>
-            {SHOW_GENERIC_WORKFLOW_TOOLS && (
+            {SHOW_GENERIC_WORKFLOW_TOOLS ? (
               <TabsTrigger
                 className="bg-transparent text-muted-foreground data-[state=active]:text-foreground data-[state=active]:shadow-none"
                 value="code"
               >
                 Code
               </TabsTrigger>
-            )}
+            ) : null}
             {isOwner && (
               <TabsTrigger
                 className="bg-transparent text-muted-foreground data-[state=active]:text-foreground data-[state=active]:shadow-none"
@@ -681,7 +681,7 @@ export const PanelInner = () => {
               </div>
             </TabsContent>
           )}
-          {SHOW_GENERIC_WORKFLOW_TOOLS && (
+          {SHOW_GENERIC_WORKFLOW_TOOLS ? (
             <TabsContent
               className="flex flex-col overflow-hidden data-[state=inactive]:hidden"
               forceMount
@@ -727,7 +727,7 @@ export const PanelInner = () => {
                 />
               </div>
             </TabsContent>
-          )}
+          ) : null}
         </Tabs>
 
         <AlertDialog
@@ -926,7 +926,7 @@ export const PanelInner = () => {
             </div>
           )}
         </TabsContent>
-        {SHOW_GENERIC_WORKFLOW_TOOLS && (
+        {SHOW_GENERIC_WORKFLOW_TOOLS ? (
           <TabsContent
             className="flex flex-col overflow-hidden data-[state=inactive]:hidden"
             forceMount
@@ -951,7 +951,7 @@ export const PanelInner = () => {
                 }
               } else {
                 filename = `steps/${
-                  (selectedNode.data.config?.actionType as string)
+                  (selectedNode.data.config?.actionType as string | undefined)
                     ?.toLowerCase()
                     .replace(/\s+/g, "-")
                     .replace(/[^a-z0-9-]/g, "") || "action"
@@ -960,7 +960,7 @@ export const PanelInner = () => {
 
               return (
                 <>
-                  {filename && (
+                  {filename ? (
                     <div className="flex shrink-0 items-center justify-between border-b bg-muted/30 px-3 pb-2">
                       <div className="flex items-center gap-2">
                         <FileCode className="size-3.5 text-muted-foreground" />
@@ -978,7 +978,7 @@ export const PanelInner = () => {
                         Copy
                       </Button>
                     </div>
-                  )}
+                  ) : null}
                   <div className="flex-1 overflow-hidden">
                     <CodeEditor
                       height="100%"
@@ -1000,7 +1000,7 @@ export const PanelInner = () => {
               );
             })()}
           </TabsContent>
-        )}
+        ) : null}
         {isOwner && (
           <TabsContent className="flex flex-col overflow-hidden" value="runs">
             {/* Actions in content header */}

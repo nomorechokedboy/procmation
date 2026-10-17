@@ -162,8 +162,7 @@ export async function POST(request: Request) {
   let teamName: string | null = null;
   try {
     const body = await request.json();
-    teamId = body.teamId;
-    teamName = body.teamName;
+    ({ teamId, teamName } = body);
   } catch {
     // If no body, try to auto-detect
   }

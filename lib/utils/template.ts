@@ -21,17 +21,17 @@ function processNewFormatReference(
   nodeOutputs: NodeOutputs,
   match: string
 ): string {
-  const withoutAt = trimmed.substring(1);
+  const withoutAt = trimmed.slice(1);
   const colonIndex = withoutAt.indexOf(":");
 
   if (colonIndex === -1) {
     return match;
   }
 
-  const nodeId = withoutAt.substring(0, colonIndex);
-  const rest = withoutAt.substring(colonIndex + 1);
+  const nodeId = withoutAt.slice(0, colonIndex);
+  const rest = withoutAt.slice(colonIndex + 1);
   const dotIndex = rest.indexOf(".");
-  const fieldPath = dotIndex === -1 ? "" : rest.substring(dotIndex + 1);
+  const fieldPath = dotIndex === -1 ? "" : rest.slice(dotIndex + 1);
 
   if (!fieldPath) {
     const nodeOutput = nodeOutputs[nodeId];
@@ -55,7 +55,7 @@ function processLegacyDollarReference(
   nodeOutputs: NodeOutputs,
   match: string
 ): string {
-  const withoutDollar = trimmed.substring(1);
+  const withoutDollar = trimmed.slice(1);
 
   if (!(withoutDollar.includes(".") || withoutDollar.includes("["))) {
     const nodeOutput = nodeOutputs[withoutDollar];
@@ -186,7 +186,6 @@ function unwrapStandardizedOutput(data: unknown): unknown {
   return data;
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Field path resolution requires nested logic for arrays and standardized outputs
 function resolveFieldPath(data: unknown, fieldPath: string): unknown {
   if (!data) {
     return;
@@ -218,7 +217,9 @@ function resolveFieldPath(data: unknown, fieldPath: string): unknown {
     const arrayMatch = trimmedPart.match(ARRAY_ACCESS_PATTERN);
     if (arrayMatch) {
       const [, field, index] = arrayMatch;
-      const fieldValue = (current as Record<string, unknown>)?.[field];
+      const fieldValue = (
+        current as Record<string, unknown> | null | undefined
+      )?.[field];
       if (Array.isArray(fieldValue)) {
         current = fieldValue[Number.parseInt(index, 10)];
       } else {
@@ -229,7 +230,9 @@ function resolveFieldPath(data: unknown, fieldPath: string): unknown {
       // map over the array and extract that field from each element
       current = current.map((item) => item?.[trimmedPart]);
     } else {
-      current = (current as Record<string, unknown>)?.[trimmedPart];
+      current = (current as Record<string, unknown> | null | undefined)?.[
+        trimmedPart
+      ];
     }
 
     if (current === undefined || current === null) {
@@ -282,7 +285,7 @@ function resolveExpressionById(
   let current: unknown = nodeOutput.data;
 
   // Navigate through remaining parts
-  for (let i = 1; i < parts.length; i++) {
+  for (let i = 1; i < parts.length; i += 1) {
     const part = parts[i].trim();
 
     if (!part) {
@@ -293,7 +296,9 @@ function resolveExpressionById(
     const arrayMatch = part.match(ARRAY_ACCESS_PATTERN);
     if (arrayMatch) {
       const [, field, index] = arrayMatch;
-      const fieldValue = (current as Record<string, unknown>)?.[field];
+      const fieldValue = (
+        current as Record<string, unknown> | null | undefined
+      )?.[field];
       if (Array.isArray(fieldValue)) {
         current = fieldValue[Number.parseInt(index, 10)];
       } else {
@@ -303,10 +308,10 @@ function resolveExpressionById(
       // If current is an array and we're trying to access a field,
       // map over the array and extract that field from each element
       current = current.map(
-        (item) => (item as Record<string, unknown>)?.[part]
+        (item) => (item as Record<string, unknown> | null | undefined)?.[part]
       );
     } else {
-      current = (current as Record<string, unknown>)?.[part];
+      current = (current as Record<string, unknown> | null | undefined)?.[part];
     }
 
     if (current === undefined || current === null) {
@@ -343,7 +348,7 @@ function resolveExpression(
   let current: unknown = nodeOutput.data;
 
   // Navigate through remaining parts
-  for (let i = 1; i < parts.length; i++) {
+  for (let i = 1; i < parts.length; i += 1) {
     const part = parts[i].trim();
 
     if (!part) {
@@ -354,7 +359,9 @@ function resolveExpression(
     const arrayMatch = part.match(ARRAY_ACCESS_PATTERN);
     if (arrayMatch) {
       const [, field, index] = arrayMatch;
-      const fieldValue = (current as Record<string, unknown>)?.[field];
+      const fieldValue = (
+        current as Record<string, unknown> | null | undefined
+      )?.[field];
       if (Array.isArray(fieldValue)) {
         current = fieldValue[Number.parseInt(index, 10)];
       } else {
@@ -364,10 +371,10 @@ function resolveExpression(
       // If current is an array and we're trying to access a field,
       // map over the array and extract that field from each element
       current = current.map(
-        (item) => (item as Record<string, unknown>)?.[part]
+        (item) => (item as Record<string, unknown> | null | undefined)?.[part]
       );
     } else {
-      current = (current as Record<string, unknown>)?.[part];
+      current = (current as Record<string, unknown> | null | undefined)?.[part];
     }
 
     if (current === undefined || current === null) {

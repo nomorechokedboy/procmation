@@ -195,7 +195,7 @@ export function ApiKeysOverlay({ overlayId }: ApiKeysOverlayProps) {
       ) : (
         <div className="space-y-4">
           {/* Newly created key warning */}
-          {newlyCreatedKey && (
+          {newlyCreatedKey ? (
             <div className="rounded-md border border-yellow-500/50 bg-yellow-500/10 p-3">
               <p className="mb-2 font-medium text-sm text-yellow-600 dark:text-yellow-400">
                 Copy your API key now. You won't be able to see it again!
@@ -221,7 +221,7 @@ export function ApiKeysOverlay({ overlayId }: ApiKeysOverlayProps) {
                 Dismiss
               </Button>
             </div>
-          )}
+          ) : null}
 
           {/* API Keys list */}
           {apiKeys.length === 0 ? (
@@ -244,14 +244,15 @@ export function ApiKeysOverlay({ overlayId }: ApiKeysOverlayProps) {
                       <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
                         {apiKey.keyPrefix}...
                       </code>
-                      {apiKey.name && (
+                      {apiKey.name ? (
                         <span className="truncate text-sm">{apiKey.name}</span>
-                      )}
+                      ) : null}
                     </div>
                     <p className="mt-1 text-muted-foreground text-xs">
                       Created {formatDate(apiKey.createdAt)}
-                      {apiKey.lastUsedAt &&
-                        ` · Last used ${formatDate(apiKey.lastUsedAt)}`}
+                      {apiKey.lastUsedAt
+                        ? ` · Last used ${formatDate(apiKey.lastUsedAt)}`
+                        : null}
                     </p>
                   </div>
                   <Button

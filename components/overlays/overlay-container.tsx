@@ -60,7 +60,7 @@ const containerVariants: Variants = {
 /**
  * Variants for drawer container
  */
-const drawerContainerVariants: Variants = {
+const _drawerContainerVariants: Variants = {
   exit: {
     opacity: 0.5,
     transition: {
@@ -170,10 +170,10 @@ function DesktopOverlayContainer() {
         setMinHeight(height);
       }
     }
-  }, [stack, isOpen]);
+  }, [isOpen]);
 
   // Use live stack for options checks (only when open)
-  const currentItem = stack[stack.length - 1];
+  const currentItem = stack.at(-1);
   const springTransition = shouldReduceMotion ? { duration: 0.01 } : iosSpring;
   const isPushing = direction === 1;
 
@@ -330,10 +330,10 @@ function MobileOverlayContainer() {
         setMinHeight(height);
       }
     }
-  }, [stack, isOpen]);
+  }, [isOpen]);
 
   // Use live stack for options checks (only when open)
-  const currentItem = stack[stack.length - 1];
+  const currentItem = stack.at(-1);
   const renderCurrentItem = renderStack[currentIndex];
   const springTransition = shouldReduceMotion ? { duration: 0.01 } : iosSpring;
   const isPushing = direction === 1;

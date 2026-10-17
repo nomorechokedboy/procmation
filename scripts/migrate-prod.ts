@@ -1,6 +1,6 @@
-import { execSync } from "child_process";
+import { execSync } from "node:child_process";
 
-const VERCEL_ENV = process.env.VERCEL_ENV;
+const { VERCEL_ENV } = process.env;
 
 if (VERCEL_ENV === "production") {
   console.log("Running database migrations for production...");

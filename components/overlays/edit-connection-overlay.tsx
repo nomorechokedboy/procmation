@@ -92,7 +92,7 @@ function SecretField({
           type="password"
           value={value}
         />
-        {(isEditing || hasNewValue) && (
+        {isEditing || hasNewValue ? (
           <Button
             onClick={() => {
               onChange(configKey, "");
@@ -104,12 +104,12 @@ function SecretField({
           >
             <X className="size-4" />
           </Button>
-        )}
+        ) : null}
       </div>
-      {(helpText || helpLink) && (
+      {helpText || helpLink ? (
         <p className="text-muted-foreground text-xs">
           {helpText}
-          {helpLink && (
+          {helpLink ? (
             <a
               className="underline hover:text-foreground"
               href={helpLink.url}
@@ -118,9 +118,9 @@ function SecretField({
             >
               {helpLink.text}
             </a>
-          )}
+          ) : null}
         </p>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -137,7 +137,7 @@ export function EditConnectionOverlay({
   const { push, closeAll } = useOverlay();
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{
+  const [_testResult, setTestResult] = useState<{
     status: "success" | "error";
     message: string;
   } | null>(null);
@@ -312,10 +312,10 @@ export function EditConnectionOverlay({
             type={field.type}
             value={config[field.configKey] || ""}
           />
-          {(field.helpText || field.helpLink) && (
+          {field.helpText || field.helpLink ? (
             <p className="text-muted-foreground text-xs">
               {field.helpText}
-              {field.helpLink && (
+              {field.helpLink ? (
                 <a
                   className="underline hover:text-foreground"
                   href={field.helpLink.url}
@@ -324,9 +324,9 @@ export function EditConnectionOverlay({
                 >
                   {field.helpLink.text}
                 </a>
-              )}
+              ) : null}
             </p>
-          )}
+          ) : null}
         </div>
       );
     });
@@ -430,7 +430,7 @@ export function DeleteConnectionOverlay({
         fail until a new one is configured.
       </p>
 
-      {integration.isManaged && (
+      {integration.isManaged ? (
         <div className="mt-4 flex items-center gap-2">
           <Checkbox
             checked={revokeKey}
@@ -441,7 +441,7 @@ export function DeleteConnectionOverlay({
             Revoke API key from Vercel
           </Label>
         </div>
-      )}
+      ) : null}
     </Overlay>
   );
 }

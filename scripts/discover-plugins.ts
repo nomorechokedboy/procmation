@@ -510,30 +510,35 @@ async function processStepFilesForCodegen(): Promise<void> {
   );
   const integrations = getAllIntegrations();
 
-  for (const integration of integrations) {
-    for (const action of integration.actions) {
-      const stepFilePath = join(
-        PLUGINS_DIR,
-        integration.type,
-        "steps",
-        `${action.stepImportPath}.ts`
-      );
+  const entries = integrations.flatMap((integration) =>
+    integration.actions.map((action) => ({ action, integration }))
+  );
 
-      const template = await generateCodegenTemplate(
-        stepFilePath,
+  const templates = await Promise.all(
+    entries.map(({ action, integration }) =>
+      generateCodegenTemplate(
+        join(
+          PLUGINS_DIR,
+          integration.type,
+          "steps",
+          `${action.stepImportPath}.ts`
+        ),
         action.stepFunction
-      );
+      )
+    )
+  );
 
-      if (template) {
-        const actionId = computeActionId(integration.type, action.slug);
-        generatedCodegenTemplates.set(actionId, {
-          integrationType: integration.type,
-          template,
-        });
-        console.log(`   Generated codegen template for ${actionId}`);
-      }
+  entries.forEach(({ action, integration }, index) => {
+    const template = templates[index];
+    if (template) {
+      const actionId = computeActionId(integration.type, action.slug);
+      generatedCodegenTemplates.set(actionId, {
+        integrationType: integration.type,
+        template,
+      });
+      console.log(`   Generated codegen template for ${actionId}`);
     }
-  }
+  });
 }
 
 /**

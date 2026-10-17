@@ -11,12 +11,14 @@ import { requireAdmin } from "@/lib/session";
 
 const ROLES: UserRole[] = ["admin", "member"];
 
+const TRAILING_SLASH_REGEX = /\/$/;
+
 function getAppOrigin(request: Request): string {
   return (
     process.env.BETTER_AUTH_URL ||
     process.env.NEXT_PUBLIC_APP_URL ||
     new URL(request.url).origin
-  ).replace(/\/$/, "");
+  ).replace(TRAILING_SLASH_REGEX, "");
 }
 
 export async function GET(request: Request) {

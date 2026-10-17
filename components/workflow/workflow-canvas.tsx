@@ -77,7 +77,6 @@ const edgeTypes = {
   temporary: Edge.Temporary,
 };
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: React Flow canvas requires complex setup
 export function WorkflowCanvas() {
   const [nodes, setNodes] = useAtom(nodesAtom);
   const [edges, setEdges] = useAtom(edgesAtom);
@@ -102,8 +101,8 @@ export function WorkflowCanvas() {
 
   const connectingNodeId = useRef<string | null>(null);
   const connectingHandleType = useRef<"source" | "target" | null>(null);
-  const justCreatedNodeFromConnection = useRef(false);
-  const viewportInitialized = useRef(false);
+  const justCreatedNodeFromConnection = useRef<boolean>(false);
+  const viewportInitialized = useRef<boolean>(false);
   const [isCanvasReady, setIsCanvasReady] = useState(false);
   const [contextMenuState, setContextMenuState] =
     useState<ContextMenuState>(null);
@@ -120,9 +119,9 @@ export function WorkflowCanvas() {
   const fittedViewForWorkflowRef = useRef<string | null | undefined>(undefined);
   // Track if we have real nodes (not just placeholder "add" node)
   const hasRealNodes = nodes.some((n) => n.type !== "add");
-  const hadRealNodesRef = useRef(false);
+  const hadRealNodesRef = useRef<boolean>(false);
   // Pre-shift viewport when transitioning from homepage (before sidebar animates)
-  const hasPreShiftedRef = useRef(false);
+  const hasPreShiftedRef = useRef<boolean>(false);
   useEffect(() => {
     if (isTransitioningFromHomepage && !hasPreShiftedRef.current) {
       hasPreShiftedRef.current = true;
@@ -568,9 +567,9 @@ export function WorkflowCanvas() {
         >
           <Controls />
         </Panel>
-        {showMinimap && (
+        {showMinimap ? (
           <MiniMap bgColor="var(--sidebar)" nodeStrokeColor="var(--border)" />
-        )}
+        ) : null}
       </Canvas>
 
       {/* AI Prompt */}

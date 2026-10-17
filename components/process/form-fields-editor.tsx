@@ -56,6 +56,8 @@ type FormFieldsEditorProps = {
   onChange: (fields: FormField[]) => void;
 };
 
+const FIELD_PREFIX_REGEX = /^field_/;
+
 function parseOptions(text: string): { label: string; value: string }[] {
   const seen = new Set<string>();
   const options: { label: string; value: string }[] = [];
@@ -64,7 +66,8 @@ function parseOptions(text: string): { label: string; value: string }[] {
     if (!label) {
       continue;
     }
-    let value = slugifyFieldKey(label).replace(/^field_/, "") || "option";
+    let value =
+      slugifyFieldKey(label).replace(FIELD_PREFIX_REGEX, "") || "option";
     let suffix = 2;
     while (seen.has(value)) {
       value = `${value}_${suffix}`;

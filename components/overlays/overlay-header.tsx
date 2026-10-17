@@ -45,7 +45,7 @@ export function OverlayHeader({
     <div className={cn("relative flex flex-col gap-1.5 p-6 pb-0", className)}>
       {/* Fixed min-height to prevent layout shift when back button appears */}
       <div className="flex min-h-8 items-center gap-2">
-        {showBackButton && (
+        {showBackButton ? (
           <Button
             aria-label="Go back"
             className="ml-[-8px] size-8 shrink-0"
@@ -55,13 +55,13 @@ export function OverlayHeader({
           >
             <ChevronLeftIcon className="size-5" />
           </Button>
-        )}
-        {title && (
+        ) : null}
+        {title ? (
           <h2 className="flex-1 font-semibold text-lg leading-none tracking-tight">
             {title}
           </h2>
-        )}
-        {showCloseButton && (
+        ) : null}
+        {showCloseButton ? (
           <Button
             aria-label="Close"
             className="absolute top-4 right-4 size-8 shrink-0 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -71,11 +71,11 @@ export function OverlayHeader({
           >
             <XIcon className="size-4" />
           </Button>
-        )}
+        ) : null}
       </div>
-      {description && (
+      {description ? (
         <p className="text-muted-foreground text-sm">{description}</p>
-      )}
+      ) : null}
     </div>
   );
 }

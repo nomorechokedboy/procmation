@@ -13,9 +13,9 @@ import { useOverlay } from "./overlay-provider";
  */
 export function OverlaySync() {
   const { stack } = useOverlay();
-  const [atomStack, setAtomStack] = useAtom(overlayStackAtom);
-  const isUpdatingFromAtom = useRef(false);
-  const isUpdatingFromContext = useRef(false);
+  const [_atomStack, setAtomStack] = useAtom(overlayStackAtom);
+  const isUpdatingFromAtom = useRef<boolean>(false);
+  const isUpdatingFromContext = useRef<boolean>(false);
 
   // Sync context -> atom
   useEffect(() => {

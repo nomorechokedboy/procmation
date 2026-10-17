@@ -106,19 +106,17 @@ export function AddConnectionOverlay({
 
     // If AI Gateway but need to fetch status first
     if (type === "ai-gateway" && aiGatewayStatus === null) {
-      api.aiGateway.getStatus().then((status) => {
+      api.aiGateway.getStatus().then(async (status) => {
         setAiGatewayStatus(status);
         if (status?.enabled && status?.isVercelUser) {
           setTeamsLoading(true);
-          api.aiGateway
-            .getTeams()
-            .then((response) => {
-              setTeams(response.teams);
-            })
-            .finally(() => {
-              setTeamsLoading(false);
-              showConsentModalWithCallbacks();
-            });
+          try {
+            const response = await api.aiGateway.getTeams();
+            setTeams(response.teams);
+          } finally {
+            setTeamsLoading(false);
+            showConsentModalWithCallbacks();
+          }
         } else {
           push(ConfigureConnectionOverlay, { onSuccess, type });
         }
@@ -224,10 +222,10 @@ function SecretField({
         type="password"
         value={value}
       />
-      {(helpText || helpLink) && (
+      {helpText || helpLink ? (
         <p className="text-muted-foreground text-xs">
           {helpText}
-          {helpLink && (
+          {helpLink ? (
             <a
               className="underline hover:text-foreground"
               href={helpLink.url}
@@ -236,9 +234,9 @@ function SecretField({
             >
               {helpLink.text}
             </a>
-          )}
+          ) : null}
         </p>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -254,7 +252,7 @@ export function ConfigureConnectionOverlay({
   const { push, closeAll } = useOverlay();
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{
+  const [_testResult, setTestResult] = useState<{
     status: "success" | "error";
     message: string;
   } | null>(null);
@@ -406,10 +404,10 @@ export function ConfigureConnectionOverlay({
             type={field.type}
             value={config[field.configKey] || ""}
           />
-          {(field.helpText || field.helpLink) && (
+          {field.helpText || field.helpLink ? (
             <p className="text-muted-foreground text-xs">
               {field.helpText}
-              {field.helpLink && (
+              {field.helpLink ? (
                 <a
                   className="underline hover:text-foreground"
                   href={field.helpLink.url}
@@ -418,9 +416,9 @@ export function ConfigureConnectionOverlay({
                 >
                   {field.helpLink.text}
                 </a>
-              )}
+              ) : null}
             </p>
-          )}
+          ) : null}
         </div>
       );
     });

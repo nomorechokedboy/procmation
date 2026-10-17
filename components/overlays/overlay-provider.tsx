@@ -89,12 +89,12 @@ export function OverlayProvider({ children }: OverlayProviderProps) {
     setStack((prev) => {
       if (prev.length <= 1) {
         // If only one item, close it and call onClose
-        const item = prev[0];
+        const [item] = prev;
         item?.options.onClose?.();
         return [];
       }
       // Pop the top item and call its onClose
-      const poppedItem = prev[prev.length - 1];
+      const poppedItem = prev.at(-1);
       poppedItem?.options.onClose?.();
       return prev.slice(0, -1);
     });
@@ -118,7 +118,7 @@ export function OverlayProvider({ children }: OverlayProviderProps) {
           return [item];
         }
         // Replace the top item
-        const poppedItem = prev[prev.length - 1];
+        const poppedItem = prev.at(-1);
         poppedItem?.options.onClose?.();
         return [...prev.slice(0, -1), item];
       });
@@ -145,7 +145,7 @@ export function OverlayProvider({ children }: OverlayProviderProps) {
       }
 
       // Call onClose for all items from this index onwards
-      for (let i = index; i < prev.length; i++) {
+      for (let i = index; i < prev.length; i += 1) {
         prev[i].options.onClose?.();
       }
       return prev.slice(0, index);

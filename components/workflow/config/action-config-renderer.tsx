@@ -151,7 +151,7 @@ function renderField(
     <div className="space-y-2" key={field.key}>
       <Label className="ml-1" htmlFor={field.key}>
         {field.label}
-        {field.required && <span className="text-red-500">*</span>}
+        {field.required ? <span className="text-red-500">*</span> : null}
       </Label>
       <FieldRenderer
         disabled={disabled}
@@ -197,13 +197,13 @@ function FieldGroup({
           }`}
         />
       </button>
-      {isExpanded && (
+      {isExpanded ? (
         <div className="ml-1 space-y-4 border-primary/50 border-l-2 py-2 pl-3">
           {fields.map((field) =>
             renderField(field, config, onUpdateConfig, disabled)
           )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

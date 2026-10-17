@@ -74,8 +74,6 @@ export type WorkflowExecutionInput = {
 /**
  * Helper to replace template variables in conditions
  */
-// biome-ignore lint/nursery/useMaxParams: Helper function needs all parameters for template replacement
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Template variable replacement requires nested logic for standardized outputs
 function replaceTemplateVariable(
   match: string,
   nodeId: string,
@@ -100,14 +98,14 @@ function replaceTemplateVariable(
   } else if (output.data === null || output.data === undefined) {
     value = undefined;
   } else {
-    const fieldPath = rest.substring(dotIndex + 1);
+    const fieldPath = rest.slice(dotIndex + 1);
     const fields = fieldPath.split(".");
     // biome-ignore lint/suspicious/noExplicitAny: Dynamic data traversal
     let current: any = output.data;
 
     // For standardized outputs { success, data, error }, automatically look inside data
     // unless explicitly accessing success/data/error
-    const firstField = fields[0];
+    const [firstField] = fields;
     if (
       current &&
       typeof current === "object" &&
@@ -324,7 +322,7 @@ function processTemplates(
           const dotIndex = rest.indexOf(".");
           if (dotIndex === -1) {
             // No field path, return the entire output data
-            const data = output.data;
+            const { data } = output;
             if (data === null || data === undefined) {
               // Return empty string for null/undefined data (e.g., from disabled nodes)
               return "";
@@ -340,14 +338,14 @@ function processTemplates(
             return "";
           }
 
-          const fieldPath = rest.substring(dotIndex + 1);
+          const fieldPath = rest.slice(dotIndex + 1);
           const fields = fieldPath.split(".");
           // biome-ignore lint/suspicious/noExplicitAny: Dynamic output data traversal
           let current: any = output.data;
 
           // For standardized outputs { success, data, error }, automatically look inside data
           // unless explicitly accessing success/data/error
-          const firstField = fields[0];
+          const [firstField] = fields;
           if (
             current &&
             typeof current === "object" &&
@@ -755,8 +753,9 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
 
         if (isConditionNode) {
           // Condition nodes follow the true or false exit
-          const conditionResult = (result.data as { condition?: boolean })
-            ?.condition;
+          const conditionResult = (
+            result.data as { condition?: boolean } | null | undefined
+          )?.condition;
           console.log(
             "[Workflow Executor] Condition node result:",
             conditionResult

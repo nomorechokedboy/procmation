@@ -703,7 +703,7 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
         )}
 
         {/* Preload Code tab - always render but hide when not active */}
-        {showCodeTab && (
+        {showCodeTab ? (
           <div
             className={`flex flex-col ${activeTab === "code" ? "" : "invisible absolute -z-10"}`}
           >
@@ -748,7 +748,7 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
               />
             </div>
           </div>
-        )}
+        ) : null}
 
         {activeTab === "runs" && isOwner && (
           <div className="flex h-full flex-col">
@@ -799,7 +799,7 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
           <Settings2 className="size-5" />
           Properties
         </button>
-        {showCodeTab && (
+        {showCodeTab ? (
           <button
             className={`flex flex-1 flex-col items-center gap-1 py-3 font-medium text-xs transition-colors ${
               activeTab === "code" ? "text-foreground" : "text-muted-foreground"
@@ -810,7 +810,7 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
             <Code className="size-5" />
             Code
           </button>
-        )}
+        ) : null}
         {isOwner && (
           <button
             className={`flex flex-1 flex-col items-center gap-1 py-3 font-medium text-xs transition-colors ${

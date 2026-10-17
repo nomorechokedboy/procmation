@@ -20,7 +20,7 @@ export function IntegrationsOverlay({ overlayId }: IntegrationsOverlayProps) {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
   const setIntegrationsVersion = useSetAtom(integrationsVersionAtom);
-  const hasChangesRef = useRef(false);
+  const hasChangesRef = useRef<boolean>(false);
 
   const loadAll = useCallback(async () => {
     setLoading(true);

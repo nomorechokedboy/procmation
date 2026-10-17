@@ -128,8 +128,8 @@ export async function GET(
       return new Response("Workflow is private", { status: 403 });
     }
 
-    const nodes = workflow.nodes || [];
-    const edges = workflow.edges || [];
+    const { nodes } = workflow;
+    const { edges } = workflow;
 
     const width = 1200;
     const height = 630;

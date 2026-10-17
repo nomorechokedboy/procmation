@@ -10,19 +10,19 @@ const MAX_DEPTH = 50;
 
 // True when making `candidateParentId` the parent of `departmentId` would loop
 async function createsCycle(departmentId: string, candidateParentId: string) {
-  let current: string | null = candidateParentId;
-  for (let depth = 0; current && depth < MAX_DEPTH; depth += 1) {
-    if (current === departmentId) {
-      return true;
-    }
-    const [row] = await db
-      .select({ parentId: departments.parentId })
-      .from(departments)
-      .where(eq(departments.id, current))
-      .limit(1);
-    current = row?.parentId ?? null;
-  }
-  return false;
+  // Walk up from the candidate parent; reaching the department means a loop
+  const found = await db.execute(sql`
+    WITH RECURSIVE ancestors(id, parent_id, depth) AS (
+      SELECT id, parent_id, 1 FROM departments WHERE id = ${candidateParentId}
+      UNION ALL
+      SELECT d.id, d.parent_id, a.depth + 1
+      FROM departments d
+      JOIN ancestors a ON d.id = a.parent_id
+      WHERE a.depth < ${MAX_DEPTH}
+    )
+    SELECT 1 FROM ancestors WHERE id = ${departmentId} LIMIT 1
+  `);
+  return found.length > 0;
 }
 
 export async function PATCH(
