@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
+import { useInputChange } from "@/hooks/use-input-change";
 import { ConfirmOverlay } from "./confirm-overlay";
 import { Overlay } from "./overlay";
 import { useOverlay } from "./overlay-provider";
@@ -38,6 +39,7 @@ function CreateApiKeyOverlay({
   const { pop } = useOverlay();
   const [keyName, setKeyName] = useState("");
   const [creating, setCreating] = useState(false);
+  const handleKeyNameChange = useInputChange(setKeyName);
 
   const handleCreate = async () => {
     setCreating(true);
@@ -80,7 +82,7 @@ function CreateApiKeyOverlay({
         <Label htmlFor="key-name">Label (optional)</Label>
         <Input
           id="key-name"
-          onChange={(e) => setKeyName(e.target.value)}
+          onChange={handleKeyNameChange}
           placeholder="e.g., Production, Testing"
           value={keyName}
         />

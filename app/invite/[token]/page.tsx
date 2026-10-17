@@ -7,6 +7,7 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useInputChange } from "@/hooks/use-input-change";
 import { api } from "@/lib/api-client";
 import { signIn } from "@/lib/auth-client";
 import * as m from "@/paraglide/messages";
@@ -24,6 +25,8 @@ export default function InvitePage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const handleNameChange = useInputChange(setName);
+  const handlePasswordChange = useInputChange(setPassword);
 
   useEffect(() => {
     api.invite
@@ -93,7 +96,7 @@ export default function InvitePage() {
           <Input
             autoComplete="name"
             id="name"
-            onChange={(event) => setName(event.target.value)}
+            onChange={handleNameChange}
             required
             value={name}
           />
@@ -104,7 +107,7 @@ export default function InvitePage() {
             autoComplete="new-password"
             id="password"
             minLength={8}
-            onChange={(event) => setPassword(event.target.value)}
+            onChange={handlePasswordChange}
             required
             type="password"
             value={password}

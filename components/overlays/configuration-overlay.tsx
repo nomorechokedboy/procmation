@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { CodeEditor } from "@/components/ui/code-editor";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useStableCallback } from "@/hooks/use-stable-callback";
 import { api } from "@/lib/api-client";
 import { integrationsAtom } from "@/lib/integrations-store";
 import type { IntegrationType } from "@/lib/types/integration";
@@ -225,15 +226,15 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
     toast.success("Code copied to clipboard");
   }, [selectedNode]);
 
-  const handleRefreshRuns = async () => {
+  const handleRefreshRuns = useStableCallback(async () => {
     if (refreshRunsRef.current) {
       setIsRefreshing(true);
       await refreshRunsRef.current();
       setIsRefreshing(false);
     }
-  };
+  });
 
-  const handleDeleteAllRuns = () => {
+  const handleDeleteAllRuns = useStableCallback(() => {
     push(ConfirmOverlay, {
       confirmLabel: "Delete",
       confirmVariant: "destructive" as const,
@@ -257,7 +258,7 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
       },
       title: "Delete All Runs",
     });
-  };
+  });
 
   // Determine which tabs to show (only for node view)
   const showCodeTab =
@@ -313,7 +314,7 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
   };
 
   // Handle clear workflow
-  const handleClearWorkflow = () => {
+  const handleClearWorkflow = useStableCallback(() => {
     push(ConfirmOverlay, {
       confirmLabel: "Clear Workflow",
       confirmVariant: "destructive" as const,
@@ -325,10 +326,10 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
       },
       title: "Clear Workflow",
     });
-  };
+  });
 
   // Handle delete workflow
-  const handleDeleteWorkflow = () => {
+  const handleDeleteWorkflow = useStableCallback(() => {
     push(ConfirmOverlay, {
       confirmLabel: "Delete Workflow",
       confirmVariant: "destructive" as const,
@@ -350,7 +351,7 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
       },
       title: "Delete Workflow",
     });
-  };
+  });
 
   // Generate full workflow code
   const workflowCode = (() => {
@@ -369,13 +370,13 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
   })();
 
   // Handle copy workflow code
-  const handleCopyWorkflowCode = () => {
+  const handleCopyWorkflowCode = useStableCallback(() => {
     navigator.clipboard.writeText(workflowCode);
     toast.success("Code copied to clipboard");
-  };
+  });
 
   // Handle delete edge
-  const handleDeleteEdge = () => {
+  const handleDeleteEdge = useStableCallback(() => {
     if (selectedEdgeId) {
       push(ConfirmOverlay, {
         confirmLabel: "Delete",
@@ -389,7 +390,7 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
         title: "Delete Connection",
       });
     }
-  };
+  });
 
   // If an edge is selected, show edge properties
   if (selectedEdge && !selectedNode) {

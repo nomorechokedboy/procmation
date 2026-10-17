@@ -15,6 +15,7 @@ import {
 import Image from "next/image";
 import type { JSX } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useStableCallback } from "@/hooks/use-stable-callback";
 import { api } from "@/lib/api-client";
 import {
   OUTPUT_DISPLAY_CONFIGS,
@@ -179,7 +180,7 @@ function CopyButton({
 }) {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = async (e: React.MouseEvent) => {
+  const handleCopy = useStableCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
       const text = isError ? String(data) : JSON.stringify(data, null, 2);
@@ -189,7 +190,7 @@ function CopyButton({
     } catch (error) {
       console.error("Failed to copy:", error);
     }
-  };
+  });
 
   return (
     <Button
@@ -753,7 +754,7 @@ export function WorkflowRuns({
     setExpandedLogs(newExpanded);
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = useStableCallback((status: string) => {
     switch (status) {
       case "success":
         return <Check className="h-3 w-3 text-white" />;
@@ -764,9 +765,9 @@ export function WorkflowRuns({
       default:
         return <Clock className="h-3 w-3 text-white" />;
     }
-  };
+  });
 
-  const getStatusDotClass = (status: string) => {
+  const getStatusDotClass = useStableCallback((status: string) => {
     switch (status) {
       case "success":
         return "bg-green-600";
@@ -777,7 +778,7 @@ export function WorkflowRuns({
       default:
         return "bg-muted-foreground";
     }
-  };
+  });
 
   if (loading) {
     return (

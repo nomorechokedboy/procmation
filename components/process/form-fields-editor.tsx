@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useStableCallback } from "@/hooks/use-stable-callback";
 import { slugifyFieldKey } from "@/lib/process-form-validation";
 import type { FormField, FormFieldType } from "@/lib/types/process-form";
 import * as m from "@/paraglide/messages";
@@ -166,7 +167,7 @@ export function FormFieldsEditor({
     );
   };
 
-  const addField = () => {
+  const addField = useStableCallback(() => {
     commit([
       ...rows,
       {
@@ -180,7 +181,7 @@ export function FormFieldsEditor({
       },
     ]);
     setNextUid(nextUid + 1);
-  };
+  });
 
   const move = (index: number, direction: -1 | 1) => {
     const target = index + direction;

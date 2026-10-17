@@ -20,6 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useInputChange } from "@/hooks/use-input-change";
+import { useStableCallback } from "@/hooks/use-stable-callback";
 import { api, type Department, type Member } from "@/lib/api-client";
 import * as m from "@/paraglide/messages";
 
@@ -44,8 +46,9 @@ export function MemberProfileDialog({
   const [managerId, setManagerId] = useState(member.managerId ?? NONE);
   const [jobTitle, setJobTitle] = useState(member.jobTitle ?? "");
   const [saving, setSaving] = useState(false);
+  const handleJobTitleChange = useInputChange(setJobTitle);
 
-  const handleSubmit = async (event: FormEvent) => {
+  const handleSubmit = useStableCallback(async (event: FormEvent) => {
     event.preventDefault();
     setSaving(true);
     try {
@@ -61,10 +64,15 @@ export function MemberProfileDialog({
       toast.error(err instanceof Error ? err.message : m.common_save_failed());
       setSaving(false);
     }
-  };
+  });
+  const handleOpenChange = useStableCallback((open: boolean) => {
+    if (!open) {
+      onClose();
+    }
+  });
 
   return (
-    <Dialog onOpenChange={(open) => !open && onClose()} open>
+    <Dialog onOpenChange={handleOpenChange} open>
       <DialogContent>
         <form className="space-y-4" onSubmit={handleSubmit}>
           <DialogHeader>
@@ -79,7 +87,7 @@ export function MemberProfileDialog({
             <Input
               id="job-title"
               maxLength={100}
-              onChange={(event) => setJobTitle(event.target.value)}
+              onChange={handleJobTitleChange}
               value={jobTitle}
             />
           </div>

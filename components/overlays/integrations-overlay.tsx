@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { IntegrationsManager } from "@/components/settings/integrations-manager";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import { useInputChange } from "@/hooks/use-input-change";
 import { integrationsVersionAtom } from "@/lib/integrations-store";
 import { AddConnectionOverlay } from "./add-connection-overlay";
 import { Overlay } from "./overlay";
@@ -20,6 +21,7 @@ export function IntegrationsOverlay({ overlayId }: IntegrationsOverlayProps) {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
   const setIntegrationsVersion = useSetAtom(integrationsVersionAtom);
+  const handleFilterChange = useInputChange(setFilter);
   const hasChangesRef = useRef<boolean>(false);
 
   const loadAll = useCallback(async () => {
@@ -81,7 +83,7 @@ export function IntegrationsOverlay({ overlayId }: IntegrationsOverlayProps) {
             <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               className="pl-9"
-              onChange={(e) => setFilter(e.target.value)}
+              onChange={handleFilterChange}
               placeholder="Filter connections..."
               value={filter}
             />

@@ -6,6 +6,7 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useInputChange } from "@/hooks/use-input-change";
 import { api } from "@/lib/api-client";
 import { signIn } from "@/lib/auth-client";
 import * as m from "@/paraglide/messages";
@@ -16,6 +17,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const handleEmailChange = useInputChange(setEmail);
+  const handlePasswordChange = useInputChange(setPassword);
 
   // A fresh install has no admin yet, so send the visitor to first-run setup
   useEffect(() => {
@@ -55,7 +58,7 @@ export default function LoginPage() {
           <Input
             autoComplete="email"
             id="email"
-            onChange={(event) => setEmail(event.target.value)}
+            onChange={handleEmailChange}
             required
             type="email"
             value={email}
@@ -66,7 +69,7 @@ export default function LoginPage() {
           <Input
             autoComplete="current-password"
             id="password"
-            onChange={(event) => setPassword(event.target.value)}
+            onChange={handlePasswordChange}
             required
             type="password"
             value={password}

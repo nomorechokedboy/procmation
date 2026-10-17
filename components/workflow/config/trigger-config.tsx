@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TimezoneSelect } from "@/components/ui/timezone-select";
+import { useStableCallback } from "@/hooks/use-stable-callback";
 import { SchemaBuilder, type SchemaField } from "./schema-builder";
 
 type TriggerConfigProps = {
@@ -33,12 +34,12 @@ export function TriggerConfig({
     ? `${typeof window === "undefined" ? "" : window.location.origin}/api/workflows/${workflowId}/webhook`
     : "";
 
-  const handleCopyWebhookUrl = () => {
+  const handleCopyWebhookUrl = useStableCallback(() => {
     if (webhookUrl) {
       navigator.clipboard.writeText(webhookUrl);
       toast.success("Webhook URL copied to clipboard");
     }
-  };
+  });
 
   return (
     <>
