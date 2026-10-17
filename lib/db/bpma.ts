@@ -1,6 +1,16 @@
 import "server-only";
 
-import { and, desc, eq, inArray, isNull, or, type SQL, sql } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  getTableColumns,
+  inArray,
+  isNull,
+  or,
+  type SQL,
+  sql,
+} from "drizzle-orm";
 import { pushNotificationToUser } from "@/lib/notifications/sse-hub";
 import type { FormField } from "@/lib/types/process-form";
 import { db } from "./index";
@@ -247,10 +257,24 @@ export async function getDepartmentIdOf(userId: string) {
 }
 
 // Tasks assigned to the user, plus unclaimed tasks of the user's department
+// A task together with the case it belongs to, for lists and the task page
+export type TaskWithCase = Task & {
+  caseId: string | null;
+  caseNumber: string | null;
+  caseTitle: string | null;
+};
+
+const taskWithCaseSelection = {
+  ...getTableColumns(tasks),
+  caseId: cases.id,
+  caseNumber: cases.caseNumber,
+  caseTitle: cases.title,
+};
+
 export async function listTasksForUser(
   userId: string,
   status?: TaskStatus
-): Promise<Task[]> {
+): Promise<TaskWithCase[]> {
   const departmentId = await getDepartmentIdOf(userId);
 
   const mine = departmentId
@@ -264,14 +288,19 @@ export async function listTasksForUser(
     : eq(tasks.assigneeId, userId);
 
   return db
-    .select()
+    .select(taskWithCaseSelection)
     .from(tasks)
+    .leftJoin(cases, eq(cases.processInstanceId, tasks.instanceId))
     .where(status ? and(mine, eq(tasks.status, status)) : mine)
     .orderBy(desc(tasks.createdAt));
 }
 
-export async function getTask(id: string): Promise<Task | null> {
-  const [found] = await db.select().from(tasks).where(eq(tasks.id, id));
+export async function getTask(id: string): Promise<TaskWithCase | null> {
+  const [found] = await db
+    .select(taskWithCaseSelection)
+    .from(tasks)
+    .leftJoin(cases, eq(cases.processInstanceId, tasks.instanceId))
+    .where(eq(tasks.id, id));
   return found ?? null;
 }
 
