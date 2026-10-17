@@ -22,6 +22,7 @@ import { nanoid } from "nanoid";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { Bound } from "@/components/ui/bound";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import {
@@ -951,6 +952,13 @@ function ToolbarActions({
   state: ReturnType<typeof useWorkflowState>;
   actions: ReturnType<typeof useWorkflowActions>;
 }) {
+  const handleOnClickH1 = useStableCallback(() => state.undo());
+  const handleOnClickH2 = useStableCallback(() => state.redo());
+  const handleOnClickH3 = useStableCallback(() => state.undo());
+  const handleOnClickH4 = useStableCallback(() => state.redo());
+  const handleOnClickH10 = useStableCallback(() =>
+    openOverlay(ConfigurationOverlay, {})
+  );
   const { open: openOverlay, push } = useOverlay();
   const [selectedNodeId] = useAtom(selectedNodeAtom);
   const [selectedEdgeId] = useAtom(selectedEdgeAtom);
@@ -1078,7 +1086,7 @@ function ToolbarActions({
       <ButtonGroup className="flex lg:hidden" orientation="vertical">
         <Button
           className="border hover:bg-black/5 dark:hover:bg-white/5"
-          onClick={() => openOverlay(ConfigurationOverlay, {})}
+          onClick={handleOnClickH10}
           size="icon"
           title="Configuration"
           variant="secondary"
@@ -1118,7 +1126,7 @@ function ToolbarActions({
         <Button
           className="border hover:bg-black/5 disabled:opacity-100 dark:hover:bg-white/5 disabled:[&>svg]:text-muted-foreground"
           disabled={!state.canUndo || state.isGenerating}
-          onClick={() => state.undo()}
+          onClick={handleOnClickH1}
           size="icon"
           title="Undo"
           variant="secondary"
@@ -1128,7 +1136,7 @@ function ToolbarActions({
         <Button
           className="border hover:bg-black/5 disabled:opacity-100 dark:hover:bg-white/5 disabled:[&>svg]:text-muted-foreground"
           disabled={!state.canRedo || state.isGenerating}
-          onClick={() => state.redo()}
+          onClick={handleOnClickH2}
           size="icon"
           title="Redo"
           variant="secondary"
@@ -1142,7 +1150,7 @@ function ToolbarActions({
         <Button
           className="border hover:bg-black/5 disabled:opacity-100 dark:hover:bg-white/5 disabled:[&>svg]:text-muted-foreground"
           disabled={!state.canUndo || state.isGenerating}
-          onClick={() => state.undo()}
+          onClick={handleOnClickH3}
           size="icon"
           title="Undo"
           variant="secondary"
@@ -1152,7 +1160,7 @@ function ToolbarActions({
         <Button
           className="border hover:bg-black/5 disabled:opacity-100 dark:hover:bg-white/5 disabled:[&>svg]:text-muted-foreground"
           disabled={!state.canRedo || state.isGenerating}
-          onClick={() => state.redo()}
+          onClick={handleOnClickH4}
           size="icon"
           title="Redo"
           variant="secondary"
@@ -1268,6 +1276,12 @@ function VisibilityButton({
   state: ReturnType<typeof useWorkflowState>;
   actions: ReturnType<typeof useWorkflowActions>;
 }) {
+  const handleOnClickH5 = useStableCallback(() =>
+    actions.handleToggleVisibility("private")
+  );
+  const handleOnClickH6 = useStableCallback(() =>
+    actions.handleToggleVisibility("public")
+  );
   const isPublic = state.workflowVisibility === "public";
 
   return (
@@ -1290,7 +1304,7 @@ function VisibilityButton({
       <DropdownMenuContent align="end">
         <DropdownMenuItem
           className="flex items-center gap-2"
-          onClick={() => actions.handleToggleVisibility("private")}
+          onClick={handleOnClickH5}
         >
           <Lock className="size-4" />
           Private
@@ -1298,7 +1312,7 @@ function VisibilityButton({
         </DropdownMenuItem>
         <DropdownMenuItem
           className="flex items-center gap-2"
-          onClick={() => actions.handleToggleVisibility("public")}
+          onClick={handleOnClickH6}
         >
           <Globe className="size-4" />
           Public
@@ -1317,13 +1331,14 @@ function RunButtonGroup({
   state: ReturnType<typeof useWorkflowState>;
   actions: ReturnType<typeof useWorkflowActions>;
 }) {
+  const handleOnClickH7 = useStableCallback(() => actions.handleExecute());
   return (
     <Button
       className="border hover:bg-black/5 disabled:opacity-100 dark:hover:bg-white/5 disabled:[&>svg]:text-muted-foreground"
       disabled={
         state.isExecuting || state.nodes.length === 0 || state.isGenerating
       }
-      onClick={() => actions.handleExecute()}
+      onClick={handleOnClickH7}
       size="icon"
       title="Run Workflow"
       variant="secondary"
@@ -1374,10 +1389,16 @@ function WorkflowMenuComponent({
   state: ReturnType<typeof useWorkflowState>;
   actions: ReturnType<typeof useWorkflowActions>;
 }) {
+  const handleOnOpenChangeH8 = useStableCallback(
+    (open: boolean) => open && actions.loadWorkflows()
+  );
+  const openWorkflow = useStableCallback((id: string) =>
+    state.router.push(`/workflows/${id}`)
+  );
   return (
     <div className="flex flex-col gap-1">
       <div className="flex h-9 max-w-[160px] items-center overflow-hidden rounded-md border bg-secondary text-secondary-foreground sm:max-w-none">
-        <DropdownMenu onOpenChange={(open) => open && actions.loadWorkflows()}>
+        <DropdownMenu onOpenChange={handleOnOpenChangeH8}>
           <DropdownMenuTrigger className="flex h-full cursor-pointer items-center gap-2 px-3 font-medium text-sm transition-all hover:bg-black/5 dark:hover:bg-white/5">
             <WorkflowIcon className="size-4 shrink-0" />
             <p className="truncate font-medium text-sm">
@@ -1409,18 +1430,23 @@ function WorkflowMenuComponent({
               state.allWorkflows
                 .filter((w) => w.name !== "__current__")
                 .map((workflow) => (
-                  <DropdownMenuItem
-                    className="flex items-center justify-between"
+                  <Bound
+                    args={[workflow.id]}
+                    fn={openWorkflow}
                     key={workflow.id}
-                    onClick={() =>
-                      state.router.push(`/workflows/${workflow.id}`)
-                    }
                   >
-                    <span className="truncate">{workflow.name}</span>
-                    {workflow.id === state.currentWorkflowId && (
-                      <Check className="size-4 shrink-0" />
+                    {(onOpen) => (
+                      <DropdownMenuItem
+                        className="flex items-center justify-between"
+                        onClick={onOpen}
+                      >
+                        <span className="truncate">{workflow.name}</span>
+                        {workflow.id === state.currentWorkflowId && (
+                          <Check className="size-4 shrink-0" />
+                        )}
+                      </DropdownMenuItem>
                     )}
-                  </DropdownMenuItem>
+                  </Bound>
                 ))
             )}
           </DropdownMenuContent>

@@ -8,9 +8,11 @@ import {
   EditConnectionOverlay,
 } from "@/components/overlays/edit-connection-overlay";
 import { useOverlay } from "@/components/overlays/overlay-provider";
+import { Bound } from "@/components/ui/bound";
 import { Button } from "@/components/ui/button";
 import { IntegrationIcon } from "@/components/ui/integration-icon";
 import { Spinner } from "@/components/ui/spinner";
+import { useStableCallback } from "@/hooks/use-stable-callback";
 import { api, type Integration } from "@/lib/api-client";
 import { getIntegrationLabels } from "@/plugins";
 
@@ -82,7 +84,7 @@ export function IntegrationsManager({
       });
   }, [integrations, filter]);
 
-  const handleEdit = (integration: Integration) => {
+  const handleEdit = useStableCallback((integration: Integration) => {
     push(EditConnectionOverlay, {
       integration,
       onDelete: () => {
@@ -94,9 +96,9 @@ export function IntegrationsManager({
         onIntegrationChange?.();
       },
     });
-  };
+  });
 
-  const handleDelete = (integration: Integration) => {
+  const handleDelete = useStableCallback((integration: Integration) => {
     push(DeleteConnectionOverlay, {
       integration,
       onSuccess: () => {
@@ -104,9 +106,9 @@ export function IntegrationsManager({
         onIntegrationChange?.();
       },
     });
-  };
+  });
 
-  const handleTest = async (id: string) => {
+  const handleTest = useStableCallback(async (id: string) => {
     try {
       setTestingId(id);
       const result = await api.integration.testConnection(id);
@@ -124,7 +126,7 @@ export function IntegrationsManager({
     } finally {
       setTestingId(null);
     }
-  };
+  });
 
   if (loading) {
     return (
@@ -177,35 +179,47 @@ export function IntegrationsManager({
               </span>
             </div>
             <div className="flex items-center gap-1">
-              <Button
-                className="h-7 px-2"
-                disabled={testingId === integration.id}
-                onClick={() => handleTest(integration.id)}
-                size="sm"
-                variant="outline"
-              >
-                {testingId === integration.id ? (
-                  <Spinner className="size-3" />
-                ) : (
-                  <span className="text-xs">Test</span>
+              <Bound args={[integration.id]} fn={handleTest}>
+                {(onTest) => (
+                  <Button
+                    className="h-7 px-2"
+                    disabled={testingId === integration.id}
+                    onClick={onTest}
+                    size="sm"
+                    variant="outline"
+                  >
+                    {testingId === integration.id ? (
+                      <Spinner className="size-3" />
+                    ) : (
+                      <span className="text-xs">Test</span>
+                    )}
+                  </Button>
                 )}
-              </Button>
-              <Button
-                className="size-7"
-                onClick={() => handleEdit(integration)}
-                size="icon"
-                variant="outline"
-              >
-                <Pencil className="size-3" />
-              </Button>
-              <Button
-                className="size-7"
-                onClick={() => handleDelete(integration)}
-                size="icon"
-                variant="outline"
-              >
-                <Trash2 className="size-3" />
-              </Button>
+              </Bound>
+              <Bound args={[integration]} fn={handleEdit}>
+                {(onEdit) => (
+                  <Button
+                    className="size-7"
+                    onClick={onEdit}
+                    size="icon"
+                    variant="outline"
+                  >
+                    <Pencil className="size-3" />
+                  </Button>
+                )}
+              </Bound>
+              <Bound args={[integration]} fn={handleDelete}>
+                {(onDelete) => (
+                  <Button
+                    className="size-7"
+                    onClick={onDelete}
+                    size="icon"
+                    variant="outline"
+                  >
+                    <Trash2 className="size-3" />
+                  </Button>
+                )}
+              </Bound>
             </div>
           </div>
         ))}

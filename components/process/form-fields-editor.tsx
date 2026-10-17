@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { type ChangeEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -100,6 +100,12 @@ function OptionsInput({
   options: { label: string; value: string }[];
   onChange: (options: { label: string; value: string }[]) => void;
 }) {
+  const handleOnChangeH8 = useStableCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      setText(event.target.value);
+      onChange(parseOptions(event.target.value));
+    }
+  );
   // Keep the raw text so typing a trailing comma is not swallowed
   const [text, setText] = useState(
     options.map((option) => option.label).join(", ")
@@ -108,13 +114,133 @@ function OptionsInput({
   return (
     <Input
       aria-label={m.form_fields_options_label()}
-      onChange={(event) => {
-        setText(event.target.value);
-        onChange(parseOptions(event.target.value));
-      }}
+      onChange={handleOnChangeH8}
       placeholder={m.form_fields_options_placeholder()}
       value={text}
     />
+  );
+}
+
+type FieldRowProps = {
+  row: Row;
+  index: number;
+  isLast: boolean;
+  onLabelChange: (row: Row, label: string) => void;
+  onTypeChange: (uid: number, type: string) => void;
+  onRequiredChange: (uid: number, checked: boolean | "indeterminate") => void;
+  onMove: (index: number, direction: -1 | 1) => void;
+  onRemove: (uid: number) => void;
+  onOptionsChange: (uid: number, changes: Partial<FormField>) => void;
+};
+
+function FieldRow({
+  row,
+  index,
+  isLast,
+  onLabelChange,
+  onTypeChange,
+  onRequiredChange,
+  onMove,
+  onRemove,
+  onOptionsChange,
+}: FieldRowProps) {
+  const handleLabel = useStableCallback(
+    (event: ChangeEvent<HTMLInputElement>) =>
+      onLabelChange(row, event.target.value)
+  );
+  const handleType = useStableCallback((type: string) =>
+    onTypeChange(row.uid, type)
+  );
+  const handleRequired = useStableCallback(
+    (checked: boolean | "indeterminate") => onRequiredChange(row.uid, checked)
+  );
+  const handleMoveUp = useStableCallback(() => onMove(index, -1));
+  const handleMoveDown = useStableCallback(() => onMove(index, 1));
+  const handleRemove = useStableCallback(() => onRemove(row.uid));
+  const handleOptions = useStableCallback(
+    (options: { label: string; value: string }[]) =>
+      onOptionsChange(row.uid, { options })
+  );
+
+  return (
+    <div className="space-y-2 rounded-md border p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          aria-label={m.form_fields_label_aria()}
+          className="min-w-40 flex-1"
+          onChange={handleLabel}
+          placeholder={m.form_fields_label_placeholder()}
+          value={row.field.label}
+        />
+        <Select onValueChange={handleType} value={row.field.type}>
+          <SelectTrigger
+            aria-label={m.form_fields_type_aria()}
+            className="w-36"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {FIELD_TYPES.map((type) => (
+              <SelectItem key={type} value={type}>
+                {typeLabel(type)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="flex items-center gap-2">
+          <Checkbox
+            checked={row.field.required === true}
+            id={`required-${row.uid}`}
+            onCheckedChange={handleRequired}
+          />
+          <Label className="text-sm" htmlFor={`required-${row.uid}`}>
+            {m.form_fields_required()}
+          </Label>
+        </div>
+        <div className="flex">
+          <Button
+            aria-label={m.form_fields_move_up()}
+            disabled={index === 0}
+            onClick={handleMoveUp}
+            size="icon"
+            type="button"
+            variant="ghost"
+          >
+            <ChevronUp className="size-4" />
+          </Button>
+          <Button
+            aria-label={m.form_fields_move_down()}
+            disabled={isLast}
+            onClick={handleMoveDown}
+            size="icon"
+            type="button"
+            variant="ghost"
+          >
+            <ChevronDown className="size-4" />
+          </Button>
+          <Button
+            aria-label={m.form_fields_remove()}
+            onClick={handleRemove}
+            size="icon"
+            type="button"
+            variant="ghost"
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        </div>
+      </div>
+
+      {row.field.type === "select" ? (
+        <OptionsInput
+          onChange={handleOptions}
+          options={row.field.options ?? []}
+        />
+      ) : null}
+
+      <p className="text-muted-foreground text-xs">
+        {m.form_fields_key({ key: row.field.key })}
+      </p>
+    </div>
   );
 }
 
@@ -136,25 +262,27 @@ export function FormFieldsEditor({
     onChange(updated.map((row) => row.field));
   };
 
-  const updateField = (uid: number, changes: Partial<FormField>) => {
-    commit(
-      rows.map((row) => {
-        if (row.uid !== uid) {
-          return row;
-        }
-        const field = { ...row.field, ...changes };
-        if (changes.type && changes.type !== "select") {
-          field.options = undefined;
-        }
-        if (changes.type === "select" && !field.options) {
-          field.options = [];
-        }
-        return { ...row, field };
-      })
-    );
-  };
+  const updateField = useStableCallback(
+    (uid: number, changes: Partial<FormField>) => {
+      commit(
+        rows.map((row) => {
+          if (row.uid !== uid) {
+            return row;
+          }
+          const field = { ...row.field, ...changes };
+          if (changes.type && changes.type !== "select") {
+            field.options = undefined;
+          }
+          if (changes.type === "select" && !field.options) {
+            field.options = [];
+          }
+          return { ...row, field };
+        })
+      );
+    }
+  );
 
-  const handleLabelChange = (row: Row, label: string) => {
+  const handleLabelChange = useStableCallback((row: Row, label: string) => {
     const key = row.keyLocked
       ? row.field.key
       : uniqueKey(slugifyFieldKey(label), rows, row.uid);
@@ -165,7 +293,7 @@ export function FormFieldsEditor({
           : item
       )
     );
-  };
+  });
 
   const addField = useStableCallback(() => {
     commit([
@@ -183,7 +311,18 @@ export function FormFieldsEditor({
     setNextUid(nextUid + 1);
   });
 
-  const move = (index: number, direction: -1 | 1) => {
+  const changeType = useStableCallback((uid: number, type: string) =>
+    updateField(uid, { type: type as FormFieldType })
+  );
+  const changeRequired = useStableCallback(
+    (uid: number, checked: boolean | "indeterminate") =>
+      updateField(uid, { required: checked === true })
+  );
+  const removeField = useStableCallback((uid: number) =>
+    commit(rows.filter((item) => item.uid !== uid))
+  );
+
+  const move = useStableCallback((index: number, direction: -1 | 1) => {
     const target = index + direction;
     if (target < 0 || target >= rows.length) {
       return;
@@ -191,7 +330,7 @@ export function FormFieldsEditor({
     const updated = [...rows];
     [updated[index], updated[target]] = [updated[target], updated[index]];
     commit(updated);
-  };
+  });
 
   return (
     <div className="space-y-3">
@@ -200,93 +339,18 @@ export function FormFieldsEditor({
       ) : null}
 
       {rows.map((row, index) => (
-        <div className="space-y-2 rounded-md border p-3" key={row.uid}>
-          <div className="flex flex-wrap items-center gap-2">
-            <Input
-              aria-label={m.form_fields_label_aria()}
-              className="min-w-40 flex-1"
-              onChange={(event) => handleLabelChange(row, event.target.value)}
-              placeholder={m.form_fields_label_placeholder()}
-              value={row.field.label}
-            />
-            <Select
-              onValueChange={(type) =>
-                updateField(row.uid, { type: type as FormFieldType })
-              }
-              value={row.field.type}
-            >
-              <SelectTrigger
-                aria-label={m.form_fields_type_aria()}
-                className="w-36"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {FIELD_TYPES.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {typeLabel(type)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                checked={row.field.required === true}
-                id={`required-${row.uid}`}
-                onCheckedChange={(checked) =>
-                  updateField(row.uid, { required: checked === true })
-                }
-              />
-              <Label className="text-sm" htmlFor={`required-${row.uid}`}>
-                {m.form_fields_required()}
-              </Label>
-            </div>
-            <div className="flex">
-              <Button
-                aria-label={m.form_fields_move_up()}
-                disabled={index === 0}
-                onClick={() => move(index, -1)}
-                size="icon"
-                type="button"
-                variant="ghost"
-              >
-                <ChevronUp className="size-4" />
-              </Button>
-              <Button
-                aria-label={m.form_fields_move_down()}
-                disabled={index === rows.length - 1}
-                onClick={() => move(index, 1)}
-                size="icon"
-                type="button"
-                variant="ghost"
-              >
-                <ChevronDown className="size-4" />
-              </Button>
-              <Button
-                aria-label={m.form_fields_remove()}
-                onClick={() =>
-                  commit(rows.filter((item) => item.uid !== row.uid))
-                }
-                size="icon"
-                type="button"
-                variant="ghost"
-              >
-                <Trash2 className="size-4" />
-              </Button>
-            </div>
-          </div>
-
-          {row.field.type === "select" ? (
-            <OptionsInput
-              onChange={(options) => updateField(row.uid, { options })}
-              options={row.field.options ?? []}
-            />
-          ) : null}
-
-          <p className="text-muted-foreground text-xs">
-            {m.form_fields_key({ key: row.field.key })}
-          </p>
-        </div>
+        <FieldRow
+          index={index}
+          isLast={index === rows.length - 1}
+          key={row.uid}
+          onLabelChange={handleLabelChange}
+          onMove={move}
+          onOptionsChange={updateField}
+          onRemove={removeField}
+          onRequiredChange={changeRequired}
+          onTypeChange={changeType}
+          row={row}
+        />
       ))}
 
       <Button onClick={addField} size="sm" type="button" variant="outline">

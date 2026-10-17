@@ -13,6 +13,7 @@ import {
   Settings2,
   Trash2,
 } from "lucide-react";
+import type { ChangeEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ConfirmOverlay } from "@/components/overlays/confirm-overlay";
@@ -84,6 +85,29 @@ type ConfigurationOverlayProps = OverlayComponentProps;
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Complex UI logic with multiple conditions
 export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
+  const handleOnChangeH1 = useStableCallback(
+    (e: ChangeEvent<HTMLInputElement>) =>
+      handleUpdateWorkflowName(e.target.value)
+  );
+  const handleOnClickH2 = useStableCallback(() => setActiveTab("properties"));
+  const handleOnClickH3 = useStableCallback(() => setActiveTab("code"));
+  const handleOnClickH4 = useStableCallback(() => setActiveTab("runs"));
+  const handleOnSelectActionH5 = useStableCallback((actionType) => {
+    handleUpdateConfig("actionType", actionType);
+    if (selectedNode?.id === newlyCreatedNodeId) {
+      setNewlyCreatedNodeId(null);
+    }
+  });
+  const handleOnChangeH6 = useStableCallback(
+    (e: ChangeEvent<HTMLInputElement>) => handleUpdateLabel(e.target.value)
+  );
+  const handleOnChangeH7 = useStableCallback(
+    (e: ChangeEvent<HTMLInputElement>) =>
+      handleUpdateDescription(e.target.value)
+  );
+  const handleOnClickH8 = useStableCallback(() => setActiveTab("properties"));
+  const handleOnClickH9 = useStableCallback(() => setActiveTab("code"));
+  const handleOnClickH10 = useStableCallback(() => setActiveTab("runs"));
   const { push, closeAll } = useOverlay();
   const [selectedNodeId] = useAtom(selectedNodeAtom);
   const [selectedEdgeId] = useAtom(selectedEdgeAtom);
@@ -446,7 +470,7 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
                 <Input
                   disabled={!isOwner}
                   id="workflow-name"
-                  onChange={(e) => handleUpdateWorkflowName(e.target.value)}
+                  onChange={handleOnChangeH1}
                   value={currentWorkflowName}
                 />
               </div>
@@ -559,7 +583,7 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
                 ? "text-foreground"
                 : "text-muted-foreground"
             }`}
-            onClick={() => setActiveTab("properties")}
+            onClick={handleOnClickH2}
             type="button"
           >
             <Settings2 className="size-5" />
@@ -571,7 +595,7 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
                 ? "text-foreground"
                 : "text-muted-foreground"
             }`}
-            onClick={() => setActiveTab("code")}
+            onClick={handleOnClickH3}
             type="button"
           >
             <Code className="size-5" />
@@ -584,7 +608,7 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
                   ? "text-foreground"
                   : "text-muted-foreground"
               }`}
-              onClick={() => setActiveTab("runs")}
+              onClick={handleOnClickH4}
               type="button"
             >
               <Play className="size-5" />
@@ -612,12 +636,7 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
                 <ActionGrid
                   disabled={isGenerating}
                   isNewlyCreated={selectedNode?.id === newlyCreatedNodeId}
-                  onSelectAction={(actionType) => {
-                    handleUpdateConfig("actionType", actionType);
-                    if (selectedNode?.id === newlyCreatedNodeId) {
-                      setNewlyCreatedNodeId(null);
-                    }
-                  }}
+                  onSelectAction={handleOnSelectActionH5}
                 />
               )}
 
@@ -649,7 +668,7 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
                   <Input
                     disabled={isGenerating || !isOwner}
                     id="label"
-                    onChange={(e) => handleUpdateLabel(e.target.value)}
+                    onChange={handleOnChangeH6}
                     value={selectedNode.data.label as string}
                   />
                 </div>
@@ -658,7 +677,7 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
                   <Input
                     disabled={isGenerating || !isOwner}
                     id="description"
-                    onChange={(e) => handleUpdateDescription(e.target.value)}
+                    onChange={handleOnChangeH7}
                     placeholder="Optional description"
                     value={(selectedNode.data.description as string) || ""}
                   />
@@ -794,7 +813,7 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
               ? "text-foreground"
               : "text-muted-foreground"
           }`}
-          onClick={() => setActiveTab("properties")}
+          onClick={handleOnClickH8}
           type="button"
         >
           <Settings2 className="size-5" />
@@ -805,7 +824,7 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
             className={`flex flex-1 flex-col items-center gap-1 py-3 font-medium text-xs transition-colors ${
               activeTab === "code" ? "text-foreground" : "text-muted-foreground"
             }`}
-            onClick={() => setActiveTab("code")}
+            onClick={handleOnClickH9}
             type="button"
           >
             <Code className="size-5" />
@@ -817,7 +836,7 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
             className={`flex flex-1 flex-col items-center gap-1 py-3 font-medium text-xs transition-colors ${
               activeTab === "runs" ? "text-foreground" : "text-muted-foreground"
             }`}
-            onClick={() => setActiveTab("runs")}
+            onClick={handleOnClickH10}
             type="button"
           >
             <Play className="size-5" />

@@ -2,9 +2,11 @@
 
 import { useAtomValue, useSetAtom } from "jotai";
 import { AlertTriangle } from "lucide-react";
+import { Bound } from "@/components/ui/bound";
 import { Button } from "@/components/ui/button";
 import { IntegrationIcon } from "@/components/ui/integration-icon";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useStableCallback } from "@/hooks/use-stable-callback";
 import { aiGatewayStatusAtom } from "@/lib/ai-gateway/state";
 import { integrationsVersionAtom } from "@/lib/integrations-store";
 import type { IntegrationType } from "@/lib/types/integration";
@@ -75,18 +77,20 @@ export function WorkflowIssuesOverlay({
     missingRequiredFields.length +
     missingIntegrations.length;
 
-  const handleGoToStep = (nodeId: string, fieldKey?: string) => {
-    // Select the node and set tab (this is handled by onGoToStep)
-    onGoToStep(nodeId, fieldKey);
+  const handleGoToStep = useStableCallback(
+    (nodeId: string, fieldKey?: string) => {
+      // Select the node and set tab (this is handled by onGoToStep)
+      onGoToStep(nodeId, fieldKey);
 
-    // On mobile, push ConfigurationOverlay on top so back button returns here
-    // On desktop, close all overlays since the sidebar shows the config
-    if (isMobile) {
-      push(ConfigurationOverlay, {});
-    } else {
-      closeAll();
+      // On mobile, push ConfigurationOverlay on top so back button returns here
+      // On desktop, close all overlays since the sidebar shows the config
+      if (isMobile) {
+        push(ConfigurationOverlay, {});
+      } else {
+        closeAll();
+      }
     }
-  };
+  );
 
   const openConnectionOverlay = (integrationType: IntegrationType) => {
     push(ConfigureConnectionOverlay, {
@@ -98,19 +102,21 @@ export function WorkflowIssuesOverlay({
     });
   };
 
-  const handleAddIntegration = (integrationType: IntegrationType) => {
-    // For AI Gateway with managed keys enabled, show consent overlay first
-    if (integrationType === "ai-gateway" && shouldUseManagedKeys) {
-      push(AiGatewayConsentOverlay, {
-        onConsent: () => {
-          setIntegrationsVersion((v) => v + 1);
-        },
-        onManualEntry: () => openConnectionOverlay(integrationType),
-      });
-    } else {
-      openConnectionOverlay(integrationType);
+  const handleAddIntegration = useStableCallback(
+    (integrationType: IntegrationType) => {
+      // For AI Gateway with managed keys enabled, show consent overlay first
+      if (integrationType === "ai-gateway" && shouldUseManagedKeys) {
+        push(AiGatewayConsentOverlay, {
+          onConsent: () => {
+            setIntegrationsVersion((v) => v + 1);
+          },
+          onManualEntry: () => openConnectionOverlay(integrationType),
+        });
+      } else {
+        openConnectionOverlay(integrationType);
+      }
     }
-  };
+  );
 
   const handleRunAnyway = () => {
     closeAll();
@@ -160,14 +166,21 @@ export function WorkflowIssuesOverlay({
                       : missing.nodeNames.join(", ")}
                   </span>
                 </p>
-                <Button
-                  className="shrink-0"
-                  onClick={() => handleAddIntegration(missing.integrationType)}
-                  size="sm"
-                  variant="outline"
+                <Bound
+                  args={[missing.integrationType]}
+                  fn={handleAddIntegration}
                 >
-                  Add
-                </Button>
+                  {(onAdd) => (
+                    <Button
+                      className="shrink-0"
+                      onClick={onAdd}
+                      size="sm"
+                      variant="outline"
+                    >
+                      Add
+                    </Button>
+                  )}
+                </Bound>
               </div>
             ))}
           </div>
@@ -193,16 +206,21 @@ export function WorkflowIssuesOverlay({
                         {" in "}
                         {ref.fieldLabel}
                       </p>
-                      <Button
-                        className="shrink-0"
-                        onClick={() =>
-                          handleGoToStep(broken.nodeId, ref.fieldKey)
-                        }
-                        size="sm"
-                        variant="outline"
+                      <Bound
+                        args={[broken.nodeId, ref.fieldKey]}
+                        fn={handleGoToStep}
                       >
-                        Fix
-                      </Button>
+                        {(onFix) => (
+                          <Button
+                            className="shrink-0"
+                            onClick={onFix}
+                            size="sm"
+                            variant="outline"
+                          >
+                            Fix
+                          </Button>
+                        )}
+                      </Bound>
                     </div>
                   ))}
                 </div>
@@ -229,16 +247,21 @@ export function WorkflowIssuesOverlay({
                       <p className="min-w-0 flex-1 text-muted-foreground text-sm">
                         {field.fieldLabel}
                       </p>
-                      <Button
-                        className="shrink-0"
-                        onClick={() =>
-                          handleGoToStep(node.nodeId, field.fieldKey)
-                        }
-                        size="sm"
-                        variant="outline"
+                      <Bound
+                        args={[node.nodeId, field.fieldKey]}
+                        fn={handleGoToStep}
                       >
-                        Fix
-                      </Button>
+                        {(onFix) => (
+                          <Button
+                            className="shrink-0"
+                            onClick={onFix}
+                            size="sm"
+                            variant="outline"
+                          >
+                            Fix
+                          </Button>
+                        )}
+                      </Bound>
                     </div>
                   ))}
                 </div>

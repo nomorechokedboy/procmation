@@ -13,6 +13,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Bound } from "@/components/ui/bound";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -193,6 +194,7 @@ export function ActionGrid({
   disabled,
   isNewlyCreated,
 }: ActionGridProps) {
+  const handleOnClickH1 = useStableCallback(() => setShowHidden(!showHidden));
   const [filter, setFilter] = useState("");
   const handleFilterChange = useInputChange(setFilter);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
@@ -213,7 +215,7 @@ export function ActionGrid({
     localStorage.setItem(VIEW_MODE_KEY, newMode);
   });
 
-  const toggleGroup = (category: string) => {
+  const toggleGroup = useStableCallback((category: string) => {
     setCollapsedGroups((prev) => {
       const next = new Set(prev);
       if (next.has(category)) {
@@ -223,9 +225,9 @@ export function ActionGrid({
       }
       return next;
     });
-  };
+  });
 
-  const toggleHideGroup = (category: string) => {
+  const toggleHideGroup = useStableCallback((category: string) => {
     setHiddenGroups((prev) => {
       const next = new Set(prev);
       if (next.has(category)) {
@@ -237,7 +239,7 @@ export function ActionGrid({
       localStorage.setItem(HIDDEN_GROUPS_KEY, JSON.stringify([...next]));
       return next;
     });
-  };
+  });
 
   useEffect(() => {
     // Only focus after touch detection is complete (isTouch !== undefined)
@@ -338,7 +340,7 @@ export function ActionGrid({
               <TooltipTrigger asChild>
                 <Button
                   className={cn("shrink-0", showHidden && "bg-muted")}
-                  onClick={() => setShowHidden(!showHidden)}
+                  onClick={handleOnClickH1}
                   size="icon"
                   variant="ghost"
                 >
@@ -387,22 +389,25 @@ export function ActionGrid({
                 (action) => showHidden || !hiddenGroups.has(action.category)
               )
               .map((action) => (
-                <button
-                  className={cn(
-                    "flex aspect-square flex-col items-center justify-center gap-1.5 rounded-lg border border-transparent p-2 text-center transition-colors hover:border-border hover:bg-muted",
-                    disabled && "pointer-events-none opacity-50"
+                <Bound args={[action.id]} fn={onSelectAction} key={action.id}>
+                  {(onSelect) => (
+                    <button
+                      className={cn(
+                        "flex aspect-square flex-col items-center justify-center gap-1.5 rounded-lg border border-transparent p-2 text-center transition-colors hover:border-border hover:bg-muted",
+                        disabled && "pointer-events-none opacity-50"
+                      )}
+                      data-testid={`action-option-${action.id.toLowerCase().replace(/\s+/g, "-")}`}
+                      disabled={disabled}
+                      onClick={onSelect}
+                      type="button"
+                    >
+                      <ActionIcon action={action} className="size-6" />
+                      <span className="line-clamp-2 font-medium text-xs leading-tight">
+                        {action.label}
+                      </span>
+                    </button>
                   )}
-                  data-testid={`action-option-${action.id.toLowerCase().replace(/\s+/g, "-")}`}
-                  disabled={disabled}
-                  key={action.id}
-                  onClick={() => onSelectAction(action.id)}
-                  type="button"
-                >
-                  <ActionIcon action={action} className="size-6" />
-                  <span className="line-clamp-2 font-medium text-xs leading-tight">
-                    {action.label}
-                  </span>
-                </button>
+                </Bound>
               ))}
           </div>
         )}
@@ -422,20 +427,24 @@ export function ActionGrid({
                     isHidden && "opacity-50"
                   )}
                 >
-                  <button
-                    className="flex flex-1 items-center gap-2 text-left hover:text-foreground"
-                    onClick={() => toggleGroup(group.category)}
-                    type="button"
-                  >
-                    <ChevronRight
-                      className={cn(
-                        "size-3.5 transition-transform",
-                        !isCollapsed && "rotate-90"
-                      )}
-                    />
-                    <GroupIcon group={group} />
-                    {group.category}
-                  </button>
+                  <Bound args={[group.category]} fn={toggleGroup}>
+                    {(onToggle) => (
+                      <button
+                        className="flex flex-1 items-center gap-2 text-left hover:text-foreground"
+                        onClick={onToggle}
+                        type="button"
+                      >
+                        <ChevronRight
+                          className={cn(
+                            "size-3.5 transition-transform",
+                            !isCollapsed && "rotate-90"
+                          )}
+                        />
+                        <GroupIcon group={group} />
+                        {group.category}
+                      </button>
+                    )}
+                  </Bound>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
@@ -446,47 +455,56 @@ export function ActionGrid({
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={() => toggleHideGroup(group.category)}
-                      >
-                        {isHidden ? (
-                          <>
-                            <Eye className="mr-2 size-4" />
-                            Show group
-                          </>
-                        ) : (
-                          <>
-                            <EyeOff className="mr-2 size-4" />
-                            Hide group
-                          </>
+                      <Bound args={[group.category]} fn={toggleHideGroup}>
+                        {(onToggleHide) => (
+                          <DropdownMenuItem onClick={onToggleHide}>
+                            {isHidden ? (
+                              <>
+                                <Eye className="mr-2 size-4" />
+                                Show group
+                              </>
+                            ) : (
+                              <>
+                                <EyeOff className="mr-2 size-4" />
+                                Hide group
+                              </>
+                            )}
+                          </DropdownMenuItem>
                         )}
-                      </DropdownMenuItem>
+                      </Bound>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
                 {!isCollapsed &&
                   group.actions.map((action) => (
-                    <button
-                      className={cn(
-                        "flex w-full items-center rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-muted",
-                        disabled && "pointer-events-none opacity-50"
-                      )}
-                      data-testid={`action-option-${action.id.toLowerCase().replace(/\s+/g, "-")}`}
-                      disabled={disabled}
+                    <Bound
+                      args={[action.id]}
+                      fn={onSelectAction}
                       key={action.id}
-                      onClick={() => onSelectAction(action.id)}
-                      type="button"
                     >
-                      <span className="min-w-0 flex-1 truncate">
-                        <span className="font-medium">{action.label}</span>
-                        {action.description ? (
-                          <span className="text-muted-foreground text-xs">
-                            {" "}
-                            - {action.description}
+                      {(onSelect) => (
+                        <button
+                          className={cn(
+                            "flex w-full items-center rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-muted",
+                            disabled && "pointer-events-none opacity-50"
+                          )}
+                          data-testid={`action-option-${action.id.toLowerCase().replace(/\s+/g, "-")}`}
+                          disabled={disabled}
+                          onClick={onSelect}
+                          type="button"
+                        >
+                          <span className="min-w-0 flex-1 truncate">
+                            <span className="font-medium">{action.label}</span>
+                            {action.description ? (
+                              <span className="text-muted-foreground text-xs">
+                                {" "}
+                                - {action.description}
+                              </span>
+                            ) : null}
                           </span>
-                        ) : null}
-                      </span>
-                    </button>
+                        </button>
+                      )}
+                    </Bound>
                   ))}
               </div>
             );

@@ -1,6 +1,7 @@
 "use client";
 
 import { Clock, Copy, Play, Webhook } from "lucide-react";
+import type { ChangeEvent } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { CodeEditor } from "@/components/ui/code-editor";
@@ -30,6 +31,22 @@ export function TriggerConfig({
   disabled,
   workflowId,
 }: TriggerConfigProps) {
+  const handleOnValueChangeH1 = useStableCallback((value) =>
+    onUpdateConfig("triggerType", value)
+  );
+  const handleOnChangeH2 = useStableCallback((schema) =>
+    onUpdateConfig("webhookSchema", JSON.stringify(schema))
+  );
+  const handleOnChangeH3 = useStableCallback((value) =>
+    onUpdateConfig("webhookMockRequest", value || "")
+  );
+  const handleOnChangeH4 = useStableCallback(
+    (e: ChangeEvent<HTMLInputElement>) =>
+      onUpdateConfig("scheduleCron", e.target.value)
+  );
+  const handleOnValueChangeH5 = useStableCallback((value) =>
+    onUpdateConfig("scheduleTimezone", value)
+  );
   const webhookUrl = workflowId
     ? `${typeof window === "undefined" ? "" : window.location.origin}/api/workflows/${workflowId}/webhook`
     : "";
@@ -49,7 +66,7 @@ export function TriggerConfig({
         </Label>
         <Select
           disabled={disabled}
-          onValueChange={(value) => onUpdateConfig("triggerType", value)}
+          onValueChange={handleOnValueChangeH1}
           value={(config.triggerType as string) || "Manual"}
         >
           <SelectTrigger className="w-full" id="triggerType">
@@ -103,9 +120,7 @@ export function TriggerConfig({
             <Label>Request Schema (Optional)</Label>
             <SchemaBuilder
               disabled={disabled}
-              onChange={(schema) =>
-                onUpdateConfig("webhookSchema", JSON.stringify(schema))
-              }
+              onChange={handleOnChangeH2}
               schema={
                 config.webhookSchema
                   ? (JSON.parse(
@@ -124,9 +139,7 @@ export function TriggerConfig({
               <CodeEditor
                 defaultLanguage="json"
                 height="150px"
-                onChange={(value) =>
-                  onUpdateConfig("webhookMockRequest", value || "")
-                }
+                onChange={handleOnChangeH3}
                 options={{
                   fontSize: 12,
                   lineNumbers: "on",
@@ -155,7 +168,7 @@ export function TriggerConfig({
             <Input
               disabled={disabled}
               id="scheduleCron"
-              onChange={(e) => onUpdateConfig("scheduleCron", e.target.value)}
+              onChange={handleOnChangeH4}
               placeholder="0 9 * * * (every day at 9am)"
               value={(config.scheduleCron as string) || ""}
             />
@@ -167,9 +180,7 @@ export function TriggerConfig({
             <TimezoneSelect
               disabled={disabled}
               id="scheduleTimezone"
-              onValueChange={(value) =>
-                onUpdateConfig("scheduleTimezone", value)
-              }
+              onValueChange={handleOnValueChangeH5}
               value={(config.scheduleTimezone as string) || "America/New_York"}
             />
           </div>

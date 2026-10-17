@@ -1,8 +1,10 @@
 "use client";
 
 import { Check, Pencil, X } from "lucide-react";
+import type { ChangeEvent } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Bound } from "@/components/ui/bound";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -54,6 +56,14 @@ function SecretField({
   value: string;
   onChange: (key: string, value: string) => void;
 }) {
+  const handleOnClickH1 = useStableCallback(() => setIsEditing(true));
+  const handleOnChangeH2 = useStableCallback(
+    (e: ChangeEvent<HTMLInputElement>) => onChange(configKey, e.target.value)
+  );
+  const handleOnClickH3 = useStableCallback(() => {
+    onChange(configKey, "");
+    setIsEditing(false);
+  });
   const [isEditing, setIsEditing] = useState(false);
   const isMobile = useIsMobile();
   const hasNewValue = value.length > 0;
@@ -68,11 +78,7 @@ function SecretField({
             <Check className="size-4 text-green-600" />
             <span className="text-muted-foreground text-sm">Configured</span>
           </div>
-          <Button
-            onClick={() => setIsEditing(true)}
-            type="button"
-            variant="outline"
-          >
+          <Button onClick={handleOnClickH1} type="button" variant="outline">
             <Pencil className="mr-1.5 size-3" />
             Change
           </Button>
@@ -89,17 +95,14 @@ function SecretField({
           autoFocus={isEditing && !isMobile}
           className="flex-1"
           id={fieldId}
-          onChange={(e) => onChange(configKey, e.target.value)}
+          onChange={handleOnChangeH2}
           placeholder={placeholder}
           type="password"
           value={value}
         />
         {isEditing || hasNewValue ? (
           <Button
-            onClick={() => {
-              onChange(configKey, "");
-              setIsEditing(false);
-            }}
+            onClick={handleOnClickH3}
             size="icon"
             type="button"
             variant="ghost"
@@ -150,6 +153,10 @@ export function EditConnectionOverlay({
   const updateConfig = useStableCallback((key: string, value: string) => {
     setConfig((prev) => ({ ...prev, [key]: value }));
   });
+  const updateConfigFromEvent = useStableCallback(
+    (key: string, event: ChangeEvent<HTMLInputElement>) =>
+      updateConfig(key, event.target.value)
+  );
 
   const doSave = async () => {
     try {
@@ -308,13 +315,17 @@ export function EditConnectionOverlay({
       return (
         <div className="space-y-2" key={field.id}>
           <Label htmlFor={field.id}>{field.label}</Label>
-          <Input
-            id={field.id}
-            onChange={(e) => updateConfig(field.configKey, e.target.value)}
-            placeholder={field.placeholder}
-            type={field.type}
-            value={config[field.configKey] || ""}
-          />
+          <Bound args={[field.configKey]} fn={updateConfigFromEvent}>
+            {(onChange) => (
+              <Input
+                id={field.id}
+                onChange={onChange}
+                placeholder={field.placeholder}
+                type={field.type}
+                value={config[field.configKey] || ""}
+              />
+            )}
+          </Bound>
           {field.helpText || field.helpLink ? (
             <p className="text-muted-foreground text-xs">
               {field.helpText}
@@ -391,6 +402,9 @@ export function DeleteConnectionOverlay({
   integration,
   onSuccess,
 }: DeleteConnectionOverlayProps) {
+  const handleOnCheckedChangeH5 = useStableCallback((checked: boolean) =>
+    setRevokeKey(checked)
+  );
   const { pop } = useOverlay();
   const [deleting, setDeleting] = useState(false);
   const [revokeKey, setRevokeKey] = useState(true);
@@ -438,7 +452,7 @@ export function DeleteConnectionOverlay({
           <Checkbox
             checked={revokeKey}
             id="revoke-key"
-            onCheckedChange={(checked: boolean) => setRevokeKey(checked)}
+            onCheckedChange={handleOnCheckedChangeH5}
           />
           <Label className="cursor-pointer font-normal" htmlFor="revoke-key">
             Revoke API key from Vercel
