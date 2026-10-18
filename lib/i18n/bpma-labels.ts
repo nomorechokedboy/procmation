@@ -1,22 +1,26 @@
 import type { CasePriority, CaseStatus } from "@/lib/db/schema";
 import * as m from "@/paraglide/messages";
+import type { Locale } from "@/paraglide/runtime";
 
-export function caseStatusLabel(status: CaseStatus): string {
+export function caseStatusLabel(status: CaseStatus, locale?: Locale): string {
+  const options = { locale };
   switch (status) {
     case "open":
-      return m.case_status_open();
+      return m.case_status_open({}, options);
     case "in_progress":
-      return m.case_status_in_progress();
+      return m.case_status_in_progress({}, options);
     case "pending_approval":
-      return m.case_status_pending_approval();
+      return m.case_status_pending_approval({}, options);
     case "approved":
-      return m.case_status_approved();
+      return m.case_status_approved({}, options);
     case "rejected":
-      return m.case_status_rejected();
+      return m.case_status_rejected({}, options);
     case "completed":
-      return m.case_status_completed();
+      return m.case_status_completed({}, options);
+    case "failed":
+      return m.case_status_failed({}, options);
     default:
-      return m.case_status_cancelled();
+      return m.case_status_cancelled({}, options);
   }
 }
 

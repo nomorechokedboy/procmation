@@ -739,6 +739,7 @@ export const inviteApi = {
       role: UserRole;
       expiresAt: string;
       inviteUrl: string;
+      emailStatus: "sent" | "not_configured" | "failed";
     }>("/api/invites", {
       body: JSON.stringify(data),
       method: "POST",
@@ -846,10 +847,18 @@ export type NotificationRecord = Serialized<Notification>;
 export type CaseDetail = {
   case: CaseRecord;
   timeline: CaseTimelineRecord[];
-  tasks: TaskRecord[];
+  tasks: Serialized<Task>[];
+  people: Record<string, string>;
+  departments: Record<string, string>;
+  process: { name: string; startFormFields: FormField[] } | null;
+  submissions: Record<string, Record<string, unknown>>;
 };
 
 export const caseApi = {
+  cancel: (caseId: string) =>
+    apiCall<CaseRecord>(`/api/bpma/cases/${caseId}/cancel`, {
+      method: "POST",
+    }),
   create: (data: {
     processDefinitionId: string;
     title: string;

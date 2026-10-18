@@ -7,6 +7,7 @@ import { createCaseInTx, type NewCaseInput } from "@/lib/db/bpma";
 import {
   type Case,
   cases,
+  caseTimeline,
   formSubmissions,
   processInstances,
   workflowExecutions,
@@ -124,8 +125,13 @@ export async function startProcessCase(input: StartCaseInput): Promise<Case> {
         .where(eq(workflowExecutions.id, created.executionId));
       await tx
         .update(cases)
-        .set({ status: "cancelled", updatedAt: new Date() })
+        .set({ status: "failed", updatedAt: new Date() })
         .where(eq(cases.id, created.linked.id));
+      await tx.insert(caseTimeline).values({
+        caseId: created.linked.id,
+        data: { error: message, from: created.linked.status, to: "failed" },
+        eventType: "status_changed",
+      });
     });
     throw error;
   }

@@ -1,5 +1,6 @@
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { getAppOrigin } from "@/lib/app-url";
 import {
   generateInviteToken,
   INVITE_TTL_MS,
@@ -7,19 +8,10 @@ import {
 } from "@/lib/auth-provision";
 import { db } from "@/lib/db";
 import { invitations, type UserRole, users } from "@/lib/db/schema";
+import { sendInviteEmail } from "@/lib/email/invite";
 import { requireAdmin } from "@/lib/session";
 
 const ROLES: UserRole[] = ["admin", "member"];
-
-const TRAILING_SLASH_REGEX = /\/$/;
-
-function getAppOrigin(request: Request): string {
-  return (
-    process.env.BETTER_AUTH_URL ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    new URL(request.url).origin
-  ).replace(TRAILING_SLASH_REGEX, "");
-}
 
 export async function GET(request: Request) {
   const guard = await requireAdmin(request);
@@ -94,11 +86,21 @@ export async function POST(request: Request) {
       .returning({ expiresAt: invitations.expiresAt, id: invitations.id });
   });
 
+  const inviteUrl = `${getAppOrigin(request)}/invite/${token}`;
+  const emailStatus = await sendInviteEmail({
+    expiresAt: invitation.expiresAt,
+    inviterName: guard.user.name || guard.user.email,
+    inviteUrl,
+    role,
+    to: email,
+  });
+
   return NextResponse.json({
     email,
+    emailStatus,
     expiresAt: invitation.expiresAt,
     id: invitation.id,
-    inviteUrl: `${getAppOrigin(request)}/invite/${token}`,
+    inviteUrl,
     role,
   });
 }

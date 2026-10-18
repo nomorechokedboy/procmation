@@ -11,6 +11,7 @@ import {
   type SQL,
   sql,
 } from "drizzle-orm";
+import { CASE_ACTIVE_STATUSES } from "@/lib/db/case-options";
 import { pushNotificationToUser } from "@/lib/notifications/sse-hub";
 import type { FormField } from "@/lib/types/process-form";
 import { db } from "./index";
@@ -21,15 +22,20 @@ import {
   type CaseTimelineEntry,
   cases,
   caseTimeline,
+  departments,
   formSubmissions,
   type NewNotification,
   notifications,
+  processDefinitions,
   processInstances,
   type Task,
   type TaskStatus,
   type TimelineEventType,
   tasks,
   userProfiles,
+  users,
+  workflowExecutions,
+  workflows,
 } from "./schema";
 
 export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -164,27 +170,225 @@ export function canViewCase(viewer: CaseViewer, record: Case): boolean {
   );
 }
 
-export async function getCaseDetail(record: Case): Promise<{
+// Anyone who started the case, takes part in it, or has (or had) a task on it
+// can open it. Task assignees are not added to `participants`, so that My cases
+// keeps listing only the requests a person started.
+export async function canAccessCase(
+  viewer: CaseViewer,
+  record: Case
+): Promise<boolean> {
+  if (canViewCase(viewer, record)) {
+    return true;
+  }
+  if (!record.processInstanceId) {
+    return false;
+  }
+
+  const departmentId = await getDepartmentIdOf(viewer.id);
+  const involved = or(
+    eq(tasks.assigneeId, viewer.id),
+    eq(tasks.completedById, viewer.id),
+    departmentId
+      ? and(
+          isNull(tasks.assigneeId),
+          eq(tasks.assigneeDepartmentId, departmentId)
+        )
+      : undefined
+  );
+  const [found] = await db
+    .select({ id: tasks.id })
+    .from(tasks)
+    .where(and(eq(tasks.instanceId, record.processInstanceId), involved))
+    .limit(1);
+  return Boolean(found);
+}
+
+export type CaseDetailData = {
   case: Case;
   timeline: CaseTimelineEntry[];
   tasks: Task[];
-}> {
-  const [timeline, caseTasks] = await Promise.all([
+  // Names for every user and department the page mentions
+  people: Record<string, string>;
+  departments: Record<string, string>;
+  process: {
+    name: string;
+    startFormFields: FormField[];
+  } | null;
+  // What each task's form received, by task id
+  submissions: Record<string, Record<string, unknown>>;
+};
+
+function timelineUserIds(entries: CaseTimelineEntry[]): string[] {
+  const ids: string[] = [];
+  for (const entry of entries) {
+    ids.push(entry.actorId ?? "");
+    for (const key of ["assigneeId", "from", "to"]) {
+      const value = entry.data[key];
+      // "from"/"to" hold user ids only for reassignments
+      if (
+        typeof value === "string" &&
+        (key === "assigneeId" || entry.eventType === "task_reassigned")
+      ) {
+        ids.push(value);
+      }
+    }
+  }
+  return ids;
+}
+
+export async function getCaseDetail(record: Case): Promise<CaseDetailData> {
+  const instanceId = record.processInstanceId;
+  const [timeline, caseTasks, submissionRows, definition] = await Promise.all([
     db
       .select()
       .from(caseTimeline)
       .where(eq(caseTimeline.caseId, record.id))
       .orderBy(desc(caseTimeline.createdAt)),
-    record.processInstanceId
+    instanceId
       ? db
           .select()
           .from(tasks)
-          .where(eq(tasks.instanceId, record.processInstanceId))
+          .where(eq(tasks.instanceId, instanceId))
           .orderBy(desc(tasks.createdAt))
       : Promise.resolve([] as Task[]),
+    instanceId
+      ? db
+          .select({
+            data: formSubmissions.data,
+            taskId: formSubmissions.taskId,
+          })
+          .from(formSubmissions)
+          .where(eq(formSubmissions.instanceId, instanceId))
+      : Promise.resolve([]),
+    db
+      .select({
+        name: workflows.name,
+        startFormFields: processDefinitions.startFormFields,
+      })
+      .from(processDefinitions)
+      .innerJoin(workflows, eq(processDefinitions.workflowId, workflows.id))
+      .where(eq(processDefinitions.id, record.processDefinitionId)),
   ]);
 
-  return { case: record, tasks: caseTasks, timeline };
+  const userIds = new Set(
+    [
+      record.initiatorId,
+      ...timelineUserIds(timeline),
+      ...caseTasks.flatMap((task) => [
+        task.assigneeId ?? "",
+        task.completedById ?? "",
+      ]),
+    ].filter(Boolean)
+  );
+  const departmentIds = new Set(
+    caseTasks.map((task) => task.assigneeDepartmentId ?? "").filter(Boolean)
+  );
+
+  const [userRows, departmentRows] = await Promise.all([
+    userIds.size > 0
+      ? db
+          .select({ email: users.email, id: users.id, name: users.name })
+          .from(users)
+          .where(inArray(users.id, [...userIds]))
+      : Promise.resolve([]),
+    departmentIds.size > 0
+      ? db
+          .select({ id: departments.id, name: departments.name })
+          .from(departments)
+          .where(inArray(departments.id, [...departmentIds]))
+      : Promise.resolve([]),
+  ]);
+
+  const submissions: Record<string, Record<string, unknown>> = {};
+  for (const row of submissionRows) {
+    if (row.taskId) {
+      submissions[row.taskId] = row.data;
+    }
+  }
+
+  return {
+    case: record,
+    departments: Object.fromEntries(departmentRows.map((d) => [d.id, d.name])),
+    people: Object.fromEntries(
+      userRows.map((u) => [u.id, u.name || u.email || ""])
+    ),
+    process: definition[0]
+      ? {
+          name: definition[0].name,
+          startFormFields: definition[0].startFormFields as FormField[],
+        }
+      : null,
+    submissions,
+    tasks: caseTasks,
+    timeline,
+  };
+}
+
+export type CancelCaseResult =
+  | { ok: true; runId: string | null; record: Case }
+  | { ok: false; reason: "not_active" };
+
+// Stops a case: closes its waiting tasks and marks the case and process
+// cancelled. The caller then stops the suspended run, see cancelCaseRun.
+export function cancelCase(input: {
+  caseId: string;
+  actorId: string;
+}): Promise<CancelCaseResult> {
+  return db.transaction(async (tx) => {
+    const [current] = await tx
+      .select()
+      .from(cases)
+      .where(eq(cases.id, input.caseId))
+      .for("update");
+    if (!(current && CASE_ACTIVE_STATUSES.includes(current.status))) {
+      return { ok: false, reason: "not_active" } as const;
+    }
+
+    const now = new Date();
+    const [record] = await tx
+      .update(cases)
+      .set({ status: "cancelled", updatedAt: now })
+      .where(eq(cases.id, current.id))
+      .returning();
+
+    let runId: string | null = null;
+    if (current.processInstanceId) {
+      const [instance] = await tx
+        .update(processInstances)
+        .set({ completedAt: now, status: "cancelled", updatedAt: now })
+        .where(eq(processInstances.id, current.processInstanceId))
+        .returning({
+          executionId: processInstances.workflowExecutionId,
+          runId: processInstances.runId,
+        });
+      runId = instance?.runId ?? null;
+
+      await tx
+        .update(tasks)
+        .set({ status: "cancelled" })
+        .where(
+          and(
+            eq(tasks.instanceId, current.processInstanceId),
+            eq(tasks.status, "pending")
+          )
+        );
+      if (instance?.executionId) {
+        await tx
+          .update(workflowExecutions)
+          .set({ completedAt: now, status: "cancelled" })
+          .where(eq(workflowExecutions.id, instance.executionId));
+      }
+    }
+
+    await addTimelineEvent(tx, {
+      actorId: input.actorId,
+      caseId: current.id,
+      data: { from: current.status, to: "cancelled" },
+      eventType: "status_changed",
+    });
+
+    return { ok: true, record, runId } as const;
+  });
 }
 
 export type CasePatch = {
@@ -437,7 +641,7 @@ export async function reopenTask(task: Task): Promise<void> {
 }
 
 export type ReassignTaskResult =
-  | { ok: true; task: Task }
+  | { ok: true; task: Task; caseId: string | null }
   | { ok: false; reason: "not_pending" };
 
 export async function reassignTask(input: {
@@ -475,16 +679,7 @@ export async function reassignTask(input: {
     return { ok: false, reason: "not_pending" };
   }
 
-  await createNotification({
-    body: task.name,
-    caseId: result.caseId,
-    taskId: task.id,
-    title: "A task was assigned to you",
-    type: "task_assigned",
-    userId: input.newAssigneeId,
-  });
-
-  return { ok: true, task: result.updated };
+  return { caseId: result.caseId, ok: true, task: result.updated };
 }
 
 // ---------------------------------------------------------------------------

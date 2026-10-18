@@ -50,7 +50,16 @@ BETTER_AUTH_URL=http://localhost:3000
 
 # AI Gateway (for AI workflow generation)
 AI_GATEWAY_API_KEY=your-openai-api-key
+
+# Email (optional). Without these, notifications stay in the app and invite
+# links are shown to the admin to share by hand.
+RESEND_API_KEY=your-resend-api-key
+RESEND_FROM="Procmation <noreply@your-verified-domain.com>"
 ```
+
+Links in emails use `BETTER_AUTH_URL` (or `NEXT_PUBLIC_APP_URL`), so set it to the
+public address of your deployment. The `RESEND_FROM` address must belong to a domain
+verified in Resend.
 
 ### Installation
 

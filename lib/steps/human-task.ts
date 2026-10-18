@@ -7,7 +7,6 @@ import "server-only";
 
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { createNotification } from "@/lib/db/bpma";
 import {
   cases,
   caseTimeline,
@@ -17,6 +16,7 @@ import {
   userProfiles,
   users,
 } from "@/lib/db/schema";
+import { notifyUser } from "@/lib/notifications/deliver";
 import type { AssigneeType, TaskOutcome } from "@/lib/types/human-task";
 import type { FormField } from "@/lib/types/process-form";
 import { type StepInput, withStepLogging } from "./step-handler";
@@ -119,7 +119,7 @@ async function openTask(input: HumanTaskStepInput): Promise<HumanTaskOpened> {
             eq(tasks.nodeId, input.nodeId)
           )
         );
-      return { caseId: null, isNew: false, task: existing };
+      return { case: null, isNew: false, task: existing };
     }
 
     await tx
@@ -128,7 +128,12 @@ async function openTask(input: HumanTaskStepInput): Promise<HumanTaskOpened> {
       .where(eq(processInstances.id, input.instanceId));
 
     const [linkedCase] = await tx
-      .select({ id: cases.id, status: cases.status })
+      .select({
+        caseNumber: cases.caseNumber,
+        id: cases.id,
+        status: cases.status,
+        title: cases.title,
+      })
       .from(cases)
       .where(eq(cases.processInstanceId, input.instanceId));
 
@@ -151,15 +156,16 @@ async function openTask(input: HumanTaskStepInput): Promise<HumanTaskOpened> {
       });
     }
 
-    return { caseId: linkedCase?.id ?? null, isNew: true, task: created };
+    return { case: linkedCase ?? null, isNew: true, task: created };
   });
 
   if (opened.isNew && assignee.userId) {
-    await createNotification({
-      body: input.name,
-      caseId: opened.caseId,
+    await notifyUser({
+      caseId: opened.case?.id ?? null,
+      caseNumber: opened.case?.caseNumber ?? "",
+      caseTitle: opened.case?.title ?? "",
       taskId: opened.task.id,
-      title: "A task is waiting for you",
+      taskName: input.name,
       type: "task_assigned",
       userId: assignee.userId,
     });

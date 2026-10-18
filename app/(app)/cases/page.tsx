@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/app/page-header";
@@ -13,9 +14,10 @@ import { getLocale } from "@/paraglide/runtime";
 
 function CaseRow({ item }: { item: CaseRecord }) {
   return (
-    <div
-      className="flex items-center justify-between gap-3 py-3"
+    <Link
+      className="flex items-center justify-between gap-3 py-3 hover:bg-muted/50"
       data-testid="case-row"
+      href={`/cases/${item.id}`}
     >
       <div className="min-w-0">
         <p className="truncate font-medium text-sm">{item.title}</p>
@@ -28,7 +30,7 @@ function CaseRow({ item }: { item: CaseRecord }) {
         <Badge variant="outline">{casePriorityLabel(item.priority)}</Badge>
         <Badge variant="secondary">{caseStatusLabel(item.status)}</Badge>
       </div>
-    </div>
+    </Link>
   );
 }
 

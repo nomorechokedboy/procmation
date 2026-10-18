@@ -41,6 +41,19 @@ function roleLabel(role: UserRole): string {
   return role === "admin" ? m.role_admin() : m.role_member();
 }
 
+function inviteResultMessage(invite: {
+  email: string;
+  status: "sent" | "not_configured" | "failed";
+}): string {
+  if (invite.status === "sent") {
+    return m.members_invite_result_sent({ email: invite.email });
+  }
+  if (invite.status === "failed") {
+    return m.members_invite_result_failed({ email: invite.email });
+  }
+  return m.members_invite_result_manual({ email: invite.email });
+}
+
 function RoleSelect({
   value,
   onChange,
@@ -155,7 +168,11 @@ export default function MembersPage() {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<UserRole>("member");
   const [creating, setCreating] = useState(false);
-  const [latestInviteUrl, setLatestInviteUrl] = useState("");
+  const [latestInvite, setLatestInvite] = useState<{
+    url: string;
+    email: string;
+    status: "sent" | "not_configured" | "failed";
+  } | null>(null);
   const handleEmailChange = useInputChange(setEmail);
 
   const load = useCallback(async () => {
@@ -180,9 +197,12 @@ export default function MembersPage() {
   }, [isAdmin, load]);
 
   const handleCopyLatest = useCallback(async () => {
-    await navigator.clipboard.writeText(latestInviteUrl);
+    if (!latestInvite) {
+      return;
+    }
+    await navigator.clipboard.writeText(latestInvite.url);
     toast.success(m.members_invite_copied());
-  }, [latestInviteUrl]);
+  }, [latestInvite]);
 
   const closeProfile = useCallback(() => setEditingMember(null), []);
 
@@ -191,7 +211,11 @@ export default function MembersPage() {
     setCreating(true);
     try {
       const created = await api.invite.create({ email, role });
-      setLatestInviteUrl(created.inviteUrl);
+      setLatestInvite({
+        email: created.email,
+        status: created.emailStatus,
+        url: created.inviteUrl,
+      });
       setEmail("");
       await load();
     } catch (err) {
@@ -284,19 +308,24 @@ export default function MembersPage() {
                   </Button>
                 </form>
 
-                {latestInviteUrl ? (
-                  <div className="flex items-center gap-2 rounded-md border bg-muted/40 p-2">
-                    <code className="min-w-0 flex-1 truncate text-xs">
-                      {latestInviteUrl}
-                    </code>
-                    <Button
-                      onClick={handleCopyLatest}
-                      size="sm"
-                      variant="outline"
-                    >
-                      <Copy className="size-3.5" />
-                      {m.common_copy()}
-                    </Button>
+                {latestInvite ? (
+                  <div className="space-y-2" data-testid="invite-result">
+                    <p className="text-sm">
+                      {inviteResultMessage(latestInvite)}
+                    </p>
+                    <div className="flex items-center gap-2 rounded-md border bg-muted/40 p-2">
+                      <code className="min-w-0 flex-1 truncate text-xs">
+                        {latestInvite.url}
+                      </code>
+                      <Button
+                        onClick={handleCopyLatest}
+                        size="sm"
+                        variant="outline"
+                      >
+                        <Copy className="size-3.5" />
+                        {m.common_copy()}
+                      </Button>
+                    </div>
                   </div>
                 ) : null}
               </CardContent>

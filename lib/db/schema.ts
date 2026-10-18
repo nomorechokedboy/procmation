@@ -221,6 +221,7 @@ export type CaseStatus =
   | "approved"
   | "rejected"
   | "completed"
+  | "failed"
   | "cancelled";
 export type CasePriority = "low" | "medium" | "high" | "urgent";
 export type TimelineEventType =
@@ -239,6 +240,8 @@ export type NotificationType =
   | "task_overdue"
   | "case_updated"
   | "case_completed"
+  | "case_failed"
+  | "case_cancelled"
   | "escalation";
 
 export const departments = pgTable("departments", {
