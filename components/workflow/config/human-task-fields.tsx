@@ -176,6 +176,10 @@ export function HumanTaskFields({
 
   return (
     <div className="space-y-4">
+      <div className="rounded-md border bg-muted/40 p-3 text-xs">
+        <p className="font-medium">{m.canvas_help_title()}</p>
+        <p className="mt-1 text-muted-foreground">{m.canvas_help_body()}</p>
+      </div>
       <div className="space-y-2">
         <Label htmlFor="taskName">{m.human_task_name()}</Label>
         <Input

@@ -82,7 +82,6 @@ import { MakePublicOverlay } from "../overlays/make-public-overlay";
 import { useOverlay } from "../overlays/overlay-provider";
 import { WorkflowIssuesOverlay } from "../overlays/workflow-issues-overlay";
 import { WorkflowIcon } from "../ui/workflow-icon";
-import { UserMenu } from "../workflows/user-menu";
 
 type WorkflowToolbarProps = {
   workflowId?: string;
@@ -1418,7 +1417,7 @@ function WorkflowMenuComponent({
               asChild
               className="flex items-center justify-between"
             >
-              <a href="/">
+              <a href="/workflows/new">
                 New Workflow{" "}
                 {!workflowId && <Check className="size-4 shrink-0" />}
               </a>
@@ -1505,7 +1504,6 @@ export const WorkflowToolbar = ({ workflowId }: WorkflowToolbarProps) => {
                 onDuplicate={actions.handleDuplicate}
               />
             )}
-            <UserMenu />
           </div>
         </div>
       </div>

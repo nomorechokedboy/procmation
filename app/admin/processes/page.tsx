@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { AppShell } from "@/components/app/app-shell";
 import { ProcessDialog } from "@/components/process/process-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -217,22 +218,17 @@ export default function ProcessesPage() {
   );
 
   return (
-    <div className="pointer-events-auto fixed inset-0 z-50 overflow-y-auto bg-background p-4 sm:p-8">
-      <div className="mx-auto max-w-3xl space-y-6">
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="font-semibold text-xl">{m.processes_title()}</h1>
-          <div className="flex gap-2">
-            {isAdmin ? (
-              <Button onClick={openCreate} size="sm">
-                {m.processes_new()}
-              </Button>
-            ) : null}
-            <Button asChild size="sm" variant="outline">
-              <Link href="/">{m.common_back_to_app()}</Link>
-            </Button>
-          </div>
-        </div>
-
+    <AppShell
+      actions={
+        isAdmin ? (
+          <Button onClick={openCreate} size="sm">
+            {m.processes_new()}
+          </Button>
+        ) : null
+      }
+      title={m.processes_title()}
+    >
+      <div className="space-y-6">
         {isAdmin ? null : (
           <Card>
             <CardHeader>
@@ -291,6 +287,6 @@ export default function ProcessesPage() {
           />
         ) : null}
       </div>
-    </div>
+    </AppShell>
   );
 }

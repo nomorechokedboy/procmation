@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { use, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { AppNav } from "@/components/app/app-nav";
 import { Button } from "@/components/ui/button";
 import { NodeConfigPanel } from "@/components/workflow/node-config-panel";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -39,6 +40,7 @@ import {
   type WorkflowVisibility,
   workflowNotFoundAtom,
 } from "@/lib/workflow-store";
+import * as m from "@/paraglide/messages";
 import { findActionById } from "@/plugins";
 
 type WorkflowPageProps = {
@@ -679,6 +681,7 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
 
   return (
     <div className="flex h-dvh w-full flex-col overflow-hidden">
+      <AppNav className="pointer-events-auto absolute inset-x-0 top-0 z-30" />
       {/* Workflow not found overlay */}
       {workflowNotFound ? (
         <div className="pointer-events-auto absolute inset-0 z-20 flex items-center justify-center">
@@ -688,7 +691,7 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
               The workflow you're looking for doesn't exist or has been deleted.
             </p>
             <Button asChild>
-              <Link href="/">New Workflow</Link>
+              <Link href="/">{m.common_back_to_app()}</Link>
             </Button>
           </div>
         </div>
@@ -708,7 +711,7 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
       {/* Right panel overlay (desktop only) */}
       {!isMobile && (
         <div
-          className="pointer-events-auto absolute inset-y-0 right-0 z-20 border-l bg-background transition-transform duration-300 ease-out"
+          className="pointer-events-auto absolute top-12 right-0 bottom-0 z-20 border-l bg-background transition-transform duration-300 ease-out"
           style={{
             transform:
               panelVisible && !panelCollapsed
