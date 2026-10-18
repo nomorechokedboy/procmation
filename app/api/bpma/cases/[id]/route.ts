@@ -4,6 +4,7 @@ import { readJsonObject } from "@/lib/api/read-json";
 import { db } from "@/lib/db";
 import {
   type CasePatch,
+  canAccessCase,
   canViewCase,
   getCase,
   getCaseDetail,
@@ -33,7 +34,7 @@ export async function GET(request: Request, { params }: Params) {
   const { id } = await params;
   const record = await getCase(id);
   // Answer 404 rather than 403 so case ids cannot be probed
-  if (!(record && canViewCase(guard.user, record))) {
+  if (!(record && (await canAccessCase(guard.user, record)))) {
     return notFound();
   }
 

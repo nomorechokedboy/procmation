@@ -61,6 +61,17 @@ function TaskForm({ task }: TaskFormProps) {
         <CardDescription>
           {task.caseNumber ? `${task.caseNumber} · ` : ""}
           {task.caseTitle ?? ""}
+          {task.caseId ? (
+            <>
+              {" · "}
+              <Link
+                className="underline underline-offset-2"
+                href={`/cases/${task.caseId}`}
+              >
+                {m.task_view_case()}
+              </Link>
+            </>
+          ) : null}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">

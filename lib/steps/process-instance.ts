@@ -11,6 +11,7 @@ import {
   caseTimeline,
   processInstances,
 } from "@/lib/db/schema";
+import { notifyUser } from "@/lib/notifications/deliver";
 
 export type FinishInstanceInput = {
   instanceId: string;
@@ -30,12 +31,20 @@ function finalCaseStatus(outcome: string | null): CaseStatus {
   return "completed";
 }
 
+type FinishedCase = {
+  id: string;
+  caseNumber: string;
+  title: string;
+  initiatorId: string;
+  status: CaseStatus;
+};
+
 export async function finishInstanceStep(
   input: FinishInstanceInput
 ): Promise<void> {
   "use step";
 
-  await db.transaction(async (tx) => {
+  const finished = await db.transaction(async (tx) => {
     const now = new Date();
     await tx
       .update(processInstances)
@@ -48,31 +57,51 @@ export async function finishInstanceStep(
       .where(eq(processInstances.id, input.instanceId));
 
     const [linkedCase] = await tx
-      .select({ id: cases.id })
+      .select({
+        caseNumber: cases.caseNumber,
+        id: cases.id,
+        initiatorId: cases.initiatorId,
+        status: cases.status,
+        title: cases.title,
+      })
       .from(cases)
-      .where(eq(cases.processInstanceId, input.instanceId));
-    if (!linkedCase) {
-      return;
+      .where(eq(cases.processInstanceId, input.instanceId))
+      .for("update");
+    // An administrator may have cancelled the case while the run was ending
+    if (!linkedCase || linkedCase.status === "cancelled") {
+      return null;
     }
 
-    if (input.success) {
-      const status = finalCaseStatus(input.outcome);
-      await tx
-        .update(cases)
-        .set({ status, updatedAt: now })
-        .where(eq(cases.id, linkedCase.id));
-      await tx.insert(caseTimeline).values({
-        caseId: linkedCase.id,
-        data: { outcome: input.outcome, to: status },
-        eventType: "status_changed",
-      });
-    } else {
-      await tx.insert(caseTimeline).values({
-        caseId: linkedCase.id,
-        data: { error: input.error ?? "The process failed" },
-        eventType: "case_updated",
-      });
-    }
+    const status: CaseStatus = input.success
+      ? finalCaseStatus(input.outcome)
+      : "failed";
+    await tx
+      .update(cases)
+      .set({ status, updatedAt: now })
+      .where(eq(cases.id, linkedCase.id));
+    await tx.insert(caseTimeline).values({
+      caseId: linkedCase.id,
+      data: input.success
+        ? { from: linkedCase.status, outcome: input.outcome, to: status }
+        : {
+            error: input.error ?? "The process failed",
+            from: linkedCase.status,
+            to: status,
+          },
+      eventType: "status_changed",
+    });
+    return { ...linkedCase, status } satisfies FinishedCase;
   });
+
+  if (finished) {
+    await notifyUser({
+      caseId: finished.id,
+      caseNumber: finished.caseNumber,
+      caseTitle: finished.title,
+      status: finished.status,
+      type: finished.status === "failed" ? "case_failed" : "case_completed",
+      userId: finished.initiatorId,
+    });
+  }
 }
 finishInstanceStep.maxRetries = 0;

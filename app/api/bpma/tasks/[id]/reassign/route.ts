@@ -2,8 +2,9 @@ import { and, eq, isNull, or } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { readJsonObject } from "@/lib/api/read-json";
 import { db } from "@/lib/db";
-import { getTask, reassignTask } from "@/lib/db/bpma";
+import { getCase, getTask, reassignTask } from "@/lib/db/bpma";
 import { users } from "@/lib/db/schema";
+import { notifyUser } from "@/lib/notifications/deliver";
 import { requireUser } from "@/lib/session";
 
 type Params = { params: Promise<{ id: string }> };
@@ -58,6 +59,17 @@ export async function POST(request: Request, { params }: Params) {
       { status: 409 }
     );
   }
+
+  const linkedCase = result.caseId ? await getCase(result.caseId) : null;
+  await notifyUser({
+    caseId: result.caseId,
+    caseNumber: linkedCase?.caseNumber ?? "",
+    caseTitle: linkedCase?.title ?? "",
+    taskId: task.id,
+    taskName: task.name,
+    type: "task_assigned",
+    userId: assignee.id,
+  });
 
   return NextResponse.json(result.task);
 }

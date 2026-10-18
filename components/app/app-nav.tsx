@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { NotificationBell } from "@/components/app/notification-bell";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { UserMenu } from "@/components/workflows/user-menu";
 import { useSession } from "@/lib/auth-client";
@@ -59,6 +60,7 @@ export function AppNav({ className }: { className?: string }) {
           <div className="hidden sm:block">
             <LanguageSwitcher />
           </div>
+          <NotificationBell />
           <UserMenu />
         </div>
       </div>
