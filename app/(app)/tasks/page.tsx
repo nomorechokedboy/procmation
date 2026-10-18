@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { AppShell } from "@/components/app/app-shell";
+import { PageHeader } from "@/components/app/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useStableCallback } from "@/hooks/use-stable-callback";
@@ -59,7 +59,8 @@ export default function TasksPage() {
   }, [status]);
 
   return (
-    <AppShell title={m.nav_my_tasks()}>
+    <>
+      <PageHeader title={m.nav_my_tasks()} />
       <Tabs onValueChange={handleStatusChange} value={status}>
         <TabsList>
           <TabsTrigger value="pending">{m.tasks_tab_pending()}</TabsTrigger>
@@ -78,6 +79,6 @@ export default function TasksPage() {
           <TaskRow key={task.id} task={task} />
         ))}
       </div>
-    </AppShell>
+    </>
   );
 }

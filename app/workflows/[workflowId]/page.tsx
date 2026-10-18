@@ -7,7 +7,6 @@ import { useSearchParams } from "next/navigation";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { use, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { AppNav } from "@/components/app/app-nav";
 import { Button } from "@/components/ui/button";
 import { NodeConfigPanel } from "@/components/workflow/node-config-panel";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -681,7 +680,6 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
 
   return (
     <div className="flex h-dvh w-full flex-col overflow-hidden">
-      <AppNav className="pointer-events-auto absolute inset-x-0 top-0 z-30" />
       {/* Workflow not found overlay */}
       {workflowNotFound ? (
         <div className="pointer-events-auto absolute inset-0 z-20 flex items-center justify-center">

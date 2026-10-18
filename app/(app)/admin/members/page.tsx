@@ -5,7 +5,7 @@ import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { DepartmentsCard } from "@/components/admin/departments-card";
 import { MemberProfileDialog } from "@/components/admin/member-profile-dialog";
-import { AppShell } from "@/components/app/app-shell";
+import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -237,7 +237,8 @@ export default function MembersPage() {
   }
 
   return (
-    <AppShell title={m.members_title()}>
+    <>
+      <PageHeader title={m.members_title()} />
       <div className="space-y-6">
         {isAdmin ? null : (
           <Card>
@@ -369,6 +370,6 @@ export default function MembersPage() {
           />
         ) : null}
       </div>
-    </AppShell>
+    </>
   );
 }

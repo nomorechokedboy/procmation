@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { AppShell } from "@/components/app/app-shell";
+import { PageHeader } from "@/components/app/page-header";
 import { ProcessDialog } from "@/components/process/process-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -218,16 +218,17 @@ export default function ProcessesPage() {
   );
 
   return (
-    <AppShell
-      actions={
-        isAdmin ? (
-          <Button onClick={openCreate} size="sm">
-            {m.processes_new()}
-          </Button>
-        ) : null
-      }
-      title={m.processes_title()}
-    >
+    <>
+      <PageHeader
+        actions={
+          isAdmin ? (
+            <Button onClick={openCreate} size="sm">
+              {m.processes_new()}
+            </Button>
+          ) : null
+        }
+        title={m.processes_title()}
+      />
       <div className="space-y-6">
         {isAdmin ? null : (
           <Card>
@@ -287,6 +288,6 @@ export default function ProcessesPage() {
           />
         ) : null}
       </div>
-    </AppShell>
+    </>
   );
 }

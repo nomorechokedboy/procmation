@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { AppShell } from "@/components/app/app-shell";
+import { PageHeader } from "@/components/app/page-header";
 import { DynamicForm } from "@/components/forms/dynamic-form";
 import { Bound } from "@/components/ui/bound";
 import { Button } from "@/components/ui/button";
@@ -176,7 +176,8 @@ export default function NewCasePage() {
   }, []);
 
   return (
-    <AppShell title={m.nav_start_case()}>
+    <>
+      <PageHeader title={m.nav_start_case()} />
       {selected ? (
         <StartForm onBack={handleBack} process={selected} />
       ) : (
@@ -186,7 +187,7 @@ export default function NewCasePage() {
           processes={processes}
         />
       )}
-    </AppShell>
+    </>
   );
 }
 

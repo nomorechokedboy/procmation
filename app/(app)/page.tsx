@@ -3,7 +3,7 @@
 import { CheckCircle2, Circle } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { AppShell } from "@/components/app/app-shell";
+import { PageHeader } from "@/components/app/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -187,7 +187,8 @@ export default function HomePage() {
   }
 
   return (
-    <AppShell title={m.home_title()}>
+    <>
+      <PageHeader title={m.home_title()} />
       {isAdmin ? <SetupChecklist /> : null}
       <div className="grid gap-4 sm:grid-cols-3">
         <HomeCard
@@ -212,6 +213,6 @@ export default function HomePage() {
           title={m.home_cases_title()}
         />
       </div>
-    </AppShell>
+    </>
   );
 }
