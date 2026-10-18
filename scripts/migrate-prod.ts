@@ -1,9 +1,17 @@
 import { execSync } from "node:child_process";
 
-const { VERCEL_ENV } = process.env;
+const { VERCEL, VERCEL_ENV, DATABASE_URL } = process.env;
 
-if (VERCEL_ENV === "production") {
-  console.log("Running database migrations for production...");
+// Run migrations on every Vercel build (production and preview), so a fresh
+// test deployment gets its tables. Local builds skip them.
+if (VERCEL) {
+  if (!DATABASE_URL) {
+    console.error(
+      "DATABASE_URL is not set for this environment. Add it in the Vercel project settings."
+    );
+    process.exit(1);
+  }
+  console.log(`Running database migrations (VERCEL_ENV=${VERCEL_ENV})...`);
   try {
     execSync("pnpm db:migrate", { stdio: "inherit" });
     console.log("Migrations completed successfully");
@@ -12,5 +20,5 @@ if (VERCEL_ENV === "production") {
     process.exit(1);
   }
 } else {
-  console.log(`Skipping migrations (VERCEL_ENV=${VERCEL_ENV ?? "not set"})`);
+  console.log("Skipping migrations (not a Vercel build)");
 }

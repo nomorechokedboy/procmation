@@ -22,6 +22,11 @@ function isInternalWorkflowCall(request: NextRequest): boolean {
   if (!request.nextUrl.pathname.startsWith(WORKFLOW_ENGINE_PREFIX)) {
     return false;
   }
+  // On Vercel the platform queue delivers steps to the public deployment URL,
+  // so the loopback check below cannot apply
+  if (process.env.VERCEL) {
+    return true;
+  }
   const host = request.headers.get("host")?.split(":")[0] ?? "";
   if (!LOOPBACK_HOSTS.has(host)) {
     return false;
