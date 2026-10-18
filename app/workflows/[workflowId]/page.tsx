@@ -39,6 +39,7 @@ import {
   type WorkflowVisibility,
   workflowNotFoundAtom,
 } from "@/lib/workflow-store";
+import * as m from "@/paraglide/messages";
 import { findActionById } from "@/plugins";
 
 type WorkflowPageProps = {
@@ -688,7 +689,7 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
               The workflow you're looking for doesn't exist or has been deleted.
             </p>
             <Button asChild>
-              <Link href="/">New Workflow</Link>
+              <Link href="/">{m.common_back_to_app()}</Link>
             </Button>
           </div>
         </div>
@@ -708,7 +709,7 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
       {/* Right panel overlay (desktop only) */}
       {!isMobile && (
         <div
-          className="pointer-events-auto absolute inset-y-0 right-0 z-20 border-l bg-background transition-transform duration-300 ease-out"
+          className="pointer-events-auto absolute top-12 right-0 bottom-0 z-20 border-l bg-background transition-transform duration-300 ease-out"
           style={{
             transform:
               panelVisible && !panelCollapsed

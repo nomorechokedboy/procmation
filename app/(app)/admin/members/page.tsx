@@ -1,11 +1,11 @@
 "use client";
 
 import { Copy } from "lucide-react";
-import Link from "next/link";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { DepartmentsCard } from "@/components/admin/departments-card";
 import { MemberProfileDialog } from "@/components/admin/member-profile-dialog";
+import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -237,15 +237,9 @@ export default function MembersPage() {
   }
 
   return (
-    <div className="pointer-events-auto fixed inset-0 z-50 overflow-y-auto bg-background p-4 sm:p-8">
-      <div className="mx-auto max-w-3xl space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="font-semibold text-xl">{m.members_title()}</h1>
-          <Button asChild size="sm" variant="outline">
-            <Link href="/">{m.common_back_to_app()}</Link>
-          </Button>
-        </div>
-
+    <>
+      <PageHeader title={m.members_title()} />
+      <div className="space-y-6">
         {isAdmin ? null : (
           <Card>
             <CardHeader>
@@ -376,6 +370,6 @@ export default function MembersPage() {
           />
         ) : null}
       </div>
-    </div>
+    </>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { AppShell } from "@/components/app/app-shell";
+import { PageHeader } from "@/components/app/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { api, type CaseRecord } from "@/lib/api-client";
@@ -52,16 +52,17 @@ export default function CasesPage() {
   const toggleAll = useCallback(() => setShowAll((value) => !value), []);
 
   return (
-    <AppShell
-      actions={
-        isAdmin ? (
-          <Button onClick={toggleAll} size="sm" variant="outline">
-            {showAll ? m.cases_show_mine() : m.cases_show_all()}
-          </Button>
-        ) : null
-      }
-      title={m.nav_my_cases()}
-    >
+    <>
+      <PageHeader
+        actions={
+          isAdmin ? (
+            <Button onClick={toggleAll} size="sm" variant="outline">
+              {showAll ? m.cases_show_mine() : m.cases_show_all()}
+            </Button>
+          ) : null
+        }
+        title={m.nav_my_cases()}
+      />
       {loaded && cases.length === 0 ? (
         <p className="text-muted-foreground text-sm">{m.cases_empty()}</p>
       ) : null}
@@ -70,6 +71,6 @@ export default function CasesPage() {
           <CaseRow item={item} key={item.id} />
         ))}
       </div>
-    </AppShell>
+    </>
   );
 }

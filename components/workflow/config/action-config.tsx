@@ -31,6 +31,7 @@ import { aiGatewayStatusAtom } from "@/lib/ai-gateway/state";
 import {
   isPluginActionVisible,
   isSystemActionVisible,
+  SHOW_GENERIC_WORKFLOW_TOOLS,
 } from "@/lib/bpma-features";
 import { systemActionLabel } from "@/lib/i18n/action-labels";
 import {
@@ -38,6 +39,7 @@ import {
   integrationsVersionAtom,
 } from "@/lib/integrations-store";
 import type { IntegrationType } from "@/lib/types/integration";
+import * as m from "@/paraglide/messages";
 import {
   findActionById,
   getActionsByCategory,
@@ -371,6 +373,59 @@ function normalizeActionType(actionType: string): string {
   return actionType;
 }
 
+type ServiceSelectProps = {
+  category: string;
+  categories: Record<string, Array<{ id: string; label: string }>>;
+  integrations: ReturnType<typeof getAllIntegrations>;
+  disabled?: boolean;
+  onChange: (category: string) => void;
+};
+
+// The "Service" picker, only shown when plugin integrations are enabled
+function ServiceSelect({
+  category,
+  integrations,
+  disabled,
+  onChange,
+}: ServiceSelectProps) {
+  return (
+    <div className="space-y-2">
+      <Label className="ml-1" htmlFor="actionCategory">
+        Service
+      </Label>
+      <Select
+        disabled={disabled}
+        onValueChange={onChange}
+        value={category || undefined}
+      >
+        <SelectTrigger className="w-full" id="actionCategory">
+          <SelectValue placeholder="Select category" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="System">
+            <div className="flex items-center gap-2">
+              <Settings className="size-4" />
+              <span>System</span>
+            </div>
+          </SelectItem>
+          <SelectSeparator />
+          {integrations.map((integration) => (
+            <SelectItem key={integration.type} value={integration.label}>
+              <div className="flex items-center gap-2">
+                <IntegrationIcon
+                  className="size-4"
+                  integration={integration.type}
+                />
+                <span>{integration.label}</span>
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
 export function ActionConfig({
   config,
   onUpdateConfig,
@@ -385,7 +440,14 @@ export function ActionConfig({
   const integrations = useMemo(() => getAllIntegrations(), []);
 
   const selectedCategory = actionType ? getCategoryForAction(actionType) : null;
-  const [category, setCategory] = useState<string>(selectedCategory || "");
+  const [pickedCategory, setCategory] = useState<string>(
+    selectedCategory || ""
+  );
+  // With the generic tools hidden only built-in steps remain, so there is no
+  // service to choose and the step type list is shown on its own
+  const singleCategory =
+    Object.keys(categories).length === 1 ? Object.keys(categories)[0] : null;
+  const category = singleCategory ?? pickedCategory;
   const setIntegrationsVersion = useSetAtom(integrationsVersionAtom);
   const globalIntegrations = useAtomValue(integrationsAtom);
   const { push } = useOverlay();
@@ -482,45 +544,20 @@ export function ActionConfig({
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-2">
-        <div className="space-y-2">
-          <Label className="ml-1" htmlFor="actionCategory">
-            Service
-          </Label>
-          <Select
+      <div className={singleCategory ? "grid gap-2" : "grid grid-cols-2 gap-2"}>
+        {singleCategory ? null : (
+          <ServiceSelect
+            categories={categories}
+            category={category}
             disabled={disabled}
-            onValueChange={handleCategoryChange}
-            value={category || undefined}
-          >
-            <SelectTrigger className="w-full" id="actionCategory">
-              <SelectValue placeholder="Select category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="System">
-                <div className="flex items-center gap-2">
-                  <Settings className="size-4" />
-                  <span>System</span>
-                </div>
-              </SelectItem>
-              <SelectSeparator />
-              {integrations.map((integration) => (
-                <SelectItem key={integration.type} value={integration.label}>
-                  <div className="flex items-center gap-2">
-                    <IntegrationIcon
-                      className="size-4"
-                      integration={integration.type}
-                    />
-                    <span>{integration.label}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+            integrations={integrations}
+            onChange={handleCategoryChange}
+          />
+        )}
 
         <div className="space-y-2">
           <Label className="ml-1" htmlFor="actionType">
-            Action
+            {singleCategory ? m.action_step_type() : "Action"}
           </Label>
           <Select
             disabled={disabled || !category}
@@ -528,7 +565,11 @@ export function ActionConfig({
             value={normalizeActionType(actionType) || undefined}
           >
             <SelectTrigger className="w-full" id="actionType">
-              <SelectValue placeholder="Select action" />
+              <SelectValue
+                placeholder={
+                  singleCategory ? m.action_select_step_type() : "Select action"
+                }
+              />
             </SelectTrigger>
             <SelectContent>
               {category
@@ -543,7 +584,7 @@ export function ActionConfig({
         </div>
       </div>
 
-      {integrationType && isOwner ? (
+      {integrationType && isOwner && SHOW_GENERIC_WORKFLOW_TOOLS ? (
         <div className="space-y-2">
           <div className="ml-1 flex items-center justify-between">
             <div className="flex items-center gap-1">

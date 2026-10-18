@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { AppShell } from "@/components/app/app-shell";
+import { PageHeader } from "@/components/app/page-header";
 import { DynamicForm } from "@/components/forms/dynamic-form";
 import { Bound } from "@/components/ui/bound";
 import { Button } from "@/components/ui/button";
@@ -130,7 +130,8 @@ export default function TaskPage() {
   }, [taskId]);
 
   return (
-    <AppShell title={m.task_title()}>
+    <>
+      <PageHeader title={m.task_title()} />
       {task ? <TaskForm task={task} /> : null}
       {missing ? (
         <div className="space-y-3">
@@ -140,6 +141,6 @@ export default function TaskPage() {
           </Button>
         </div>
       ) : null}
-    </AppShell>
+    </>
   );
 }
