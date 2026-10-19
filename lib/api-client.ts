@@ -966,6 +966,14 @@ export const notificationApi = {
 };
 
 // Export all APIs as a single object
+export const templateApi = {
+  install: (templateId: "leave-request") =>
+    apiCall<{ processId: string; workflowId: string }>(
+      `/api/templates/${templateId}/install`,
+      { method: "POST" }
+    ),
+};
+
 export const api = {
   ai: aiApi,
   aiGateway: aiGatewayApi,
@@ -978,6 +986,7 @@ export const api = {
   process: processApi,
   setup: setupApi,
   task: taskApi,
+  template: templateApi,
   user: userApi,
   workflow: workflowApi,
 };

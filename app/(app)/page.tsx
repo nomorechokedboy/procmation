@@ -2,8 +2,9 @@
 
 import { CheckCircle2, Circle } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { PageHeader } from "@/components/app/page-header";
+import { InstallTemplateButton } from "@/components/templates/install-template-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,9 +30,17 @@ type SetupStepProps = {
   description: string;
   href: string;
   action: string;
+  extra?: ReactNode;
 };
 
-function SetupStep({ done, title, description, href, action }: SetupStepProps) {
+function SetupStep({
+  done,
+  title,
+  description,
+  href,
+  action,
+  extra,
+}: SetupStepProps) {
   const Icon = done ? CheckCircle2 : Circle;
   return (
     <li className="flex items-start gap-3 py-3" data-done={done}>
@@ -49,9 +58,12 @@ function SetupStep({ done, title, description, href, action }: SetupStepProps) {
       {done ? (
         <Badge variant="secondary">{m.home_setup_done()}</Badge>
       ) : (
-        <Button asChild size="sm" variant="outline">
-          <Link href={href}>{action}</Link>
-        </Button>
+        <div className="flex shrink-0 flex-wrap justify-end gap-2">
+          {extra}
+          <Button asChild size="sm" variant="outline">
+            <Link href={href}>{action}</Link>
+          </Button>
+        </div>
       )}
     </li>
   );
@@ -60,30 +72,27 @@ function SetupStep({ done, title, description, href, action }: SetupStepProps) {
 function SetupChecklist() {
   const [progress, setProgress] = useState<SetupProgress | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
+  const refresh = useCallback(() => {
     Promise.all([
       api.department.list(),
       api.member.list(),
       api.workflow.getAll(),
       api.process.list(),
     ])
-      .then(([departments, members, workflows, processes]) => {
-        if (cancelled) {
-          return;
-        }
+      .then(([departments, members, workflows, processes]) =>
         setProgress({
           departments: departments.length > 0,
           members: members.length > 1,
           published: processes.some((p) => p.status === "published"),
           workflow: workflows.some((w) => w.name !== "__current__"),
-        });
-      })
+        })
+      )
       .catch(() => setProgress(null));
-    return () => {
-      cancelled = true;
-    };
   }, []);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   if (!progress) {
     return null;
@@ -127,6 +136,14 @@ function SetupChecklist() {
           }
           description={m.home_setup_workflow_description()}
           done={progress.workflow}
+          extra={
+            progress.workflow ? null : (
+              <InstallTemplateButton
+                label={m.templates_install_short()}
+                onInstalled={refresh}
+              />
+            )
+          }
           href={progress.workflow ? "/workflows" : "/workflows/new"}
           title={m.home_setup_workflow_title()}
         />

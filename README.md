@@ -55,11 +55,34 @@ AI_GATEWAY_API_KEY=your-openai-api-key
 # links are shown to the admin to share by hand.
 RESEND_API_KEY=your-resend-api-key
 RESEND_FROM="Procmation <noreply@your-verified-domain.com>"
+
+# Live notifications (optional). Without it, live updates only reach people
+# connected to the same app instance, which is fine for a single container.
+# Set it when you run several instances, e.g. REDIS_URL=redis://redis:6379
+REDIS_URL=redis://localhost:6379
 ```
+
+Notifications reach the browser over a server-sent events stream, with no polling.
+They need a long-lived connection, so they work on a VPS or in Docker, not on
+serverless hosting such as Vercel (there the bell updates when the page loads or
+the menu is opened). If you run more than one app instance, add a Redis service
+(for example the `redis:7` image) and set `REDIS_URL`; if Redis is down, notifications
+are still saved and only the live push is missed.
 
 Links in emails use `BETTER_AUTH_URL` (or `NEXT_PUBLIC_APP_URL`), so set it to the
 public address of your deployment. The `RESEND_FROM` address must belong to a domain
 verified in Resend.
+
+Self-hosted deployments also keep the workflow engine's run state on disk, in
+`.workflow-data` by default (set `WORKFLOW_EMBEDDED_DATA_DIR` to move it). Put that
+directory on a persistent volume, or cases waiting on a task are lost when the
+container is replaced.
+
+### Starting point
+
+As an admin, the home page offers a leave request template that creates a ready-to-use
+workflow (manager approval) and publishes it. Each requester needs a manager set on the
+Members page.
 
 ### Installation
 
