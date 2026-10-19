@@ -363,5 +363,20 @@
   "tl_task_escalated": "{task} is overdue, so {who} was told",
   "tl_task_escalated_nobody": "{task} is overdue and the assignee has no manager to tell",
   "tasks_overdue": "Overdue",
-  "tasks_due": "Due {date}"
+  "tasks_due": "Due {date}",
+  "nav_audit_log": "Audit log",
+  "audit_title": "Audit log",
+  "audit_description": "Every change made to cases, tasks, processes, members and more. Entries can be added but never edited or removed.",
+  "audit_search_placeholder": "Search by person, record or text",
+  "audit_filter_all": "All records",
+  "audit_resource_case": "Case",
+  "audit_resource_task": "Task",
+  "audit_resource_process": "Process",
+  "audit_resource_workflow": "Workflow",
+  "audit_resource_member": "Member",
+  "audit_resource_department": "Department",
+  "audit_resource_invite": "Invitation",
+  "audit_system": "System",
+  "audit_empty": "No entries match.",
+  "audit_load_more": "Load more"
 }

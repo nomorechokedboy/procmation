@@ -974,9 +974,48 @@ export const templateApi = {
     ),
 };
 
+export type AuditEntry = {
+  id: string;
+  createdAt: string;
+  resourceType: string;
+  resourceId: string | null;
+  resourceLabel: string | null;
+  parentType: string | null;
+  parentId: string | null;
+  parentLabel: string | null;
+  action: string;
+  actorId: string | null;
+  actorName: string | null;
+  summary: string;
+  metadata: Record<string, unknown> | null;
+};
+
+export type AuditPage = { entries: AuditEntry[]; nextBefore: string | null };
+
+export type AuditFilters = {
+  resourceType?: string;
+  resourceId?: string;
+  q?: string;
+  before?: string;
+};
+
+export const auditApi = {
+  list: (filters: AuditFilters = {}) => {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(filters)) {
+      if (value) {
+        params.set(key, value);
+      }
+    }
+    const query = params.toString();
+    return apiCall<AuditPage>(`/api/audit-logs${query ? `?${query}` : ""}`);
+  },
+};
+
 export const api = {
   ai: aiApi,
   aiGateway: aiGatewayApi,
+  audit: auditApi,
   case: caseApi,
   department: departmentApi,
   integration: integrationApi,
