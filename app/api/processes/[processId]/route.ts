@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { AUDIT_RESOURCES, recordAudit, userActor } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { processSummarySelection } from "@/lib/db/process-queries";
 import {
@@ -71,6 +72,32 @@ async function checkCanPublish(
     : "Add a trigger step to the workflow before publishing";
 }
 
+type ProcessUpdates = Partial<typeof processDefinitions.$inferInsert>;
+
+async function auditProcessChange(
+  user: { id: string; name: string; email: string },
+  current: { name: string; status: string },
+  processId: string,
+  updates: ProcessUpdates
+) {
+  const statusChanged = updates.status !== undefined;
+  const actorName = user.name || user.email;
+  await recordAudit({
+    action: statusChanged ? `status_${updates.status}` : "updated",
+    actor: userActor(user),
+    metadata: {
+      changed: Object.keys(updates),
+      ...(statusChanged ? { from: current.status, to: updates.status } : {}),
+    },
+    resourceId: processId,
+    resourceLabel: current.name,
+    resourceType: AUDIT_RESOURCES.process,
+    summary: statusChanged
+      ? `${actorName} changed the process ${current.name} from ${current.status} to ${updates.status}`
+      : `${actorName} updated the process ${current.name}`,
+  });
+}
+
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ processId: string }> }
@@ -139,6 +166,13 @@ export async function PATCH(
     .update(processDefinitions)
     .set({ ...updates, updatedAt: new Date() })
     .where(eq(processDefinitions.id, processId));
+
+  await auditProcessChange(
+    guard.user,
+    { name: current.name, status: current.status },
+    processId,
+    updates
+  );
 
   return NextResponse.json(await loadSummary(processId));
 }

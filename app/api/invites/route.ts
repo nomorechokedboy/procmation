@@ -1,6 +1,7 @@
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getAppOrigin } from "@/lib/app-url";
+import { AUDIT_RESOURCES, recordAudit, userActor } from "@/lib/audit";
 import {
   generateInviteToken,
   INVITE_TTL_MS,
@@ -84,6 +85,16 @@ export async function POST(request: Request) {
         tokenHash,
       })
       .returning({ expiresAt: invitations.expiresAt, id: invitations.id });
+  });
+
+  await recordAudit({
+    action: "created",
+    actor: userActor(guard.user),
+    metadata: { role },
+    resourceId: invitation.id,
+    resourceLabel: email,
+    resourceType: AUDIT_RESOURCES.invite,
+    summary: `${guard.user.name} invited ${email} as ${role}`,
   });
 
   const inviteUrl = `${getAppOrigin(request)}/invite/${token}`;

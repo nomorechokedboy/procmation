@@ -1,5 +1,6 @@
 import { asc, eq, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { AUDIT_RESOURCES, recordAudit, userActor } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { departments, userProfiles } from "@/lib/db/schema";
 import { requireAdmin, requireUser } from "@/lib/session";
@@ -78,6 +79,15 @@ export async function POST(request: Request) {
     .insert(departments)
     .values({ name, parentId: body.parentId ?? null })
     .returning();
+
+  await recordAudit({
+    action: "created",
+    actor: userActor(guard.user),
+    resourceId: created.id,
+    resourceLabel: created.name,
+    resourceType: AUDIT_RESOURCES.department,
+    summary: `${guard.user.name} created department ${created.name}`,
+  });
 
   return NextResponse.json(created, { status: 201 });
 }

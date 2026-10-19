@@ -1,5 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { AUDIT_RESOURCES, recordAudit, userActor } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { validateWorkflowIntegrations } from "@/lib/db/integrations";
@@ -238,6 +239,14 @@ export async function DELETE(
     }
 
     await db.delete(workflows).where(eq(workflows.id, workflowId));
+    await recordAudit({
+      action: "deleted",
+      actor: userActor(session.user),
+      resourceId: workflowId,
+      resourceLabel: existingWorkflow.name,
+      resourceType: AUDIT_RESOURCES.workflow,
+      summary: `${session.user.name || session.user.email} deleted the workflow ${existingWorkflow.name}`,
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

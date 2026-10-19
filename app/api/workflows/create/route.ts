@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { NextResponse } from "next/server";
+import { AUDIT_RESOURCES, recordAudit, userActor } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { validateWorkflowIntegrations } from "@/lib/db/integrations";
@@ -84,6 +85,15 @@ export async function POST(request: Request) {
         userId: session.user.id,
       })
       .returning();
+
+    await recordAudit({
+      action: "created",
+      actor: userActor(session.user),
+      resourceId: newWorkflow.id,
+      resourceLabel: newWorkflow.name,
+      resourceType: AUDIT_RESOURCES.workflow,
+      summary: `${session.user.name || session.user.email} created the workflow ${newWorkflow.name}`,
+    });
 
     return NextResponse.json({
       ...newWorkflow,
