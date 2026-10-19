@@ -80,7 +80,7 @@ export async function POST(request: Request) {
     .values({ name, parentId: body.parentId ?? null })
     .returning();
 
-  await recordAudit({
+  recordAudit({
     action: "created",
     actor: userActor(guard.user),
     resourceId: created.id,

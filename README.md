@@ -112,7 +112,7 @@ status changes, cancelled, finished or failed), tasks (completed, reassigned,
 reminded, escalated), processes, workflows (created, deleted), members, departments
 and invitations. Everything lives in one append-only `audit_logs` table; a new kind
 of record only needs a `resourceType` and action names (see `lib/audit.ts`), not a
-new table. The API offers no way to edit or delete entries. Entries store the actor's
+new table. Entries are written in the background after the change commits, so the log never slows down or fails an action (a failed write is logged to the server console). The API offers no way to edit or delete entries. Entries store the actor's
 and record's name at the time, so they stay readable after renames or deletions.
 Workflow edits are not logged, because the editor saves automatically.
 

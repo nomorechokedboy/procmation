@@ -4,7 +4,7 @@
 import "server-only";
 
 import { eq } from "drizzle-orm";
-import { AUDIT_RESOURCES, recordAudit } from "@/lib/audit";
+import { AUDIT_RESOURCES, type AuditEntry, recordAudit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import {
   type CaseStatus,
@@ -45,6 +45,7 @@ export async function finishInstanceStep(
 ): Promise<void> {
   "use step";
 
+  const audits: AuditEntry[] = [];
   const finished = await db.transaction(async (tx) => {
     const now = new Date();
     await tx
@@ -91,25 +92,23 @@ export async function finishInstanceStep(
           },
       eventType: "status_changed",
     });
-    await recordAudit(
-      {
-        action: input.success ? "finished" : "failed",
-        actor: "system",
-        metadata: input.success
-          ? { outcome: input.outcome, to: status }
-          : { error: input.error ?? "The process failed", to: status },
-        resourceId: linkedCase.id,
-        resourceLabel: linkedCase.caseNumber,
-        resourceType: AUDIT_RESOURCES.case,
-        summary: input.success
-          ? `Case ${linkedCase.caseNumber} finished as ${status}`
-          : `Case ${linkedCase.caseNumber} failed: ${input.error ?? "The process failed"}`,
-      },
-      tx
-    );
+    audits.push({
+      action: input.success ? "finished" : "failed",
+      actor: "system",
+      metadata: input.success
+        ? { outcome: input.outcome, to: status }
+        : { error: input.error ?? "The process failed", to: status },
+      resourceId: linkedCase.id,
+      resourceLabel: linkedCase.caseNumber,
+      resourceType: AUDIT_RESOURCES.case,
+      summary: input.success
+        ? `Case ${linkedCase.caseNumber} finished as ${status}`
+        : `Case ${linkedCase.caseNumber} failed: ${input.error ?? "The process failed"}`,
+    });
     return { ...linkedCase, status } satisfies FinishedCase;
   });
 
+  recordAudit(audits);
   if (finished) {
     await notifyUser({
       caseId: finished.id,

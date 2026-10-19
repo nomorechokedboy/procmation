@@ -120,7 +120,7 @@ export async function PATCH(
     .where(eq(departments.id, departmentId))
     .returning();
 
-  await recordAudit({
+  recordAudit({
     action: "updated",
     actor: userActor(guard.user),
     metadata: {
@@ -159,7 +159,7 @@ export async function DELETE(
         { status: 404 }
       );
     }
-    await recordAudit({
+    recordAudit({
       action: "deleted",
       actor: userActor(guard.user),
       resourceId: departmentId,

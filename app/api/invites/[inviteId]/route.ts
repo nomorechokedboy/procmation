@@ -27,7 +27,7 @@ export async function DELETE(
     );
   }
 
-  await recordAudit({
+  recordAudit({
     action: "revoked",
     actor: userActor(guard.user),
     resourceId: inviteId,

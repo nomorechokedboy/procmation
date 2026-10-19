@@ -1,8 +1,9 @@
 import "server-only";
 
 import { and, desc, eq, ilike, lt, or, type SQL } from "drizzle-orm";
+import { after } from "next/server";
 import { db } from "@/lib/db";
-import { type AuditLog, auditLogs } from "@/lib/db/schema";
+import { type AuditLog, auditLogs, type NewAuditLog } from "@/lib/db/schema";
 
 // Resource types written so far. The column is free text, so a new kind of
 // resource needs no migration: pick a name and start writing.
@@ -31,21 +32,13 @@ export type AuditEntry = {
   metadata?: Record<string, unknown>;
 };
 
-// Anything with an insert, so entries can join the caller's transaction
-type Writer = Pick<typeof db, "insert">;
-
 export function userActor(user: { id: string; name: string; email: string }) {
   return { id: user.id, name: user.name || user.email } satisfies AuditActor;
 }
 
-// Appends one entry. Pass a transaction as `writer` when the change it
-// describes is made in one, so both succeed or fail together.
-export async function recordAudit(
-  entry: AuditEntry,
-  writer: Writer = db
-): Promise<void> {
+function toRow(entry: AuditEntry): NewAuditLog {
   const actor = entry.actor === "system" ? null : entry.actor;
-  await writer.insert(auditLogs).values({
+  return {
     action: entry.action,
     actorId: actor?.id ?? null,
     actorName: actor?.name ?? null,
@@ -57,7 +50,40 @@ export async function recordAudit(
     resourceLabel: entry.resourceLabel ?? null,
     resourceType: entry.resourceType,
     summary: entry.summary,
-  });
+  };
+}
+
+// Inside a request, ask Next.js to keep the work going after the response
+// (serverless hosts may otherwise stop it). Outside a request, such as in a
+// workflow step, the write just carries on in the background.
+function keepAlive(work: Promise<unknown>) {
+  try {
+    after(work);
+  } catch {
+    // not in a request scope
+  }
+}
+
+// Writes entries without making the caller wait: the action that caused them
+// never slows down or fails because of the log. Call it after the change is
+// committed, never inside its transaction, so a rolled-back change leaves no
+// entry. A failed write is logged with what it said, so it can be recovered.
+export function recordAudit(entries: AuditEntry | AuditEntry[]): void {
+  const list = Array.isArray(entries) ? entries : [entries];
+  if (list.length === 0) {
+    return;
+  }
+  const write = db
+    .insert(auditLogs)
+    .values(list.map(toRow))
+    .catch((error: unknown) => {
+      console.error(
+        "[audit] could not write entries:",
+        list.map((entry) => entry.summary),
+        error instanceof Error ? error.message : error
+      );
+    });
+  keepAlive(write);
 }
 
 export type AuditQuery = {

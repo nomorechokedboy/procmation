@@ -135,7 +135,7 @@ export async function PATCH(
       target: userProfiles.userId,
     });
 
-  await recordAudit({
+  recordAudit({
     action: "profile_updated",
     actor: userActor(guard.user),
     metadata: { changed: updates },

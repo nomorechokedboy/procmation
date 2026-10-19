@@ -86,7 +86,7 @@ export async function POST(request: Request) {
       })
       .returning();
 
-    await recordAudit({
+    recordAudit({
       action: "created",
       actor: userActor(session.user),
       resourceId: newWorkflow.id,

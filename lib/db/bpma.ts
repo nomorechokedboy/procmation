@@ -11,7 +11,7 @@ import {
   type SQL,
   sql,
 } from "drizzle-orm";
-import { AUDIT_RESOURCES, recordAudit } from "@/lib/audit";
+import { AUDIT_RESOURCES, type AuditEntry, recordAudit } from "@/lib/audit";
 import { CASE_ACTIVE_STATUSES } from "@/lib/db/case-options";
 import { pushNotificationToUser } from "@/lib/notifications/sse-hub";
 import type { FormField } from "@/lib/types/process-form";
@@ -95,7 +95,9 @@ export type NewCaseInput = {
 export async function createCaseInTx(
   tx: Tx,
   input: NewCaseInput,
-  actor: Actor
+  actor: Actor,
+  // Collects what to log; the caller records it once the transaction commits
+  audits: AuditEntry[]
 ): Promise<Case> {
   const caseNumber = await nextCaseNumber(tx);
   const [created] = await tx
@@ -121,21 +123,18 @@ export async function createCaseInTx(
     },
     eventType: "case_created",
   });
-  await recordAudit(
-    {
-      action: "created",
-      actor,
-      metadata: {
-        priority: input.priority,
-        processDefinitionId: input.processDefinitionId,
-      },
-      resourceId: created.id,
-      resourceLabel: created.caseNumber,
-      resourceType: AUDIT_RESOURCES.case,
-      summary: `${actor.name} started case ${created.caseNumber}: ${input.title}`,
+  audits.push({
+    action: "created",
+    actor,
+    metadata: {
+      priority: input.priority,
+      processDefinitionId: input.processDefinitionId,
     },
-    tx
-  );
+    resourceId: created.id,
+    resourceLabel: created.caseNumber,
+    resourceType: AUDIT_RESOURCES.case,
+    summary: `${actor.name} started case ${created.caseNumber}: ${input.title}`,
+  });
 
   return created;
 }
@@ -353,11 +352,12 @@ export type CancelCaseResult =
 
 // Stops a case: closes its waiting tasks and marks the case and process
 // cancelled. The caller then stops the suspended run, see cancelCaseRun.
-export function cancelCase(input: {
+export async function cancelCase(input: {
   caseId: string;
   actor: Actor;
 }): Promise<CancelCaseResult> {
-  return db.transaction(async (tx) => {
+  const audits: AuditEntry[] = [];
+  const result = await db.transaction(async (tx) => {
     const [current] = await tx
       .select()
       .from(cases)
@@ -409,21 +409,20 @@ export function cancelCase(input: {
       data: { from: current.status, to: "cancelled" },
       eventType: "status_changed",
     });
-    await recordAudit(
-      {
-        action: "cancelled",
-        actor: input.actor,
-        metadata: { from: current.status },
-        resourceId: current.id,
-        resourceLabel: current.caseNumber,
-        resourceType: AUDIT_RESOURCES.case,
-        summary: `${input.actor.name} cancelled case ${current.caseNumber}`,
-      },
-      tx
-    );
+    audits.push({
+      action: "cancelled",
+      actor: input.actor,
+      metadata: { from: current.status },
+      resourceId: current.id,
+      resourceLabel: current.caseNumber,
+      resourceType: AUDIT_RESOURCES.case,
+      summary: `${input.actor.name} cancelled case ${current.caseNumber}`,
+    });
 
     return { ok: true, record, runId } as const;
   });
+  recordAudit(audits);
+  return result;
 }
 
 export type CasePatch = {
@@ -435,12 +434,13 @@ export type CasePatch = {
   dueAt?: Date | null;
 };
 
-export function updateCase(
+export async function updateCase(
   id: string,
   patch: CasePatch,
   actor: Actor
 ): Promise<Case | null> {
-  return db.transaction(async (tx) => {
+  const audits: AuditEntry[] = [];
+  const result = await db.transaction(async (tx) => {
     // Lock the row so the recorded "from" status is the one being replaced
     const [current] = await tx
       .select()
@@ -464,18 +464,15 @@ export function updateCase(
         data: { from: current.status, to: patch.status },
         eventType: "status_changed",
       });
-      await recordAudit(
-        {
-          action: "status_changed",
-          actor,
-          metadata: { from: current.status, to: patch.status },
-          resourceId: id,
-          resourceLabel: current.caseNumber,
-          resourceType: AUDIT_RESOURCES.case,
-          summary: `${actor.name} changed case ${current.caseNumber} from ${current.status} to ${patch.status}`,
-        },
-        tx
-      );
+      audits.push({
+        action: "status_changed",
+        actor,
+        metadata: { from: current.status, to: patch.status },
+        resourceId: id,
+        resourceLabel: current.caseNumber,
+        resourceType: AUDIT_RESOURCES.case,
+        summary: `${actor.name} changed case ${current.caseNumber} from ${current.status} to ${patch.status}`,
+      });
     }
 
     const { status: _status, ...rest } = patch;
@@ -489,22 +486,21 @@ export function updateCase(
         data: { changed: changedKeys },
         eventType: "case_updated",
       });
-      await recordAudit(
-        {
-          action: "updated",
-          actor,
-          metadata: { changed: changedKeys },
-          resourceId: id,
-          resourceLabel: current.caseNumber,
-          resourceType: AUDIT_RESOURCES.case,
-          summary: `${actor.name} updated ${changedKeys.join(", ")} on case ${current.caseNumber}`,
-        },
-        tx
-      );
+      audits.push({
+        action: "updated",
+        actor,
+        metadata: { changed: changedKeys },
+        resourceId: id,
+        resourceLabel: current.caseNumber,
+        resourceType: AUDIT_RESOURCES.case,
+        summary: `${actor.name} updated ${changedKeys.join(", ")} on case ${current.caseNumber}`,
+      });
     }
 
     return updated;
   });
+  recordAudit(audits);
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -596,7 +592,7 @@ export type CompleteTaskResult =
 
 // Only a pending task can be completed, and only once: the status check is
 // part of the UPDATE, so two simultaneous submissions cannot both win.
-export function completeTask(input: {
+export async function completeTask(input: {
   task: Task;
   actor: Actor;
   completedById: string;
@@ -605,7 +601,8 @@ export function completeTask(input: {
 }): Promise<CompleteTaskResult> {
   const { task } = input;
 
-  return db.transaction(async (tx) => {
+  const audits: AuditEntry[] = [];
+  const result = await db.transaction(async (tx) => {
     const [updated] = await tx
       .update(tasks)
       .set({
@@ -652,23 +649,20 @@ export function completeTask(input: {
 
     const linked = await findCaseForInstance(tx, task.instanceId);
     const caseId = linked?.id ?? null;
-    await recordAudit(
-      {
-        action: "completed",
-        actor: input.actor,
-        metadata: { outcome: input.outcome },
-        parent: linked
-          ? { id: linked.id, label: linked.caseNumber, type: "case" }
-          : undefined,
-        resourceId: task.id,
-        resourceLabel: task.name,
-        resourceType: AUDIT_RESOURCES.task,
-        summary: `${input.actor.name} completed "${task.name}"${
-          input.outcome ? ` with outcome ${input.outcome}` : ""
-        }`,
-      },
-      tx
-    );
+    audits.push({
+      action: "completed",
+      actor: input.actor,
+      metadata: { outcome: input.outcome },
+      parent: linked
+        ? { id: linked.id, label: linked.caseNumber, type: "case" }
+        : undefined,
+      resourceId: task.id,
+      resourceLabel: task.name,
+      resourceType: AUDIT_RESOURCES.task,
+      summary: `${input.actor.name} completed "${task.name}"${
+        input.outcome ? ` with outcome ${input.outcome}` : ""
+      }`,
+    });
     if (caseId) {
       await addTimelineEvent(tx, {
         actorId: input.completedById,
@@ -690,6 +684,8 @@ export function completeTask(input: {
 
     return { ok: true, task: updated } as const;
   });
+  recordAudit(audits);
+  return result;
 }
 
 // Undo a completion when the run could not be resumed, so the task is not
@@ -729,6 +725,7 @@ export async function reassignTask(input: {
 }): Promise<ReassignTaskResult> {
   const { task } = input;
 
+  const audits: AuditEntry[] = [];
   const result = await db.transaction(async (tx) => {
     const [updated] = await tx
       .update(tasks)
@@ -766,24 +763,23 @@ export async function reassignTask(input: {
       const person = people.find((item) => item.id === id);
       return person?.name || person?.email || "nobody";
     };
-    await recordAudit(
-      {
-        action: "reassigned",
-        actor: input.actor,
-        metadata: { from: task.assigneeId, to: input.newAssigneeId },
-        parent: linked
-          ? { id: linked.id, label: linked.caseNumber, type: "case" }
-          : undefined,
-        resourceId: task.id,
-        resourceLabel: task.name,
-        resourceType: AUDIT_RESOURCES.task,
-        summary: `${input.actor.name} reassigned "${task.name}" from ${nameOf(task.assigneeId)} to ${nameOf(input.newAssigneeId)}`,
-      },
-      tx
-    );
+    audits.push({
+      action: "reassigned",
+      actor: input.actor,
+      metadata: { from: task.assigneeId, to: input.newAssigneeId },
+      parent: linked
+        ? { id: linked.id, label: linked.caseNumber, type: "case" }
+        : undefined,
+      resourceId: task.id,
+      resourceLabel: task.name,
+      resourceType: AUDIT_RESOURCES.task,
+      summary: `${input.actor.name} reassigned "${task.name}" from ${nameOf(task.assigneeId)} to ${nameOf(input.newAssigneeId)}`,
+    });
 
     return { caseId, updated };
   });
+
+  recordAudit(audits);
 
   if (!result) {
     return { ok: false, reason: "not_pending" };

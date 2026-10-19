@@ -239,7 +239,7 @@ export async function DELETE(
     }
 
     await db.delete(workflows).where(eq(workflows.id, workflowId));
-    await recordAudit({
+    recordAudit({
       action: "deleted",
       actor: userActor(session.user),
       resourceId: workflowId,
