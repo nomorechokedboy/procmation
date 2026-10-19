@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { AUDIT_RESOURCES, recordAudit, userActor } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { processDefinitions, workflows } from "@/lib/db/schema";
 import { getRequestLocale } from "@/lib/i18n/request-locale";
@@ -51,6 +52,19 @@ export async function POST(request: Request, { params }: Params) {
         workflowId: workflow.id,
       })
       .returning({ id: processDefinitions.id });
+
+    await recordAudit(
+      {
+        action: "created",
+        actor: userActor(guard.user),
+        metadata: { template: templateId },
+        resourceId: process.id,
+        resourceLabel: template.name,
+        resourceType: AUDIT_RESOURCES.process,
+        summary: `${guard.user.name} installed the ${template.name} template`,
+      },
+      tx
+    );
 
     return { processId: process.id, workflowId: workflow.id };
   });

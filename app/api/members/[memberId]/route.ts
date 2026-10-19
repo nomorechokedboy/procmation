@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { AUDIT_RESOURCES, recordAudit, userActor } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { type UserRole, users } from "@/lib/db/schema";
 import { requireAdmin } from "@/lib/session";
@@ -32,7 +33,12 @@ export async function PATCH(
       .for("update");
 
     const target = await tx
-      .select({ id: users.id, role: users.role })
+      .select({
+        email: users.email,
+        id: users.id,
+        name: users.name,
+        role: users.role,
+      })
       .from(users)
       .where(eq(users.id, memberId))
       .limit(1);
@@ -56,6 +62,19 @@ export async function PATCH(
       .update(users)
       .set({ role, updatedAt: new Date() })
       .where(eq(users.id, memberId));
+
+    await recordAudit(
+      {
+        action: "role_changed",
+        actor: userActor(guard.user),
+        metadata: { from: target[0].role, to: role },
+        resourceId: memberId,
+        resourceLabel: target[0].name || target[0].email,
+        resourceType: AUDIT_RESOURCES.member,
+        summary: `${guard.user.name} changed the role of ${target[0].name || target[0].email} from ${target[0].role} to ${role}`,
+      },
+      tx
+    );
 
     return { status: 200 } as const;
   });

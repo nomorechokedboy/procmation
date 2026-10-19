@@ -1,5 +1,6 @@
 import { and, eq, ne, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { AUDIT_RESOURCES, recordAudit, userActor } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from "@/lib/db/errors";
 import { departments } from "@/lib/db/schema";
@@ -119,6 +120,19 @@ export async function PATCH(
     .where(eq(departments.id, departmentId))
     .returning();
 
+  await recordAudit({
+    action: "updated",
+    actor: userActor(guard.user),
+    metadata: {
+      changed: Object.keys(updates),
+      from: { name: current.name, parentId: current.parentId },
+    },
+    resourceId: departmentId,
+    resourceLabel: updated.name,
+    resourceType: AUDIT_RESOURCES.department,
+    summary: `${guard.user.name} updated department ${updated.name}`,
+  });
+
   return NextResponse.json(updated);
 }
 
@@ -137,7 +151,7 @@ export async function DELETE(
     const deleted = await db
       .delete(departments)
       .where(eq(departments.id, departmentId))
-      .returning({ id: departments.id });
+      .returning({ id: departments.id, name: departments.name });
 
     if (deleted.length === 0) {
       return NextResponse.json(
@@ -145,6 +159,14 @@ export async function DELETE(
         { status: 404 }
       );
     }
+    await recordAudit({
+      action: "deleted",
+      actor: userActor(guard.user),
+      resourceId: departmentId,
+      resourceLabel: deleted[0].name,
+      resourceType: AUDIT_RESOURCES.department,
+      summary: `${guard.user.name} deleted department ${deleted[0].name}`,
+    });
     return NextResponse.json({ success: true });
   } catch (error) {
     if (pgErrorCode(error) === PG_FOREIGN_KEY_VIOLATION) {

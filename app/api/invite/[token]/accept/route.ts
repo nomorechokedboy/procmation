@@ -1,5 +1,6 @@
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { AUDIT_RESOURCES, recordAudit } from "@/lib/audit";
 import {
   createCredentialUser,
   hashInviteToken,
@@ -68,12 +69,24 @@ export async function POST(
         throw new InviteError("An account with this email already exists", 409);
       }
 
-      await createCredentialUser(tx, {
+      const newUserId = await createCredentialUser(tx, {
         email: claimed.email,
         name,
         password,
         role: claimed.role,
       });
+      await recordAudit(
+        {
+          action: "joined",
+          actor: { id: newUserId, name: name || claimed.email },
+          metadata: { role: claimed.role },
+          resourceId: newUserId,
+          resourceLabel: name || claimed.email,
+          resourceType: AUDIT_RESOURCES.member,
+          summary: `${name || claimed.email} accepted the invitation and joined as ${claimed.role}`,
+        },
+        tx
+      );
 
       return claimed.email;
     });

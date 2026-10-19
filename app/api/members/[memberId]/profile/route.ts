@@ -1,5 +1,6 @@
 import { eq, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { AUDIT_RESOURCES, recordAudit, userActor } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { departments, userProfiles, users } from "@/lib/db/schema";
 import { requireAdmin } from "@/lib/session";
@@ -86,7 +87,7 @@ export async function PATCH(
   const body = (await request.json()) as ProfileBody;
 
   const [member] = await db
-    .select({ id: users.id })
+    .select({ email: users.email, id: users.id, name: users.name })
     .from(users)
     .where(eq(users.id, memberId))
     .limit(1);
@@ -133,6 +134,16 @@ export async function PATCH(
       set: { ...updates, updatedAt: new Date() },
       target: userProfiles.userId,
     });
+
+  await recordAudit({
+    action: "profile_updated",
+    actor: userActor(guard.user),
+    metadata: { changed: updates },
+    resourceId: memberId,
+    resourceLabel: member.name || member.email,
+    resourceType: AUDIT_RESOURCES.member,
+    summary: `${guard.user.name} updated the profile of ${member.name || member.email}: ${Object.keys(updates).join(", ")}`,
+  });
 
   return NextResponse.json({ success: true });
 }

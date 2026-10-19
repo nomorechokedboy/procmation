@@ -1,5 +1,6 @@
 import { asc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { AUDIT_RESOURCES, recordAudit, userActor } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { PG_UNIQUE_VIOLATION, pgErrorCode } from "@/lib/db/errors";
 import { processSummarySelection } from "@/lib/db/process-queries";
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
   }
 
   const [workflow] = await db
-    .select({ id: workflows.id })
+    .select({ id: workflows.id, name: workflows.name })
     .from(workflows)
     .where(eq(workflows.id, body.workflowId))
     .limit(1);
@@ -77,6 +78,16 @@ export async function POST(request: Request) {
         workflowId: workflow.id,
       })
       .returning({ id: processDefinitions.id });
+
+    await recordAudit({
+      action: "created",
+      actor: userActor(guard.user),
+      metadata: { category },
+      resourceId: created.id,
+      resourceLabel: workflow.name,
+      resourceType: AUDIT_RESOURCES.process,
+      summary: `${guard.user.name} created the process ${workflow.name}`,
+    });
 
     const [summary] = await db
       .select(processSummarySelection)
