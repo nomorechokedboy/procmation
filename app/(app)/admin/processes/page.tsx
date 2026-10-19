@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/app/page-header";
 import { ProcessDialog } from "@/components/process/process-dialog";
+import { InstallTemplateButton } from "@/components/templates/install-template-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -249,6 +250,13 @@ export default function ProcessesPage() {
                 {m.processes_empty_description()}
               </CardDescription>
             </CardHeader>
+            <CardContent className="space-y-2">
+              <p className="font-medium text-sm">{m.templates_leave_title()}</p>
+              <p className="text-muted-foreground text-sm">
+                {m.templates_leave_description()}
+              </p>
+              <InstallTemplateButton onInstalled={load} />
+            </CardContent>
           </Card>
         ) : null}
 

@@ -17,7 +17,6 @@ import { cn } from "@/lib/utils";
 import * as m from "@/paraglide/messages";
 import { getLocale } from "@/paraglide/runtime";
 
-const POLL_MS = 30_000;
 const LIST_LIMIT = 15;
 
 function notificationTitle(type: NotificationRecord["type"]): string {
@@ -86,16 +85,15 @@ export function NotificationBell() {
       .catch(() => undefined);
   }, []);
 
-  // Plain polling: works on serverless hosting, where a long-lived stream
-  // would not reach the instance that created the notification
+  // Live updates arrive over a server-sent events stream. The list is also
+  // reloaded each time the stream (re)connects, so nothing sent while it was
+  // down is missed. EventSource reconnects by itself.
   useEffect(() => {
     refresh();
-    const timer = setInterval(() => {
-      if (document.visibilityState === "visible") {
-        refresh();
-      }
-    }, POLL_MS);
-    return () => clearInterval(timer);
+    const stream = new EventSource("/api/bpma/notifications/stream");
+    stream.addEventListener("open", refresh);
+    stream.addEventListener("notification", refresh);
+    return () => stream.close();
   }, [refresh]);
 
   const markRead = useCallback(
