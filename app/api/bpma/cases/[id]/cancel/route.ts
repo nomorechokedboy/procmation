@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getRun } from "workflow/api";
+import { userActor } from "@/lib/audit";
 import { canAccessCase, cancelCase, getCase } from "@/lib/db/bpma";
 import { notifyUser } from "@/lib/notifications/deliver";
 import { requireUser } from "@/lib/session";
@@ -23,7 +24,10 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const result = await cancelCase({ actorId: guard.user.id, caseId: id });
+  const result = await cancelCase({
+    actor: userActor(guard.user),
+    caseId: id,
+  });
   if (!result.ok) {
     return NextResponse.json(
       { error: "Only a running case can be cancelled" },

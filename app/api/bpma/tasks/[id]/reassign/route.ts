@@ -1,6 +1,7 @@
 import { and, eq, isNull, or } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { readJsonObject } from "@/lib/api/read-json";
+import { userActor } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { getCase, getTask, reassignTask } from "@/lib/db/bpma";
 import { users } from "@/lib/db/schema";
@@ -49,7 +50,7 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const result = await reassignTask({
-    actorId: guard.user.id,
+    actor: userActor(guard.user),
     newAssigneeId: assignee.id,
     task,
   });

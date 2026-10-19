@@ -2,6 +2,7 @@ import "server-only";
 
 import { eq } from "drizzle-orm";
 import { start } from "workflow/api";
+import { userActor } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { createCaseInTx, type NewCaseInput } from "@/lib/db/bpma";
 import {
@@ -43,14 +44,18 @@ export async function startProcessCase(input: StartCaseInput): Promise<Case> {
   }
 
   const created = await db.transaction(async (tx) => {
-    const newCase = await createCaseInTx(tx, {
-      dueAt: input.dueAt,
-      initiatorId: input.initiatorId,
-      metadata: { ...input.metadata, startValues: input.startValues },
-      priority: input.priority,
-      processDefinitionId: input.processDefinitionId,
-      title: input.title,
-    });
+    const newCase = await createCaseInTx(
+      tx,
+      {
+        dueAt: input.dueAt,
+        initiatorId: input.initiatorId,
+        metadata: { ...input.metadata, startValues: input.startValues },
+        priority: input.priority,
+        processDefinitionId: input.processDefinitionId,
+        title: input.title,
+      },
+      userActor(input.requester)
+    );
 
     // The run is listed under the workflow's owner, who edits the process
     const [execution] = await tx
