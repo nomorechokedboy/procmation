@@ -105,6 +105,17 @@ Self-hosted deployments also keep the workflow engine's run state on disk, in
 directory on a persistent volume, or cases waiting on a task are lost when the
 container is replaced.
 
+### Audit log
+
+Admins can open **Audit log** to see who changed what and when: cases (started,
+status changes, cancelled, finished or failed), tasks (completed, reassigned,
+reminded, escalated), processes, workflows (created, deleted), members, departments
+and invitations. Everything lives in one append-only `audit_logs` table; a new kind
+of record only needs a `resourceType` and action names (see `lib/audit.ts`), not a
+new table. The API offers no way to edit or delete entries. Entries store the actor's
+and record's name at the time, so they stay readable after renames or deletions.
+Workflow edits are not logged, because the editor saves automatically.
+
 ### Starting point
 
 As an admin, the home page offers a leave request template that creates a ready-to-use
