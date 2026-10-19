@@ -87,7 +87,7 @@ export async function POST(request: Request) {
       .returning({ expiresAt: invitations.expiresAt, id: invitations.id });
   });
 
-  await recordAudit({
+  recordAudit({
     action: "created",
     actor: userActor(guard.user),
     metadata: { role },

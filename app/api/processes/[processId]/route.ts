@@ -74,7 +74,7 @@ async function checkCanPublish(
 
 type ProcessUpdates = Partial<typeof processDefinitions.$inferInsert>;
 
-async function auditProcessChange(
+function auditProcessChange(
   user: { id: string; name: string; email: string },
   current: { name: string; status: string },
   processId: string,
@@ -82,7 +82,7 @@ async function auditProcessChange(
 ) {
   const statusChanged = updates.status !== undefined;
   const actorName = user.name || user.email;
-  await recordAudit({
+  recordAudit({
     action: statusChanged ? `status_${updates.status}` : "updated",
     actor: userActor(user),
     metadata: {
@@ -167,7 +167,7 @@ export async function PATCH(
     .set({ ...updates, updatedAt: new Date() })
     .where(eq(processDefinitions.id, processId));
 
-  await auditProcessChange(
+  auditProcessChange(
     guard.user,
     { name: current.name, status: current.status },
     processId,

@@ -79,7 +79,7 @@ export async function POST(request: Request) {
       })
       .returning({ id: processDefinitions.id });
 
-    await recordAudit({
+    recordAudit({
       action: "created",
       actor: userActor(guard.user),
       metadata: { category },

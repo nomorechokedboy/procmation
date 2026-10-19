@@ -1,6 +1,11 @@
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { AUDIT_RESOURCES, recordAudit, userActor } from "@/lib/audit";
+import {
+  AUDIT_RESOURCES,
+  type AuditEntry,
+  recordAudit,
+  userActor,
+} from "@/lib/audit";
 import { db } from "@/lib/db";
 import { type UserRole, users } from "@/lib/db/schema";
 import { requireAdmin } from "@/lib/session";
@@ -24,6 +29,7 @@ export async function PATCH(
   }
   const { role } = body;
 
+  const audits: AuditEntry[] = [];
   const result = await db.transaction(async (tx) => {
     // Lock the admin rows so two concurrent demotions cannot remove the last admin
     const admins = await tx
@@ -63,21 +69,20 @@ export async function PATCH(
       .set({ role, updatedAt: new Date() })
       .where(eq(users.id, memberId));
 
-    await recordAudit(
-      {
-        action: "role_changed",
-        actor: userActor(guard.user),
-        metadata: { from: target[0].role, to: role },
-        resourceId: memberId,
-        resourceLabel: target[0].name || target[0].email,
-        resourceType: AUDIT_RESOURCES.member,
-        summary: `${guard.user.name} changed the role of ${target[0].name || target[0].email} from ${target[0].role} to ${role}`,
-      },
-      tx
-    );
+    audits.push({
+      action: "role_changed",
+      actor: userActor(guard.user),
+      metadata: { from: target[0].role, to: role },
+      resourceId: memberId,
+      resourceLabel: target[0].name || target[0].email,
+      resourceType: AUDIT_RESOURCES.member,
+      summary: `${guard.user.name} changed the role of ${target[0].name || target[0].email} from ${target[0].role} to ${role}`,
+    });
 
     return { status: 200 } as const;
   });
+
+  recordAudit(audits);
 
   if (result.status !== 200) {
     return NextResponse.json(

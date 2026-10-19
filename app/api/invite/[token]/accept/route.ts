@@ -1,6 +1,6 @@
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { AUDIT_RESOURCES, recordAudit } from "@/lib/audit";
+import { AUDIT_RESOURCES, type AuditEntry, recordAudit } from "@/lib/audit";
 import {
   createCredentialUser,
   hashInviteToken,
@@ -41,6 +41,7 @@ export async function POST(
       );
     }
 
+    const audits: AuditEntry[] = [];
     const email = await db.transaction(async (tx) => {
       // Claiming the invitation is a single conditional update, so two
       // concurrent accepts cannot both succeed
@@ -75,21 +76,19 @@ export async function POST(
         password,
         role: claimed.role,
       });
-      await recordAudit(
-        {
-          action: "joined",
-          actor: { id: newUserId, name: name || claimed.email },
-          metadata: { role: claimed.role },
-          resourceId: newUserId,
-          resourceLabel: name || claimed.email,
-          resourceType: AUDIT_RESOURCES.member,
-          summary: `${name || claimed.email} accepted the invitation and joined as ${claimed.role}`,
-        },
-        tx
-      );
+      audits.push({
+        action: "joined",
+        actor: { id: newUserId, name: name || claimed.email },
+        metadata: { role: claimed.role },
+        resourceId: newUserId,
+        resourceLabel: name || claimed.email,
+        resourceType: AUDIT_RESOURCES.member,
+        summary: `${name || claimed.email} accepted the invitation and joined as ${claimed.role}`,
+      });
 
       return claimed.email;
     });
+    recordAudit(audits);
 
     return NextResponse.json({ email, success: true });
   } catch (error) {

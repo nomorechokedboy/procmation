@@ -8,6 +8,7 @@ import {
   post,
   publishProcess,
   triggerNode,
+  waitFor,
 } from "./helpers";
 
 // Everything that changes a record leaves one entry in the audit log, and
@@ -82,7 +83,15 @@ test("changes are written to the audit log and only admins can read it", async (
   await pendingTaskFor(admin.request, `Dropped ${run}`);
   await post(bob.context.request, `/api/bpma/cases/${dropped.id}/cancel`);
 
-  const log = await get<Page>(admin.request, "/api/audit-logs?limit=200");
+  // Entries are written in the background, so wait for the last one
+  const log = await waitFor(async () => {
+    const current = await get<Page>(admin.request, "/api/audit-logs?limit=200");
+    return current.entries.some(
+      (entry) => entry.action === "cancelled" && entry.resourceId === dropped.id
+    )
+      ? current
+      : null;
+  });
   const find = (resourceType: string, action: string, resourceId?: string) =>
     log.entries.find(
       (entry) =>

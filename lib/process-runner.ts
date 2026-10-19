@@ -2,7 +2,7 @@ import "server-only";
 
 import { eq } from "drizzle-orm";
 import { start } from "workflow/api";
-import { userActor } from "@/lib/audit";
+import { type AuditEntry, recordAudit, userActor } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { createCaseInTx, type NewCaseInput } from "@/lib/db/bpma";
 import {
@@ -43,6 +43,7 @@ export async function startProcessCase(input: StartCaseInput): Promise<Case> {
     throw new Error("The workflow behind this process no longer exists");
   }
 
+  const audits: AuditEntry[] = [];
   const created = await db.transaction(async (tx) => {
     const newCase = await createCaseInTx(
       tx,
@@ -54,7 +55,8 @@ export async function startProcessCase(input: StartCaseInput): Promise<Case> {
         processDefinitionId: input.processDefinitionId,
         title: input.title,
       },
-      userActor(input.requester)
+      userActor(input.requester),
+      audits
     );
 
     // The run is listed under the workflow's owner, who edits the process
@@ -91,6 +93,9 @@ export async function startProcessCase(input: StartCaseInput): Promise<Case> {
 
     return { executionId: execution.id, instanceId: instance.id, linked };
   });
+
+  // The case exists now, so its entry can be written
+  recordAudit(audits);
 
   try {
     const run = await start(executeWorkflow, [

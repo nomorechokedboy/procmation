@@ -118,7 +118,7 @@ async function remindAssignees(now: Date): Promise<number> {
     if (!(await claimReminder(task.id, now))) {
       continue;
     }
-    await recordAudit(
+    recordAudit(
       taskDeadlineEntry(
         task,
         "reminded",
@@ -180,7 +180,7 @@ async function escalateOne(task: OverdueTask, now: Date): Promise<boolean> {
       nodeId: null,
     });
   }
-  await recordAudit(
+  recordAudit(
     taskDeadlineEntry(
       task,
       "escalated",

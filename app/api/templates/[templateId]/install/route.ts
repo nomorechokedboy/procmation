@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { AUDIT_RESOURCES, recordAudit, userActor } from "@/lib/audit";
+import {
+  AUDIT_RESOURCES,
+  type AuditEntry,
+  recordAudit,
+  userActor,
+} from "@/lib/audit";
 import { db } from "@/lib/db";
 import { processDefinitions, workflows } from "@/lib/db/schema";
 import { getRequestLocale } from "@/lib/i18n/request-locale";
@@ -28,6 +33,7 @@ export async function POST(request: Request, { params }: Params) {
     guard.user.id
   );
 
+  const audits: AuditEntry[] = [];
   const created = await db.transaction(async (tx) => {
     const [workflow] = await tx
       .insert(workflows)
@@ -53,21 +59,20 @@ export async function POST(request: Request, { params }: Params) {
       })
       .returning({ id: processDefinitions.id });
 
-    await recordAudit(
-      {
-        action: "created",
-        actor: userActor(guard.user),
-        metadata: { template: templateId },
-        resourceId: process.id,
-        resourceLabel: template.name,
-        resourceType: AUDIT_RESOURCES.process,
-        summary: `${guard.user.name} installed the ${template.name} template`,
-      },
-      tx
-    );
+    audits.push({
+      action: "created",
+      actor: userActor(guard.user),
+      metadata: { template: templateId },
+      resourceId: process.id,
+      resourceLabel: template.name,
+      resourceType: AUDIT_RESOURCES.process,
+      summary: `${guard.user.name} installed the ${template.name} template`,
+    });
 
     return { processId: process.id, workflowId: workflow.id };
   });
+
+  recordAudit(audits);
 
   return NextResponse.json(created, { status: 201 });
 }
