@@ -331,5 +331,18 @@
   "templates_install": "Install template",
   "templates_installed": "Leave request installed and published",
   "templates_install_failed": "Could not install the template",
-  "templates_install_short": "Use leave request template"
+  "templates_install_short": "Use leave request template",
+  "tpl_expense_name": "Expense approval",
+  "tpl_expense_description": "An employee submits an expense. Their manager approves it, and expenses above the limit also need a second approval from finance.",
+  "tpl_expense_category": "Finance",
+  "tpl_expense_what": "What was it for",
+  "tpl_expense_amount": "Amount",
+  "tpl_expense_date": "Date of expense",
+  "tpl_expense_notes": "Notes",
+  "tpl_expense_manager_task": "Approve expense",
+  "tpl_expense_finance_task": "Finance approval for large expense",
+  "tpl_expense_condition": "Over the limit?",
+  "templates_expense_title": "Use the expense approval template",
+  "templates_expense_description": "Manager approval, plus a second approval for amounts above 1,000. The second approver is you; change it in the editor.",
+  "templates_expense_installed": "Expense approval installed and published"
 }

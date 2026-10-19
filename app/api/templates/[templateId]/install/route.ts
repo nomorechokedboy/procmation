@@ -21,7 +21,11 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Template not found" }, { status: 404 });
   }
 
-  const template = buildTemplate(templateId, await getRequestLocale());
+  const template = buildTemplate(
+    templateId,
+    await getRequestLocale(),
+    guard.user.id
+  );
 
   const created = await db.transaction(async (tx) => {
     const [workflow] = await tx

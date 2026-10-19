@@ -8,13 +8,15 @@ import { api } from "@/lib/api-client";
 import * as m from "@/paraglide/messages";
 
 type InstallTemplateButtonProps = {
+  templateId?: "leave-request" | "expense-approval";
   onInstalled: () => void;
   variant?: "default" | "outline";
   label?: string;
 };
 
-// Installs the leave request template as a published process
+// Installs a ready-made template as a published process
 export function InstallTemplateButton({
+  templateId = "leave-request",
   onInstalled,
   variant = "outline",
   label,
@@ -24,8 +26,12 @@ export function InstallTemplateButton({
   const install = useStableCallback(async () => {
     setBusy(true);
     try {
-      await api.template.install("leave-request");
-      toast.success(m.templates_installed());
+      await api.template.install(templateId);
+      toast.success(
+        templateId === "leave-request"
+          ? m.templates_installed()
+          : m.templates_expense_installed()
+      );
       onInstalled();
     } catch (err) {
       toast.error(
@@ -38,7 +44,7 @@ export function InstallTemplateButton({
 
   return (
     <Button
-      data-testid="install-leave-template"
+      data-testid={`install-${templateId}-template`}
       disabled={busy}
       onClick={install}
       size="sm"
