@@ -6,7 +6,12 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+          ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH }
+          : {},
+      },
     },
   ],
   reporter: "html",
@@ -21,6 +26,12 @@ export default defineConfig({
   },
   webServer: {
     command: "pnpm dev",
+    // Emails go to a stand-in for Resend that the tests run (see e2e/helpers.ts)
+    env: {
+      RESEND_API_KEY: "e2e-resend-key",
+      RESEND_API_URL: "http://localhost:4010",
+      RESEND_FROM: "Procmation <noreply@example.com>",
+    },
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     url: "http://localhost:3000",
