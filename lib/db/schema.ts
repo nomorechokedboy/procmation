@@ -519,6 +519,41 @@ export const notifications = pgTable(
   (table) => [index("notifications_user_read_idx").on(table.userId, table.read)]
 );
 
+// One append-only log for every kind of resource. Adding a new resource means
+// choosing a resourceType and action names, not creating another table.
+// Actor and label columns are snapshots, so the log stays readable after the
+// person or record they name is renamed or deleted; for that reason they are
+// plain text and not foreign keys.
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    action: text("action").notNull(),
+    // Null when the system acted, for example a deadline escalation
+    actorId: text("actor_id"),
+    actorName: text("actor_name"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => generateId()),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    // The record this one belongs to, such as the case of a task
+    parentId: text("parent_id"),
+    parentLabel: text("parent_label"),
+    parentType: text("parent_type"),
+    resourceId: text("resource_id"),
+    // A readable name, such as a case number or a member's name
+    resourceLabel: text("resource_label"),
+    resourceType: text("resource_type").notNull(),
+    summary: text("summary").notNull(),
+  },
+  (table) => [
+    index("audit_logs_resource_idx").on(table.resourceType, table.resourceId),
+    index("audit_logs_parent_idx").on(table.parentType, table.parentId),
+    index("audit_logs_actor_idx").on(table.actorId),
+    index("audit_logs_created_idx").on(table.createdAt),
+  ]
+);
+
 // Not used by the prototype: deadlines that remind or escalate on a task
 export const slaEscalations = pgTable(
   "sla_escalations",
@@ -600,3 +635,5 @@ export type NewFormSubmission = typeof formSubmissions.$inferInsert;
 export type Notification = typeof notifications.$inferSelect;
 export type NewNotification = typeof notifications.$inferInsert;
 export type ProcessTemplate = typeof processTemplates.$inferSelect;
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type NewAuditLog = typeof auditLogs.$inferInsert;
