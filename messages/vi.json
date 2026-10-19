@@ -363,5 +363,20 @@
   "tl_task_escalated": "{task} đã quá hạn nên {who} được báo",
   "tl_task_escalated_nobody": "{task} đã quá hạn và người xử lý chưa có quản lý để báo",
   "tasks_overdue": "Quá hạn",
-  "tasks_due": "Hạn {date}"
+  "tasks_due": "Hạn {date}",
+  "nav_audit_log": "Nhật ký",
+  "audit_title": "Nhật ký hoạt động",
+  "audit_description": "Mọi thay đổi với hồ sơ, công việc, quy trình, thành viên và hơn nữa. Chỉ có thể thêm mục mới, không thể sửa hay xóa.",
+  "audit_search_placeholder": "Tìm theo người, đối tượng hoặc nội dung",
+  "audit_filter_all": "Tất cả đối tượng",
+  "audit_resource_case": "Hồ sơ",
+  "audit_resource_task": "Công việc",
+  "audit_resource_process": "Quy trình",
+  "audit_resource_workflow": "Luồng công việc",
+  "audit_resource_member": "Thành viên",
+  "audit_resource_department": "Phòng ban",
+  "audit_resource_invite": "Lời mời",
+  "audit_system": "Hệ thống",
+  "audit_empty": "Không có mục nào phù hợp.",
+  "audit_load_more": "Tải thêm"
 }

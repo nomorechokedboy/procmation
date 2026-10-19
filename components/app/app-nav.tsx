@@ -19,6 +19,11 @@ const NAV_ITEMS: NavItem[] = [
   { adminOnly: true, href: "/workflows", label: () => m.nav_workflows() },
   { adminOnly: true, href: "/admin/processes", label: () => m.nav_processes() },
   { adminOnly: true, href: "/admin/members", label: () => m.nav_members() },
+  {
+    adminOnly: true,
+    href: "/admin/audit-log",
+    label: () => m.nav_audit_log(),
+  },
 ];
 
 function isActive(pathname: string, href: string) {
