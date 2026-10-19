@@ -60,7 +60,34 @@ RESEND_FROM="Procmation <noreply@your-verified-domain.com>"
 # connected to the same app instance, which is fine for a single container.
 # Set it when you run several instances, e.g. REDIS_URL=redis://redis:6379
 REDIS_URL=redis://localhost:6379
+
+# Deadlines (optional). A Human Task can have a due time. Something has to call
+# the deadline endpoint on a schedule (see below); it only answers to this secret.
+CRON_SECRET=a-long-random-string
+# Hours after the due time before the assignee's manager is told (default 24)
+ESCALATION_GRACE_HOURS=24
 ```
+
+### Deadlines, reminders and escalation
+
+Set "Due after" on a Human Task in the editor. When the task opens it gets a
+deadline. Once it passes, the assignee gets one reminder (in the app and by email);
+if the task is still open after the grace period, the assignee's manager is told
+once and the step shows as escalated on the case page. Nothing repeats. Tasks
+assigned to a department pool have no single person, so they are not reminded.
+
+There is no timer inside the app. Call `/api/cron/deadlines` on a schedule, for
+example every 15 minutes, with `Authorization: Bearer $CRON_SECRET`:
+
+```bash
+# system cron on a VPS
+*/15 * * * * curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://your-host/api/cron/deadlines
+```
+
+On Vercel, set `CRON_SECRET` in the project and add a cron to `vercel.json`
+(`{"crons":[{"path":"/api/cron/deadlines","schedule":"*/15 * * * *"}]}`); Vercel sends
+the bearer header for you. Without `CRON_SECRET` the endpoint answers 503. Running it
+more often than needed is safe, because each task is reminded and escalated once.
 
 Notifications reach the browser over a server-sent events stream, with no polling.
 They need a long-lived connection, so they work on a VPS or in Docker, not on

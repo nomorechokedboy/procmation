@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import type { CaseDetail } from "@/lib/api-client";
 import { casePriorityLabel, caseStatusLabel } from "@/lib/i18n/bpma-labels";
+import { isOverdue } from "@/lib/overdue";
 import type { FormField } from "@/lib/types/process-form";
 import * as m from "@/paraglide/messages";
 import { getLocale } from "@/paraglide/runtime";
@@ -177,6 +178,35 @@ function StepStatus({ detail, task }: Pick<StepProps, "detail" | "task">) {
   return <Badge>{m.case_step_waiting_for({ who })}</Badge>;
 }
 
+// Deadline facts for a pending step: when it is due, and whether the
+// assignee's manager has been told
+function StepDeadline({ detail, task }: Pick<StepProps, "detail" | "task">) {
+  if (task.status !== "pending" || !task.dueAt) {
+    return null;
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs">
+      <span className="text-muted-foreground">
+        {m.case_step_due({ date: formatDateTime(task.dueAt) })}
+      </span>
+      {isOverdue(task) ? (
+        <Badge data-testid="step-overdue" variant="destructive">
+          {m.case_step_overdue()}
+        </Badge>
+      ) : null}
+      {task.escalatedAt ? (
+        <Badge data-testid="step-escalated" variant="outline">
+          {task.escalatedToId
+            ? m.case_step_escalated({
+                who: personName(detail, task.escalatedToId),
+              })
+            : m.case_step_escalated_nobody()}
+        </Badge>
+      ) : null}
+    </div>
+  );
+}
+
 function StepRow({
   detail,
   task,
@@ -191,6 +221,7 @@ function StepRow({
         <p className="font-medium text-sm">{task.name}</p>
         <StepStatus detail={detail} task={task} />
       </div>
+      <StepDeadline detail={detail} task={task} />
       {outcome ? (
         <p className="text-muted-foreground text-xs">
           {m.case_step_outcome({ outcome })}

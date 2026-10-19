@@ -62,6 +62,14 @@ function describeTaskCompleted(directory: Directory, entry: Entry): string {
     : m.tl_task_completed({ actor, task });
 }
 
+function describeEscalation(directory: Directory, entry: Entry): string {
+  const task = taskName(directory, entry);
+  const { escalatedToId } = entry.data;
+  return typeof escalatedToId === "string"
+    ? m.tl_task_escalated({ task, who: personName(directory, escalatedToId) })
+    : m.tl_task_escalated_nobody({ task });
+}
+
 // One readable sentence for a timeline entry; unknown kinds fall back to
 // their type so nothing silently disappears
 export function describeEvent(directory: Directory, entry: Entry): string {
@@ -82,6 +90,8 @@ export function describeEvent(directory: Directory, entry: Entry): string {
         task: taskName(directory, entry),
         to: personName(directory, entry.data.to),
       });
+    case "task_escalated":
+      return describeEscalation(directory, entry);
     case "status_changed":
       return describeStatusChange(directory, entry);
     case "case_updated":

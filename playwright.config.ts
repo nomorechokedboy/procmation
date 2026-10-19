@@ -28,6 +28,7 @@ export default defineConfig({
     command: "pnpm dev",
     // Emails go to a stand-in for Resend that the tests run (see e2e/helpers.ts)
     env: {
+      CRON_SECRET: "e2e-cron-secret",
       RESEND_API_KEY: "e2e-resend-key",
       RESEND_API_URL: "http://localhost:4010",
       RESEND_FROM: "Procmation <noreply@example.com>",

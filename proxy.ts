@@ -5,7 +5,13 @@ import { type NextRequest, NextResponse } from "next/server";
 // This is an optimistic cookie check; every API route still validates the
 // session itself before touching data.
 const PUBLIC_PAGE_PREFIXES = ["/login", "/setup", "/invite/"];
-const PUBLIC_API_PREFIXES = ["/api/auth", "/api/setup", "/api/invite/"];
+// The cron endpoint checks its own bearer secret
+const PUBLIC_API_PREFIXES = [
+  "/api/auth",
+  "/api/setup",
+  "/api/invite/",
+  "/api/cron/",
+];
 // Workflow webhooks authenticate with API keys, not sessions
 const WEBHOOK_PATTERN = /^\/api\/workflows\/[^/]+\/webhook$/;
 

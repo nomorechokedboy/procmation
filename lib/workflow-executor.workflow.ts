@@ -498,6 +498,8 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
       assigneeDepartmentId: taskConfig.assigneeDepartmentId,
       assigneeType: taskConfig.assigneeType ?? "manager",
       assigneeUserId: taskConfig.assigneeUserId,
+      dueAmount: taskConfig.dueAmount,
+      dueUnit: taskConfig.dueUnit,
       formFields: readConfigList<FormField>(taskConfig.formFields),
       instanceId,
       name,

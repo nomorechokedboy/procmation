@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { api, type TaskRecord } from "@/lib/api-client";
 import type { TaskStatus } from "@/lib/db/schema";
+import { isOverdue } from "@/lib/overdue";
 import * as m from "@/paraglide/messages";
 import { getLocale } from "@/paraglide/runtime";
 
@@ -28,6 +29,18 @@ function TaskRow({ task }: { task: TaskRecord }) {
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-2">
+        {isOverdue(task) ? (
+          <Badge data-testid="task-overdue" variant="destructive">
+            {m.tasks_overdue()}
+          </Badge>
+        ) : null}
+        {task.status === "pending" && task.dueAt ? (
+          <span className="text-muted-foreground text-xs">
+            {m.tasks_due({
+              date: new Date(task.dueAt).toLocaleDateString(getLocale()),
+            })}
+          </span>
+        ) : null}
         <Badge variant="outline">
           {mine ? m.tasks_assigned_to_you() : m.tasks_team_pool()}
         </Badge>

@@ -18,7 +18,13 @@ export type HumanTaskConfig = {
   assigneeDepartmentId?: string;
   formFields?: FormField[];
   outcomes?: TaskOutcome[];
+  // Optional deadline, counted from the moment the task opens. The config
+  // panel stores values as strings, so the amount may arrive as text.
+  dueAmount?: number | string;
+  dueUnit?: DueUnit;
 };
+
+export type DueUnit = "hours" | "days";
 
 export const DEFAULT_TASK_OUTCOMES: TaskOutcome[] = [
   { id: "approve", label: "Approve" },

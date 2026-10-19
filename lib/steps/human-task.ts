@@ -16,8 +16,13 @@ import {
   userProfiles,
   users,
 } from "@/lib/db/schema";
+import { computeDueAt } from "@/lib/due";
 import { notifyUser } from "@/lib/notifications/deliver";
-import type { AssigneeType, TaskOutcome } from "@/lib/types/human-task";
+import type {
+  AssigneeType,
+  DueUnit,
+  TaskOutcome,
+} from "@/lib/types/human-task";
 import type { FormField } from "@/lib/types/process-form";
 import { type StepInput, withStepLogging } from "./step-handler";
 
@@ -30,6 +35,8 @@ export type HumanTaskStepInput = StepInput & {
   assigneeDepartmentId?: string;
   formFields: FormField[];
   outcomes: TaskOutcome[];
+  dueAmount?: number | string;
+  dueUnit?: DueUnit;
 };
 
 export type HumanTaskOpened = {
@@ -99,6 +106,7 @@ async function openTask(input: HumanTaskStepInput): Promise<HumanTaskOpened> {
       .values({
         assigneeDepartmentId: assignee.departmentId,
         assigneeId: assignee.userId,
+        dueAt: computeDueAt(input.dueAmount, input.dueUnit, new Date()),
         formFields: input.formFields,
         instanceId: input.instanceId,
         name: input.name,
