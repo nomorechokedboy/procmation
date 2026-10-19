@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+const SAVED_WORKFLOW_URL = /\/workflows\/(?!new)[^/]+$/;
+
 const SELECTED_CLASS_REGEX = /selected/;
 
 const E2E_ADMIN = {
@@ -19,8 +21,9 @@ test.describe("Workflow Editor", () => {
     });
     expect(signIn.ok()).toBe(true);
 
-    // Navigate to the homepage which has an embedded workflow canvas
-    await page.goto("/", { waitUntil: "domcontentloaded" });
+    // A new workflow opens in the editor, which holds the canvas
+    await page.goto("/workflows/new", { waitUntil: "domcontentloaded" });
+    await page.waitForURL(SAVED_WORKFLOW_URL, { timeout: 60_000 });
     // Wait for the canvas to be ready
     await page.waitForSelector('[data-testid="workflow-canvas"]', {
       state: "visible",
@@ -132,7 +135,7 @@ test.describe("Workflow Editor", () => {
         const canvasBox = await canvas.boundingBox();
         if (canvasBox) {
           // Click on empty area of canvas
-          await page.mouse.click(canvasBox.x + 50, canvasBox.y + 50);
+          await page.mouse.click(canvasBox.x + 150, canvasBox.y + 300);
           await page.waitForTimeout(300);
         }
 
@@ -174,7 +177,7 @@ test.describe("Workflow Editor", () => {
       const canvas = page.locator('[data-testid="workflow-canvas"]');
       const canvasBox = await canvas.boundingBox();
       if (canvasBox) {
-        await page.mouse.click(canvasBox.x + 50, canvasBox.y + 50);
+        await page.mouse.click(canvasBox.x + 150, canvasBox.y + 300);
         await page.waitForTimeout(300);
       }
 
