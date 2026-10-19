@@ -1,6 +1,7 @@
 import { inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { readJsonObject } from "@/lib/api/read-json";
+import { userActor } from "@/lib/audit";
 import { db } from "@/lib/db";
 import {
   type CasePatch,
@@ -188,6 +189,6 @@ export async function PATCH(request: Request, { params }: Params) {
     }
   }
 
-  const updated = await updateCase(id, parsed.patch, guard.user.id);
+  const updated = await updateCase(id, parsed.patch, userActor(guard.user));
   return updated ? NextResponse.json(updated) : notFound();
 }

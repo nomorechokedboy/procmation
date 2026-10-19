@@ -4,6 +4,7 @@
 import "server-only";
 
 import { eq } from "drizzle-orm";
+import { AUDIT_RESOURCES, recordAudit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import {
   type CaseStatus,
@@ -90,6 +91,22 @@ export async function finishInstanceStep(
           },
       eventType: "status_changed",
     });
+    await recordAudit(
+      {
+        action: input.success ? "finished" : "failed",
+        actor: "system",
+        metadata: input.success
+          ? { outcome: input.outcome, to: status }
+          : { error: input.error ?? "The process failed", to: status },
+        resourceId: linkedCase.id,
+        resourceLabel: linkedCase.caseNumber,
+        resourceType: AUDIT_RESOURCES.case,
+        summary: input.success
+          ? `Case ${linkedCase.caseNumber} finished as ${status}`
+          : `Case ${linkedCase.caseNumber} failed: ${input.error ?? "The process failed"}`,
+      },
+      tx
+    );
     return { ...linkedCase, status } satisfies FinishedCase;
   });
 

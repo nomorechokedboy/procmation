@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { resumeHook } from "workflow/api";
 import { readJsonObject } from "@/lib/api/read-json";
+import { userActor } from "@/lib/audit";
 import {
   canActOnTask,
   completeTask,
@@ -76,6 +77,7 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const result = await completeTask({
+    actor: userActor(guard.user),
     completedById: guard.user.id,
     outcome,
     task,

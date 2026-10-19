@@ -1,6 +1,7 @@
 import "server-only";
 
 import { and, eq, isNotNull, isNull, lte } from "drizzle-orm";
+import { AUDIT_RESOURCES, recordAudit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import {
   cases,
@@ -58,6 +59,27 @@ function toOverdue(
   );
 }
 
+// A deadline event on a task, with its case as the parent
+function taskDeadlineEntry(
+  task: OverdueTask,
+  action: string,
+  summary: string,
+  metadata?: Record<string, unknown>
+) {
+  return {
+    action,
+    actor: "system" as const,
+    metadata,
+    parent: task.caseId
+      ? { id: task.caseId, label: task.caseNumber, type: "case" }
+      : undefined,
+    resourceId: task.id,
+    resourceLabel: task.name,
+    resourceType: AUDIT_RESOURCES.task,
+    summary,
+  };
+}
+
 // Claims the reminder so two overlapping runs can never both send it
 async function claimReminder(taskId: string, now: Date): Promise<boolean> {
   const claimed = await db
@@ -96,6 +118,13 @@ async function remindAssignees(now: Date): Promise<number> {
     if (!(await claimReminder(task.id, now))) {
       continue;
     }
+    await recordAudit(
+      taskDeadlineEntry(
+        task,
+        "reminded",
+        `"${task.name}" is overdue, so its assignee was reminded`
+      )
+    );
     await notifyUser({
       caseId: task.caseId,
       caseNumber: task.caseNumber,
@@ -151,6 +180,16 @@ async function escalateOne(task: OverdueTask, now: Date): Promise<boolean> {
       nodeId: null,
     });
   }
+  await recordAudit(
+    taskDeadlineEntry(
+      task,
+      "escalated",
+      managerId
+        ? `"${task.name}" is still open past its deadline, so the assignee's manager was told`
+        : `"${task.name}" is still open past its deadline and the assignee has no manager to tell`,
+      { escalatedToId: managerId }
+    )
+  );
   if (managerId) {
     const [assignee] = await db
       .select({ email: users.email, name: users.name })
