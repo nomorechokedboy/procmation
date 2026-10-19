@@ -222,12 +222,14 @@ function timelineUserIds(entries: CaseTimelineEntry[]): string[] {
   const ids: string[] = [];
   for (const entry of entries) {
     ids.push(entry.actorId ?? "");
-    for (const key of ["assigneeId", "from", "to"]) {
+    for (const key of ["assigneeId", "escalatedToId", "from", "to"]) {
       const value = entry.data[key];
       // "from"/"to" hold user ids only for reassignments
       if (
         typeof value === "string" &&
-        (key === "assigneeId" || entry.eventType === "task_reassigned")
+        (key === "assigneeId" ||
+          key === "escalatedToId" ||
+          entry.eventType === "task_reassigned")
       ) {
         ids.push(value);
       }
@@ -277,6 +279,7 @@ export async function getCaseDetail(record: Case): Promise<CaseDetailData> {
       ...caseTasks.flatMap((task) => [
         task.assigneeId ?? "",
         task.completedById ?? "",
+        task.escalatedToId ?? "",
       ]),
     ].filter(Boolean)
   );

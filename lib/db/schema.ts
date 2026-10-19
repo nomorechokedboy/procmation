@@ -233,7 +233,8 @@ export type TimelineEventType =
   | "status_changed"
   | "comment_added"
   | "form_submitted"
-  | "escalation_triggered";
+  | "escalation_triggered"
+  | "task_escalated";
 export type NotificationType =
   | "task_assigned"
   | "task_due_soon"
@@ -377,6 +378,9 @@ export const tasks = pgTable(
     completedById: text("completed_by_id").references(() => users.id),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     dueAt: timestamp("due_at"),
+    // Set once when the assignee is reminded and once when the manager is told
+    escalatedAt: timestamp("escalated_at"),
+    escalatedToId: text("escalated_to_id").references(() => users.id),
     // Fields the assignee fills in when completing the task
     formFields: jsonb("form_fields").notNull().$type<FormField[]>().default([]),
     id: text("id")
@@ -391,6 +395,7 @@ export const tasks = pgTable(
     outcome: text("outcome"),
     // The choices the assignee can pick from; empty means no choice is needed
     outcomes: jsonb("outcomes").notNull().$type<TaskOutcome[]>().default([]),
+    remindedAt: timestamp("reminded_at"),
     status: text("status").notNull().default("pending").$type<TaskStatus>(),
   },
   (table) => [

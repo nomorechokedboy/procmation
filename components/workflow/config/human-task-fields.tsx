@@ -152,6 +152,13 @@ export function HumanTaskFields({
   const handleOnChangeH7 = useStableCallback((fields) =>
     onUpdateConfig("formFields", JSON.stringify(fields))
   );
+  const handleDueAmount = useStableCallback(
+    (event: ChangeEvent<HTMLInputElement>) =>
+      onUpdateConfig("dueAmount", event.target.value)
+  );
+  const handleDueUnit = useStableCallback((value: string) =>
+    onUpdateConfig("dueUnit", value)
+  );
   const handleOnChangeH8 = useStableCallback((next) =>
     onUpdateConfig("outcomes", JSON.stringify(next))
   );
@@ -254,6 +261,39 @@ export function HumanTaskFields({
           </Select>
         </div>
       )}
+
+      <div className="space-y-2">
+        <Label htmlFor="dueAmount">{m.human_task_due()}</Label>
+        <p className="text-muted-foreground text-xs">
+          {m.human_task_due_hint()}
+        </p>
+        <div className="flex items-center gap-2">
+          <Input
+            aria-label={m.human_task_due_amount()}
+            className="w-24"
+            data-testid="due-amount"
+            disabled={disabled}
+            id="dueAmount"
+            min={0}
+            onChange={handleDueAmount}
+            type="number"
+            value={String(config.dueAmount ?? "")}
+          />
+          <Select
+            disabled={disabled}
+            onValueChange={handleDueUnit}
+            value={(config.dueUnit as string) || "days"}
+          >
+            <SelectTrigger className="w-28" data-testid="due-unit">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="hours">{m.human_task_due_hours()}</SelectItem>
+              <SelectItem value="days">{m.human_task_due_days()}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
       <div className="space-y-2">
         <Label>{m.human_task_form()}</Label>
