@@ -256,6 +256,16 @@ export default function ProcessesPage() {
                 {m.templates_leave_description()}
               </p>
               <InstallTemplateButton onInstalled={load} />
+              <p className="pt-2 font-medium text-sm">
+                {m.templates_expense_title()}
+              </p>
+              <p className="text-muted-foreground text-sm">
+                {m.templates_expense_description()}
+              </p>
+              <InstallTemplateButton
+                onInstalled={load}
+                templateId="expense-approval"
+              />
             </CardContent>
           </Card>
         ) : null}

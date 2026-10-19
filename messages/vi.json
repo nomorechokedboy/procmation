@@ -331,5 +331,18 @@
   "templates_install": "Cài mẫu",
   "templates_installed": "Đã cài và xuất bản đơn xin nghỉ phép",
   "templates_install_failed": "Không thể cài mẫu",
-  "templates_install_short": "Dùng mẫu đơn nghỉ phép"
+  "templates_install_short": "Dùng mẫu đơn nghỉ phép",
+  "tpl_expense_name": "Duyệt chi phí",
+  "tpl_expense_description": "Nhân viên gửi một khoản chi. Quản lý duyệt, và khoản vượt hạn mức cần thêm một lần duyệt từ bộ phận tài chính.",
+  "tpl_expense_category": "Tài chính",
+  "tpl_expense_what": "Chi cho việc gì",
+  "tpl_expense_amount": "Số tiền",
+  "tpl_expense_date": "Ngày chi",
+  "tpl_expense_notes": "Ghi chú",
+  "tpl_expense_manager_task": "Duyệt khoản chi",
+  "tpl_expense_finance_task": "Tài chính duyệt khoản chi lớn",
+  "tpl_expense_condition": "Vượt hạn mức?",
+  "templates_expense_title": "Dùng mẫu duyệt chi phí",
+  "templates_expense_description": "Quản lý duyệt, và khoản trên 1.000 cần thêm một lần duyệt nữa. Người duyệt thứ hai là bạn; hãy đổi trong trình chỉnh sửa.",
+  "templates_expense_installed": "Đã cài và xuất bản mẫu duyệt chi phí"
 }

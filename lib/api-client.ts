@@ -967,7 +967,7 @@ export const notificationApi = {
 
 // Export all APIs as a single object
 export const templateApi = {
-  install: (templateId: "leave-request") =>
+  install: (templateId: "leave-request" | "expense-approval") =>
     apiCall<{ processId: string; workflowId: string }>(
       `/api/templates/${templateId}/install`,
       { method: "POST" }
