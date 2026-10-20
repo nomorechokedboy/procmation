@@ -14,8 +14,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { usePermissions } from "@/hooks/use-permissions";
 import { api } from "@/lib/api-client";
-import { useSession } from "@/lib/auth-client";
 import * as m from "@/paraglide/messages";
 
 type SetupProgress = {
@@ -196,19 +196,20 @@ function usePendingTaskCount() {
 }
 
 export default function HomePage() {
-  const { data: session, isPending } = useSession();
+  const { can, loaded } = usePermissions();
   const pending = usePendingTaskCount();
-  const isAdmin = session?.user?.role === "admin";
 
-  if (isPending) {
+  if (!loaded) {
     return null;
   }
 
   return (
     <>
       <PageHeader title={m.home_title()} />
-      {isAdmin ? <SetupChecklist /> : null}
-      {isAdmin ? <Overview /> : null}
+      {can("processes.manage") && can("members.manage") ? (
+        <SetupChecklist />
+      ) : null}
+      {can("reports.view") ? <Overview /> : null}
       <div className="grid gap-4 sm:grid-cols-3">
         <HomeCard
           badge={pending ? `${pending} ${m.home_tasks_waiting()}` : undefined}

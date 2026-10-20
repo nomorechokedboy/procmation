@@ -3,9 +3,15 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { workflows } from "@/lib/db/schema";
+import { denyWithoutPermission } from "@/lib/session";
 
 export async function GET(request: Request) {
   try {
+    const denied = await denyWithoutPermission(request, "processes.manage");
+    if (denied) {
+      return denied;
+    }
+
     const session = await auth.api.getSession({
       headers: request.headers,
     });

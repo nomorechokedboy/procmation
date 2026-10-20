@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { workflows } from "@/lib/db/schema";
+import { denyWithoutPermission } from "@/lib/session";
 import { generateWorkflowSDKCode } from "@/lib/workflow-codegen-sdk";
 
 export async function GET(
@@ -10,6 +11,11 @@ export async function GET(
   context: { params: Promise<{ workflowId: string }> }
 ) {
   try {
+    const denied = await denyWithoutPermission(request, "processes.manage");
+    if (denied) {
+      return denied;
+    }
+
     const { workflowId } = await context.params;
     const session = await auth.api.getSession({
       headers: request.headers,

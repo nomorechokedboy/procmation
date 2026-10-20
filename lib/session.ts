@@ -73,3 +73,13 @@ export async function requirePermission(
   }
   return guard;
 }
+
+// For routes that do their own sign-in handling: a 401/403 response when the
+// caller may not do this, otherwise null
+export async function denyWithoutPermission(
+  request: Request,
+  permission: Permission
+): Promise<NextResponse | null> {
+  const guard = await requirePermission(request, permission);
+  return guard.ok ? null : guard.response;
+}

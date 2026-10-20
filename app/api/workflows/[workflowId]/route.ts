@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { validateWorkflowIntegrations } from "@/lib/db/integrations";
 import { workflows } from "@/lib/db/schema";
+import { denyWithoutPermission } from "@/lib/session";
 
 // Helper to strip sensitive data from nodes for public viewing
 function sanitizeNodesForPublicView(
@@ -124,6 +125,11 @@ export async function PATCH(
   context: { params: Promise<{ workflowId: string }> }
 ) {
   try {
+    const denied = await denyWithoutPermission(request, "processes.manage");
+    if (denied) {
+      return denied;
+    }
+
     const { workflowId } = await context.params;
     const session = await auth.api.getSession({
       headers: request.headers,
@@ -214,6 +220,11 @@ export async function DELETE(
   context: { params: Promise<{ workflowId: string }> }
 ) {
   try {
+    const denied = await denyWithoutPermission(request, "processes.manage");
+    if (denied) {
+      return denied;
+    }
+
     const { workflowId } = await context.params;
     const session = await auth.api.getSession({
       headers: request.headers,

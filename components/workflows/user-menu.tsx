@@ -35,6 +35,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { usePermissions } from "@/hooks/use-permissions";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { api } from "@/lib/api-client";
 import { signOut, useSession } from "@/lib/auth-client";
@@ -54,6 +55,7 @@ function handleLocaleChange(value: string) {
 
 export const UserMenu = () => {
   const { data: session, isPending } = useSession();
+  const { can } = usePermissions();
   const { theme, setTheme } = useTheme();
   const { open: openOverlay } = useOverlay();
   const [providerId, setProviderId] = useState<string | null>(null);
@@ -170,21 +172,21 @@ export const UserMenu = () => {
             <span>{m.nav_start_case()}</span>
           </Link>
         </DropdownMenuItem>
-        {session.user.role === "admin" && (
-          <>
-            <DropdownMenuItem asChild>
-              <Link href="/admin/processes">
-                <ListChecks className="size-4" />
-                <span>{m.processes_title()}</span>
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/admin/members">
-                <Users className="size-4" />
-                <span>{m.members_title()}</span>
-              </Link>
-            </DropdownMenuItem>
-          </>
+        {can("processes.manage") && (
+          <DropdownMenuItem asChild>
+            <Link href="/admin/processes">
+              <ListChecks className="size-4" />
+              <span>{m.processes_title()}</span>
+            </Link>
+          </DropdownMenuItem>
+        )}
+        {can("members.manage") && (
+          <DropdownMenuItem asChild>
+            <Link href="/admin/members">
+              <Users className="size-4" />
+              <span>{m.members_title()}</span>
+            </Link>
+          </DropdownMenuItem>
         )}
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>

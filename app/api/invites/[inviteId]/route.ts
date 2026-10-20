@@ -3,13 +3,13 @@ import { NextResponse } from "next/server";
 import { AUDIT_RESOURCES, recordAudit, userActor } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { invitations } from "@/lib/db/schema";
-import { requireAdmin } from "@/lib/session";
+import { requirePermission } from "@/lib/session";
 
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ inviteId: string }> }
 ) {
-  const guard = await requireAdmin(request);
+  const guard = await requirePermission(request, "members.manage");
   if (!guard.ok) {
     return guard.response;
   }

@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { validateWorkflowIntegrations } from "@/lib/db/integrations";
 import { workflows } from "@/lib/db/schema";
+import { denyWithoutPermission } from "@/lib/session";
 import { generateId } from "@/lib/utils/id";
 
 // Helper function to create a default trigger node
@@ -26,6 +27,11 @@ function createDefaultTriggerNode() {
 
 export async function POST(request: Request) {
   try {
+    const denied = await denyWithoutPermission(request, "processes.manage");
+    if (denied) {
+      return denied;
+    }
+
     const session = await auth.api.getSession({
       headers: request.headers,
     });

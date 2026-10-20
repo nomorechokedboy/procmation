@@ -3,12 +3,18 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { workflowExecutions, workflows } from "@/lib/db/schema";
+import { denyWithoutPermission } from "@/lib/session";
 
 export async function GET(
   request: Request,
   context: { params: Promise<{ workflowId: string }> }
 ) {
   try {
+    const denied = await denyWithoutPermission(request, "processes.manage");
+    if (denied) {
+      return denied;
+    }
+
     const { workflowId } = await context.params;
     const session = await auth.api.getSession({
       headers: request.headers,
@@ -58,6 +64,11 @@ export async function DELETE(
   context: { params: Promise<{ workflowId: string }> }
 ) {
   try {
+    const denied = await denyWithoutPermission(request, "processes.manage");
+    if (denied) {
+      return denied;
+    }
+
     const { workflowId } = await context.params;
     const session = await auth.api.getSession({
       headers: request.headers,

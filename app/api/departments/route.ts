@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { AUDIT_RESOURCES, recordAudit, userActor } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { departments, userProfiles } from "@/lib/db/schema";
-import { requireAdmin, requireUser } from "@/lib/session";
+import { requirePermission, requireUser } from "@/lib/session";
 
 const MAX_NAME_LENGTH = 80;
 
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const guard = await requireAdmin(request);
+  const guard = await requirePermission(request, "members.manage");
   if (!guard.ok) {
     return guard.response;
   }

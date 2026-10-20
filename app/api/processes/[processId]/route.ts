@@ -9,7 +9,7 @@ import {
   workflows,
 } from "@/lib/db/schema";
 import { validateFormFields } from "@/lib/process-form-validation";
-import { requireAdmin, requireUser } from "@/lib/session";
+import { requirePermission, requireUser } from "@/lib/session";
 
 const MAX_CATEGORY_LENGTH = 60;
 
@@ -47,7 +47,8 @@ export async function GET(
   // Members get the same answer for a missing process and an unpublished one
   if (
     !process ||
-    (guard.user.role !== "admin" && process.status !== "published")
+    (!guard.user.permissions.includes("processes.manage") &&
+      process.status !== "published")
   ) {
     return NextResponse.json({ error: "Process not found" }, { status: 404 });
   }
@@ -102,7 +103,7 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ processId: string }> }
 ) {
-  const guard = await requireAdmin(request);
+  const guard = await requirePermission(request, "processes.manage");
   if (!guard.ok) {
     return guard.response;
   }

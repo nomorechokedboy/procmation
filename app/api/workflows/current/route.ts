@@ -3,12 +3,18 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { workflows } from "@/lib/db/schema";
+import { denyWithoutPermission } from "@/lib/session";
 import { generateId } from "@/lib/utils/id";
 
 const CURRENT_WORKFLOW_NAME = "~~__CURRENT__~~";
 
 export async function GET(request: Request) {
   try {
+    const denied = await denyWithoutPermission(request, "processes.manage");
+    if (denied) {
+      return denied;
+    }
+
     const session = await auth.api.getSession({
       headers: request.headers,
     });
@@ -58,6 +64,11 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const denied = await denyWithoutPermission(request, "processes.manage");
+    if (denied) {
+      return denied;
+    }
+
     const session = await auth.api.getSession({
       headers: request.headers,
     });

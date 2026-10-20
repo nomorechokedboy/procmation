@@ -8,7 +8,7 @@ import {
 import { db } from "@/lib/db";
 import { processDefinitions, workflows } from "@/lib/db/schema";
 import { getRequestLocale } from "@/lib/i18n/request-locale";
-import { requireAdmin } from "@/lib/session";
+import { requirePermission } from "@/lib/session";
 import { buildTemplate, isTemplateId } from "@/lib/templates";
 import { generateId } from "@/lib/utils/id";
 
@@ -17,7 +17,7 @@ type Params = { params: Promise<{ templateId: string }> };
 // POST /api/templates/:templateId/install - creates the template's workflow
 // and publishes it as a process, so members can start cases right away
 export async function POST(request: Request, { params }: Params) {
-  const guard = await requireAdmin(request);
+  const guard = await requirePermission(request, "processes.manage");
   if (!guard.ok) {
     return guard.response;
   }

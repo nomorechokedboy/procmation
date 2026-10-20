@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { findAuditLogs } from "@/lib/audit";
-import { requireAdmin } from "@/lib/session";
+import { requirePermission } from "@/lib/session";
 
 const MAX_LIMIT_PARAM = 200;
 
@@ -12,7 +12,7 @@ function param(url: URL, name: string): string | undefined {
 // only ever added; there is no way to change or remove one through the API.
 // Query: resourceType, resourceId, action, actorId, q, before, limit
 export async function GET(request: Request) {
-  const guard = await requireAdmin(request);
+  const guard = await requirePermission(request, "audit.view");
   if (!guard.ok) {
     return guard.response;
   }

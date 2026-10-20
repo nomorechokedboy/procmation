@@ -12,10 +12,10 @@ import { invitations, users } from "@/lib/db/schema";
 import { sendInviteEmail } from "@/lib/email/invite";
 import { MEMBER_ROLE } from "@/lib/permissions";
 import { roleExists } from "@/lib/roles";
-import { requireAdmin, requirePermission } from "@/lib/session";
+import { requirePermission } from "@/lib/session";
 
 export async function GET(request: Request) {
-  const guard = await requireAdmin(request);
+  const guard = await requirePermission(request, "members.manage");
   if (!guard.ok) {
     return guard.response;
   }

@@ -34,7 +34,7 @@ export async function GET(request: Request) {
   }
 
   const viewAll = params.get("all") === "true";
-  if (viewAll && guard.user.role !== "admin") {
+  if (viewAll && !guard.user.permissions.includes("cases.view_all")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

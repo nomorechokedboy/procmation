@@ -6,8 +6,8 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/app/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { usePermissions } from "@/hooks/use-permissions";
 import { api, type CaseRecord } from "@/lib/api-client";
-import { useSession } from "@/lib/auth-client";
 import { casePriorityLabel, caseStatusLabel } from "@/lib/i18n/bpma-labels";
 import * as m from "@/paraglide/messages";
 import { getLocale } from "@/paraglide/runtime";
@@ -35,8 +35,8 @@ function CaseRow({ item }: { item: CaseRecord }) {
 }
 
 export default function CasesPage() {
-  const { data: session } = useSession();
-  const isAdmin = session?.user.role === "admin";
+  const { can } = usePermissions();
+  const isAdmin = can("cases.view_all");
   const [cases, setCases] = useState<CaseRecord[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [showAll, setShowAll] = useState(false);
