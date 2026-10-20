@@ -18,7 +18,20 @@ import type { IntegrationType } from "../types/integration";
 import type { FormField } from "../types/process-form";
 import { generateId } from "../utils/id";
 
-export type UserRole = "admin" | "member";
+// The key of a row in `roles`: "admin", "member" or a role an admin made
+export type UserRole = string;
+
+// Named sets of permissions (see lib/permissions.ts). A user holds one role.
+export const roles = pgTable("roles", {
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  description: text("description"),
+  // The built-in roles, "admin" and "member", cannot be edited or deleted
+  isSystem: boolean("is_system").notNull().default(false),
+  key: text("key").primaryKey(),
+  name: text("name").notNull().unique(),
+  permissions: jsonb("permissions").notNull().$type<string[]>().default([]),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
 
 // Better Auth tables
 export const users = pgTable("users", {
@@ -30,7 +43,11 @@ export const users = pgTable("users", {
   // Anonymous user tracking (legacy column, anonymous sign-in is disabled)
   isAnonymous: boolean("is_anonymous").default(false),
   name: text("name"),
-  role: text("role").$type<UserRole>().notNull().default("member"),
+  role: text("role")
+    .$type<UserRole>()
+    .notNull()
+    .default("member")
+    .references(() => roles.key),
   updatedAt: timestamp("updated_at").notNull(),
 });
 
@@ -86,7 +103,11 @@ export const invitations = pgTable("invitations", {
   invitedBy: text("invited_by")
     .notNull()
     .references(() => users.id),
-  role: text("role").$type<UserRole>().notNull().default("member"),
+  role: text("role")
+    .$type<UserRole>()
+    .notNull()
+    .default("member")
+    .references(() => roles.key),
   tokenHash: text("token_hash").notNull().unique(),
 });
 
@@ -637,3 +658,4 @@ export type NewNotification = typeof notifications.$inferInsert;
 export type ProcessTemplate = typeof processTemplates.$inferSelect;
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type NewAuditLog = typeof auditLogs.$inferInsert;
+export type Role = typeof roles.$inferSelect;

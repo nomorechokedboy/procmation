@@ -14,6 +14,7 @@ import {
 import { AUDIT_RESOURCES, type AuditEntry, recordAudit } from "@/lib/audit";
 import { CASE_ACTIVE_STATUSES } from "@/lib/db/case-options";
 import { pushNotificationToUser } from "@/lib/notifications/sse-hub";
+import type { Permission } from "@/lib/permissions";
 import type { FormField } from "@/lib/types/process-form";
 import { db } from "./index";
 import {
@@ -44,7 +45,11 @@ export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 // Who did something, as recorded in the audit log
 export type Actor = { id: string; name: string };
 
-export type CaseViewer = { id: string; role: "admin" | "member" };
+export type CaseViewer = {
+  id: string;
+  role: string;
+  permissions: Permission[];
+};
 
 // ---------------------------------------------------------------------------
 // Case timeline
@@ -183,7 +188,7 @@ export async function getCase(id: string): Promise<Case | null> {
 
 export function canViewCase(viewer: CaseViewer, record: Case): boolean {
   return (
-    viewer.role === "admin" ||
+    viewer.permissions.includes("cases.view_all") ||
     record.initiatorId === viewer.id ||
     record.participants.includes(viewer.id)
   );

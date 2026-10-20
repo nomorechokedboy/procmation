@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import type { UserRole } from "@/lib/db/schema";
+import { ADMIN_ROLE, type Permission } from "@/lib/permissions";
+import { permissionsForRole } from "@/lib/roles";
 
 type SessionUser = {
   id: string;
   email: string;
   name: string;
   role: UserRole;
+  permissions: Permission[];
 };
 
 type GuardResult =
@@ -31,6 +34,7 @@ export async function requireUser(request: Request): Promise<GuardResult> {
       email: session.user.email,
       id: session.user.id,
       name: session.user.name,
+      permissions: await permissionsForRole(role),
       role,
     },
   };
@@ -42,12 +46,30 @@ export async function requireAdmin(request: Request): Promise<GuardResult> {
     return guard;
   }
 
-  if (guard.user.role !== "admin") {
+  if (guard.user.role !== ADMIN_ROLE) {
     return {
       ok: false,
       response: NextResponse.json({ error: "Forbidden" }, { status: 403 }),
     };
   }
 
+  return guard;
+}
+
+// Signed in and allowed to do one thing, such as view reports
+export async function requirePermission(
+  request: Request,
+  permission: Permission
+): Promise<GuardResult> {
+  const guard = await requireUser(request);
+  if (!guard.ok) {
+    return guard;
+  }
+  if (!guard.user.permissions.includes(permission)) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: "Forbidden" }, { status: 403 }),
+    };
+  }
   return guard;
 }
