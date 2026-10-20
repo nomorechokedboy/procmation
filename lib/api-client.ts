@@ -915,6 +915,9 @@ export const caseApi = {
 };
 
 export const taskApi = {
+  claim: (taskId: string) =>
+    apiCall<TaskRecord>(`/api/bpma/tasks/${taskId}/claim`, { method: "POST" }),
+
   complete: (
     taskId: string,
     data: { outcome?: string; values?: Record<string, unknown> }
@@ -933,6 +936,11 @@ export const taskApi = {
   reassign: (taskId: string, assigneeId: string) =>
     apiCall<TaskRecord>(`/api/bpma/tasks/${taskId}/reassign`, {
       body: JSON.stringify({ assigneeId }),
+      method: "POST",
+    }),
+
+  release: (taskId: string) =>
+    apiCall<TaskRecord>(`/api/bpma/tasks/${taskId}/release`, {
       method: "POST",
     }),
 };

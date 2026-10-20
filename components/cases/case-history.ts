@@ -90,6 +90,16 @@ export function describeEvent(directory: Directory, entry: Entry): string {
         task: taskName(directory, entry),
         to: personName(directory, entry.data.to),
       });
+    case "task_claimed":
+      return m.tl_task_claimed({
+        actor: personName(directory, entry.actorId),
+        task: taskName(directory, entry),
+      });
+    case "task_released":
+      return m.tl_task_released({
+        actor: personName(directory, entry.actorId),
+        task: taskName(directory, entry),
+      });
     case "task_escalated":
       return describeEscalation(directory, entry);
     case "status_changed":

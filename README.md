@@ -141,6 +141,10 @@ Admins define roles in **Roles** (`/admin/roles`). A role is a named set of perm
 
 `Admin` (everything) and `Member` (starts cases, works on their own tasks) are built in and cannot be changed or deleted, so an admin can never be locked out. A role that someone holds, or an invitation uses, cannot be deleted. Inviting with a role other than Member, or changing someone's role, needs `roles.manage`. Every route checks the permission on the server; the screens only hide what you cannot use.
 
+### Department pools
+
+A task sent to a department waits in its pool, and everyone in that department sees it. Opening the task offers **Take this task**: the claim is atomic, so when two people try at once exactly one gets it and the other is told it is taken. Whoever holds it can **Put back in pool** (admins can do this for them). Claims and releases appear on the case timeline and in the audit log, and once someone holds a task the due-date reminders and escalation apply to them.
+
 ### Starting point
 
 As an admin, the home page offers a leave request template that creates a ready-to-use
