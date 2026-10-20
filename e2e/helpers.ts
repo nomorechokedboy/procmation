@@ -153,11 +153,11 @@ export async function newMemberContext(
   browser: Browser,
   baseURL: string,
   admin: APIRequestContext,
-  person: { email: string; name: string }
+  person: { email: string; name: string; role?: string }
 ): Promise<{ context: BrowserContext; id: string }> {
   const invite = await post<Invite>(admin, "/api/invites", {
     email: person.email,
-    role: "member",
+    role: person.role ?? "member",
   });
   const context = await browser.newContext({ baseURL, locale: "en-US" });
   const token = invite.inviteUrl.split("/").pop();
