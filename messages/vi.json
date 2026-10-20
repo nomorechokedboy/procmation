@@ -415,5 +415,9 @@
   "reports_col_overdue": "Quá hạn",
   "reports_export": "Xuất CSV",
   "reports_empty": "Chưa có dữ liệu trong khoảng thời gian này.",
-  "reports_failed_note": "{failed} lỗi, {cancelled} đã hủy"
+  "reports_failed_note": "{failed} lỗi, {cancelled} đã hủy",
+  "reports_minutes": "{n} phút",
+  "reports_under_minute": "< 1 phút",
+  "home_overview_title": "Tuần này",
+  "home_overview_link": "Mở báo cáo"
 }

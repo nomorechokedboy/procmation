@@ -415,5 +415,9 @@
   "reports_col_overdue": "Overdue",
   "reports_export": "Export CSV",
   "reports_empty": "Nothing to show for this period.",
-  "reports_failed_note": "{failed} failed, {cancelled} cancelled"
+  "reports_failed_note": "{failed} failed, {cancelled} cancelled",
+  "reports_minutes": "{n} min",
+  "reports_under_minute": "< 1 min",
+  "home_overview_title": "This week",
+  "home_overview_link": "Open reports"
 }

@@ -4,6 +4,7 @@ import { CheckCircle2, Circle } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { PageHeader } from "@/components/app/page-header";
+import { Overview } from "@/components/reports/overview";
 import { InstallTemplateButton } from "@/components/templates/install-template-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -207,6 +208,7 @@ export default function HomePage() {
     <>
       <PageHeader title={m.home_title()} />
       {isAdmin ? <SetupChecklist /> : null}
+      {isAdmin ? <Overview /> : null}
       <div className="grid gap-4 sm:grid-cols-3">
         <HomeCard
           badge={pending ? `${pending} ${m.home_tasks_waiting()}` : undefined}
