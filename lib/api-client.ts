@@ -3,6 +3,7 @@
  * Replaces server actions with API endpoints
  */
 
+import type { Permission } from "@/lib/permissions";
 import type {
   Case,
   CasePriority,
@@ -1058,6 +1059,18 @@ export const reportApi = {
   get: (days: number) => apiCall<Report>(`/api/reports?days=${days}`),
 };
 
+export type Me = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  permissions: Permission[];
+};
+
+export const meApi = {
+  get: () => apiCall<Me>("/api/me"),
+};
+
 export const api = {
   ai: aiApi,
   aiGateway: aiGatewayApi,
@@ -1066,6 +1079,7 @@ export const api = {
   department: departmentApi,
   integration: integrationApi,
   invite: inviteApi,
+  me: meApi,
   member: memberApi,
   notification: notificationApi,
   process: processApi,
