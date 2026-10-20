@@ -13,6 +13,7 @@ export const AUDIT_RESOURCES = {
   invite: "invite",
   member: "member",
   process: "process",
+  role: "role",
   task: "task",
   workflow: "workflow",
 } as const;
