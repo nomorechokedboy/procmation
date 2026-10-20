@@ -7,24 +7,25 @@ import {
   userActor,
 } from "@/lib/audit";
 import { db } from "@/lib/db";
-import { type UserRole, users } from "@/lib/db/schema";
-import { requireAdmin } from "@/lib/session";
-
-const ROLES: UserRole[] = ["admin", "member"];
+import { users } from "@/lib/db/schema";
+import { ADMIN_ROLE } from "@/lib/permissions";
+import { roleExists } from "@/lib/roles";
+import { requirePermission } from "@/lib/session";
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ memberId: string }> }
 ) {
-  const guard = await requireAdmin(request);
+  // Changing a role changes what someone may do, so it takes roles.manage
+  const guard = await requirePermission(request, "roles.manage");
   if (!guard.ok) {
     return guard.response;
   }
 
   const { memberId } = await params;
-  const body = (await request.json()) as { role?: UserRole };
+  const body = (await request.json()) as { role?: string };
 
-  if (!(body.role && ROLES.includes(body.role))) {
+  if (!(body.role && (await roleExists(body.role)))) {
     return NextResponse.json({ error: "Invalid role" }, { status: 400 });
   }
   const { role } = body;
@@ -35,7 +36,7 @@ export async function PATCH(
     const admins = await tx
       .select({ id: users.id })
       .from(users)
-      .where(eq(users.role, "admin"))
+      .where(eq(users.role, ADMIN_ROLE))
       .for("update");
 
     const target = await tx
@@ -54,10 +55,10 @@ export async function PATCH(
     }
 
     const isLastAdmin =
-      target[0].role === "admin" &&
+      target[0].role === ADMIN_ROLE &&
       admins.length === 1 &&
       admins[0].id === memberId;
-    if (role !== "admin" && isLastAdmin) {
+    if (role !== ADMIN_ROLE && isLastAdmin) {
       return {
         error: "There must be at least one admin",
         status: 409,

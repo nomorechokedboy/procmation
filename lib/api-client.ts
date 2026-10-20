@@ -1059,6 +1059,37 @@ export const reportApi = {
   get: (days: number) => apiCall<Report>(`/api/reports?days=${days}`),
 };
 
+export type RoleSummary = {
+  key: string;
+  name: string;
+  description: string | null;
+  isSystem: boolean;
+  memberCount: number;
+  permissions: Permission[];
+};
+
+export type RoleInput = {
+  name: string;
+  description?: string;
+  permissions: Permission[];
+};
+
+export const roleApi = {
+  create: (data: RoleInput) =>
+    apiCall<RoleSummary>("/api/roles", {
+      body: JSON.stringify(data),
+      method: "POST",
+    }),
+  delete: (key: string) =>
+    apiCall<{ success: boolean }>(`/api/roles/${key}`, { method: "DELETE" }),
+  list: () => apiCall<RoleSummary[]>("/api/roles"),
+  update: (key: string, data: RoleInput) =>
+    apiCall<RoleSummary>(`/api/roles/${key}`, {
+      body: JSON.stringify(data),
+      method: "PATCH",
+    }),
+};
+
 export type Me = {
   id: string;
   name: string;
@@ -1084,6 +1115,7 @@ export const api = {
   notification: notificationApi,
   process: processApi,
   report: reportApi,
+  role: roleApi,
   setup: setupApi,
   task: taskApi,
   template: templateApi,

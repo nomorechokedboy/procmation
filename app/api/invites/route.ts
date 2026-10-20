@@ -8,11 +8,11 @@ import {
   normalizeEmail,
 } from "@/lib/auth-provision";
 import { db } from "@/lib/db";
-import { invitations, type UserRole, users } from "@/lib/db/schema";
+import { invitations, users } from "@/lib/db/schema";
 import { sendInviteEmail } from "@/lib/email/invite";
-import { requireAdmin } from "@/lib/session";
-
-const ROLES: UserRole[] = ["admin", "member"];
+import { MEMBER_ROLE } from "@/lib/permissions";
+import { roleExists } from "@/lib/roles";
+import { requireAdmin, requirePermission } from "@/lib/session";
 
 export async function GET(request: Request) {
   const guard = await requireAdmin(request);
@@ -36,14 +36,14 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const guard = await requireAdmin(request);
+  const guard = await requirePermission(request, "members.manage");
   if (!guard.ok) {
     return guard.response;
   }
 
-  const body = (await request.json()) as { email?: string; role?: UserRole };
+  const body = (await request.json()) as { email?: string; role?: string };
   const email = body.email ? normalizeEmail(body.email) : "";
-  const role = body.role ?? "member";
+  const role = body.role ?? MEMBER_ROLE;
 
   if (!email.includes("@")) {
     return NextResponse.json(
@@ -51,8 +51,15 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
-  if (!ROLES.includes(role)) {
+  if (!(await roleExists(role))) {
     return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+  }
+  // Inviting someone with more than the default role is handing out access
+  if (
+    role !== MEMBER_ROLE &&
+    !guard.user.permissions.includes("roles.manage")
+  ) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const [existingUser] = await db

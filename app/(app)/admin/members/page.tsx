@@ -24,21 +24,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useInputChange } from "@/hooks/use-input-change";
+import { usePermissions } from "@/hooks/use-permissions";
 import {
   api,
   type Department,
   type InvitationSummary,
   type Member,
+  type RoleSummary,
   type UserRole,
 } from "@/lib/api-client";
-import { useSession } from "@/lib/auth-client";
 import * as m from "@/paraglide/messages";
 import { getLocale } from "@/paraglide/runtime";
 
-const ROLE_OPTIONS: UserRole[] = ["admin", "member"];
-
-function roleLabel(role: UserRole): string {
-  return role === "admin" ? m.role_admin() : m.role_member();
+// The name of a role, falling back to its key if the list has not loaded
+function roleLabel(roles: RoleSummary[], key: UserRole): string {
+  return roles.find((role) => role.key === key)?.name ?? key;
 }
 
 function inviteResultMessage(invite: {
@@ -55,10 +55,12 @@ function inviteResultMessage(invite: {
 }
 
 function RoleSelect({
+  roles,
   value,
   onChange,
   disabled,
 }: {
+  roles: RoleSummary[];
   value: UserRole;
   onChange: (role: UserRole) => void;
   disabled?: boolean;
@@ -70,13 +72,13 @@ function RoleSelect({
 
   return (
     <Select disabled={disabled} onValueChange={handleValueChange} value={value}>
-      <SelectTrigger className="w-32">
+      <SelectTrigger className="w-40" data-testid="role-select">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        {ROLE_OPTIONS.map((role) => (
-          <SelectItem key={role} value={role}>
-            {roleLabel(role)}
+        {roles.map((role) => (
+          <SelectItem key={role.key} value={role.key}>
+            {role.name}
           </SelectItem>
         ))}
       </SelectContent>
@@ -86,11 +88,15 @@ function RoleSelect({
 
 function MemberRow({
   member,
+  roles,
+  canAssignRoles,
   details,
   onEditProfile,
   onRoleChange,
 }: {
   member: Member;
+  roles: RoleSummary[];
+  canAssignRoles: boolean;
   details: string[];
   onEditProfile: (member: Member) => void;
   onRoleChange: (memberId: string, role: UserRole) => void;
@@ -121,7 +127,12 @@ function MemberRow({
         <Button onClick={handleEdit} size="sm" variant="outline">
           {m.members_profile_button()}
         </Button>
-        <RoleSelect onChange={handleRole} value={member.role} />
+        <RoleSelect
+          disabled={!canAssignRoles}
+          onChange={handleRole}
+          roles={roles}
+          value={member.role}
+        />
       </div>
     </div>
   );
@@ -129,9 +140,11 @@ function MemberRow({
 
 function InviteRow({
   invite,
+  roles,
   onRevoke,
 }: {
   invite: InvitationSummary;
+  roles: RoleSummary[];
   onRevoke: (inviteId: string) => void;
 }) {
   const handleRevoke = useCallback(
@@ -146,7 +159,7 @@ function InviteRow({
         <p className="text-muted-foreground text-xs">
           {m.members_invite_expires({
             date: new Date(invite.expiresAt).toLocaleDateString(getLocale()),
-            role: roleLabel(invite.role),
+            role: roleLabel(roles, invite.role),
           })}
         </p>
       </div>
@@ -158,8 +171,10 @@ function InviteRow({
 }
 
 export default function MembersPage() {
-  const { data: session, isPending } = useSession();
-  const isAdmin = session?.user.role === "admin";
+  const { can, loaded } = usePermissions();
+  const canManage = can("members.manage");
+  const canAssignRoles = can("roles.manage");
+  const [roles, setRoles] = useState<RoleSummary[]>([]);
 
   const [members, setMembers] = useState<Member[]>([]);
   const [invites, setInvites] = useState<InvitationSummary[]>([]);
@@ -177,11 +192,14 @@ export default function MembersPage() {
 
   const load = useCallback(async () => {
     try {
-      const [memberList, inviteList, departmentList] = await Promise.all([
-        api.member.list(),
-        api.invite.list(),
-        api.department.list(),
-      ]);
+      const [memberList, inviteList, departmentList, roleList] =
+        await Promise.all([
+          api.member.list(),
+          api.invite.list(),
+          api.department.list(),
+          api.role.list(),
+        ]);
+      setRoles(roleList);
       setMembers(memberList);
       setDepartments(departmentList);
       setInvites(inviteList.filter((invite) => !invite.acceptedAt));
@@ -191,10 +209,10 @@ export default function MembersPage() {
   }, []);
 
   useEffect(() => {
-    if (isAdmin) {
+    if (canManage) {
       load();
     }
-  }, [isAdmin, load]);
+  }, [canManage, load]);
 
   const handleCopyLatest = useCallback(async () => {
     if (!latestInvite) {
@@ -256,7 +274,7 @@ export default function MembersPage() {
     [load]
   );
 
-  if (isPending) {
+  if (!loaded) {
     return null;
   }
 
@@ -264,7 +282,7 @@ export default function MembersPage() {
     <>
       <PageHeader title={m.members_title()} />
       <div className="space-y-6">
-        {isAdmin ? null : (
+        {canManage ? null : (
           <Card>
             <CardHeader>
               <CardTitle>{m.members_admins_only_title()}</CardTitle>
@@ -275,7 +293,7 @@ export default function MembersPage() {
           </Card>
         )}
 
-        {isAdmin ? (
+        {canManage ? (
           <>
             <Card>
               <CardHeader>
@@ -301,7 +319,12 @@ export default function MembersPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>{m.members_role_label()}</Label>
-                    <RoleSelect onChange={setRole} value={role} />
+                    <RoleSelect
+                      disabled={!canAssignRoles}
+                      onChange={setRole}
+                      roles={roles}
+                      value={role}
+                    />
                   </div>
                   <Button disabled={creating} type="submit">
                     {creating ? m.common_creating() : m.members_create_invite()}
@@ -354,11 +377,13 @@ export default function MembersPage() {
                   ].filter((detail): detail is string => Boolean(detail));
                   return (
                     <MemberRow
+                      canAssignRoles={canAssignRoles}
                       details={details}
                       key={member.id}
                       member={member}
                       onEditProfile={setEditingMember}
                       onRoleChange={handleRoleChange}
+                      roles={roles}
                     />
                   );
                 })}
@@ -381,6 +406,7 @@ export default function MembersPage() {
                       invite={invite}
                       key={invite.id}
                       onRevoke={handleRevoke}
+                      roles={roles}
                     />
                   ))}
                 </CardContent>

@@ -22,3 +22,11 @@ export async function permissionsForRole(key: string): Promise<Permission[]> {
     .where(eq(roles.key, key));
   return (row?.permissions ?? []).filter(isPermission);
 }
+
+export async function roleExists(key: string): Promise<boolean> {
+  const [row] = await db
+    .select({ key: roles.key })
+    .from(roles)
+    .where(eq(roles.key, key));
+  return Boolean(row);
+}
