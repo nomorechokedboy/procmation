@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { workflows } from "@/lib/db/schema";
+import { denyWithoutPermission } from "@/lib/session";
 import { generateWorkflowModule } from "@/lib/workflow-codegen";
 import type { WorkflowEdge, WorkflowNode } from "@/lib/workflow-store";
 import { getAllEnvVars, getDependenciesForActions } from "@/plugins";
@@ -99,6 +100,11 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
+    const denied = await denyWithoutPermission(request, "processes.manage");
+    if (denied) {
+      return denied;
+    }
+
     const body = await request.json();
     
     // Start the workflow execution
@@ -213,6 +219,11 @@ export async function GET(
   context: { params: Promise<{ workflowId: string }> }
 ) {
   try {
+    const denied = await denyWithoutPermission(request, "processes.manage");
+    if (denied) {
+      return denied;
+    }
+
     const { workflowId } = await context.params;
     const session = await auth.api.getSession({
       headers: request.headers,

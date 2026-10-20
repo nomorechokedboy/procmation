@@ -15,13 +15,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { usePermissions } from "@/hooks/use-permissions";
 import {
   api,
   type ProcessStatus,
   type ProcessSummary,
   type SavedWorkflow,
 } from "@/lib/api-client";
-import { useSession } from "@/lib/auth-client";
 import * as m from "@/paraglide/messages";
 
 type StatusActionId = "restore" | "publish" | "archive" | "unpublish";
@@ -147,8 +147,8 @@ function ProcessRow({
 }
 
 export default function ProcessesPage() {
-  const { data: session, isPending } = useSession();
-  const isAdmin = session?.user.role === "admin";
+  const { can, loaded: permsLoaded } = usePermissions();
+  const isAdmin = can("processes.manage");
 
   const [processes, setProcesses] = useState<ProcessSummary[]>([]);
   const [workflows, setWorkflows] = useState<SavedWorkflow[]>([]);
@@ -207,7 +207,7 @@ export default function ProcessesPage() {
     []
   );
 
-  if (isPending) {
+  if (!permsLoaded) {
     return null;
   }
 

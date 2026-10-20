@@ -6,7 +6,7 @@ import { PG_UNIQUE_VIOLATION, pgErrorCode } from "@/lib/db/errors";
 import { processSummarySelection } from "@/lib/db/process-queries";
 import { processDefinitions, workflows } from "@/lib/db/schema";
 import { validateFormFields } from "@/lib/process-form-validation";
-import { requireAdmin, requireUser } from "@/lib/session";
+import { requirePermission, requireUser } from "@/lib/session";
 
 const MAX_CATEGORY_LENGTH = 60;
 
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     .innerJoin(workflows, eq(processDefinitions.workflowId, workflows.id));
 
   // Members only see processes they can start
-  const rows = await (guard.user.role === "admin"
+  const rows = await (guard.user.permissions.includes("processes.manage")
     ? query
     : query.where(eq(processDefinitions.status, "published"))
   ).orderBy(asc(workflows.name));
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const guard = await requireAdmin(request);
+  const guard = await requirePermission(request, "processes.manage");
   if (!guard.ok) {
     return guard.response;
   }

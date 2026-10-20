@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { AUDIT_RESOURCES, recordAudit, userActor } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { departments, userProfiles, users } from "@/lib/db/schema";
-import { requireAdmin } from "@/lib/session";
+import { requirePermission } from "@/lib/session";
 
 const MAX_DEPTH = 50;
 const MAX_JOB_TITLE_LENGTH = 100;
@@ -78,7 +78,7 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ memberId: string }> }
 ) {
-  const guard = await requireAdmin(request);
+  const guard = await requirePermission(request, "members.manage");
   if (!guard.ok) {
     return guard.response;
   }

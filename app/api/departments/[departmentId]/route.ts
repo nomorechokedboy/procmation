@@ -4,7 +4,7 @@ import { AUDIT_RESOURCES, recordAudit, userActor } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from "@/lib/db/errors";
 import { departments } from "@/lib/db/schema";
-import { requireAdmin } from "@/lib/session";
+import { requirePermission } from "@/lib/session";
 
 const MAX_NAME_LENGTH = 80;
 const MAX_DEPTH = 50;
@@ -30,7 +30,7 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ departmentId: string }> }
 ) {
-  const guard = await requireAdmin(request);
+  const guard = await requirePermission(request, "members.manage");
   if (!guard.ok) {
     return guard.response;
   }
@@ -140,7 +140,7 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ departmentId: string }> }
 ) {
-  const guard = await requireAdmin(request);
+  const guard = await requirePermission(request, "members.manage");
   if (!guard.ok) {
     return guard.response;
   }
