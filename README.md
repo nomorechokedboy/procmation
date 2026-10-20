@@ -126,6 +126,21 @@ new table. Entries are written in the background after the change commits, so th
 and record's name at the time, so they stay readable after renames or deletions.
 Workflow edits are not logged, because the editor saves automatically.
 
+### Roles and permissions
+
+Admins define roles in **Roles** (`/admin/roles`). A role is a named set of permissions:
+
+| Permission | Allows |
+| --- | --- |
+| `reports.view` | Reports and dashboard |
+| `audit.view` | Audit log |
+| `cases.view_all` | Seeing every case, not only your own |
+| `processes.manage` | Processes, templates and the workflow editor |
+| `members.manage` | Members, invitations, departments and profiles |
+| `roles.manage` | Creating roles and giving them to people |
+
+`Admin` (everything) and `Member` (starts cases, works on their own tasks) are built in and cannot be changed or deleted, so an admin can never be locked out. A role that someone holds, or an invitation uses, cannot be deleted. Inviting with a role other than Member, or changing someone's role, needs `roles.manage`. Every route checks the permission on the server; the screens only hide what you cannot use.
+
 ### Starting point
 
 As an admin, the home page offers a leave request template that creates a ready-to-use
