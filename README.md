@@ -105,6 +105,16 @@ Self-hosted deployments also keep the workflow engine's run state on disk, in
 directory on a persistent volume, or cases waiting on a task are lost when the
 container is replaced.
 
+### Reports and dashboard
+
+Admins get a **Reports** page and a "This week" summary on the home page. Pick the
+last 7, 30 or 90 days to see cases started, how they ended (approved, rejected,
+completed, failed, cancelled), the approval rate, the average time to finish, cases
+started per day, figures by process, the slowest steps (where cases wait longest)
+and the workload of each person (waiting, overdue, done). "Active now" and "Overdue
+tasks" are always the current state, whatever the range. Each table can be saved as
+CSV. Days are counted in UTC.
+
 ### Audit log
 
 Admins can open **Audit log** to see who changed what and when: cases (started,
