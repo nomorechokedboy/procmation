@@ -1012,6 +1012,52 @@ export const auditApi = {
   },
 };
 
+export type Report = {
+  rangeDays: number;
+  now: {
+    activeCases: number;
+    pendingTasks: number;
+    overdueTasks: number;
+    escalatedTasks: number;
+  };
+  started: number;
+  approved: number;
+  rejected: number;
+  completed: number;
+  failed: number;
+  cancelled: number;
+  approvalRate: number | null;
+  avgCycleHours: number | null;
+  perDay: { day: string; started: number }[];
+  byProcess: {
+    processId: string;
+    name: string;
+    started: number;
+    approved: number;
+    rejected: number;
+    active: number;
+    avgCycleHours: number | null;
+  }[];
+  bySteps: {
+    name: string;
+    process: string;
+    completed: number;
+    avgHours: number | null;
+  }[];
+  byPerson: {
+    userId: string;
+    name: string;
+    pending: number;
+    overdue: number;
+    completed: number;
+    avgHours: number | null;
+  }[];
+};
+
+export const reportApi = {
+  get: (days: number) => apiCall<Report>(`/api/reports?days=${days}`),
+};
+
 export const api = {
   ai: aiApi,
   aiGateway: aiGatewayApi,
@@ -1023,6 +1069,7 @@ export const api = {
   member: memberApi,
   notification: notificationApi,
   process: processApi,
+  report: reportApi,
   setup: setupApi,
   task: taskApi,
   template: templateApi,

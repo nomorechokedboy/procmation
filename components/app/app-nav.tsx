@@ -16,6 +16,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/tasks", label: () => m.nav_my_tasks() },
   { href: "/cases", label: () => m.nav_my_cases() },
   { href: "/cases/new", label: () => m.nav_start_case() },
+  { adminOnly: true, href: "/admin/reports", label: () => m.nav_reports() },
   { adminOnly: true, href: "/workflows", label: () => m.nav_workflows() },
   { adminOnly: true, href: "/admin/processes", label: () => m.nav_processes() },
   { adminOnly: true, href: "/admin/members", label: () => m.nav_members() },
