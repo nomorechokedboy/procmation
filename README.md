@@ -145,6 +145,10 @@ Admins define roles in **Roles** (`/admin/roles`). A role is a named set of perm
 
 A task sent to a department waits in its pool, and everyone in that department sees it. Opening the task offers **Take this task**: the claim is atomic, so when two people try at once exactly one gets it and the other is told it is taken. Whoever holds it can **Put back in pool** (admins can do this for them). Claims and releases appear on the case timeline and in the audit log, and once someone holds a task the due-date reminders and escalation apply to them.
 
+### Away and delegation
+
+Anyone can open **Away** in the user menu and pick a person to cover for a date range. While it is active, new tasks meant for them (a named person, or the manager of a requester) go to the delegate instead, are marked as delegated on the case timeline, and are logged. Tasks that already exist keep their assignee, and ending a delegation does not take back what it already moved. It covers one hop only: a delegate who is also away does not pass tasks on again, and department pools are not affected. Delegations cannot overlap for the same person; members with `members.manage` can set one for someone else.
+
 ### Starting point
 
 As an admin, the home page offers a leave request template that creates a ready-to-use

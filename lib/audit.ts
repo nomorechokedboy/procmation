@@ -9,6 +9,7 @@ import { type AuditLog, auditLogs, type NewAuditLog } from "@/lib/db/schema";
 // resource needs no migration: pick a name and start writing.
 export const AUDIT_RESOURCES = {
   case: "case",
+  delegation: "delegation",
   department: "department",
   invite: "invite",
   member: "member",

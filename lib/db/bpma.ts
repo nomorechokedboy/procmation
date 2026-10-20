@@ -253,7 +253,8 @@ function timelineUserIds(entries: CaseTimelineEntry[]): string[] {
         typeof value === "string" &&
         (key === "assigneeId" ||
           key === "escalatedToId" ||
-          entry.eventType === "task_reassigned")
+          entry.eventType === "task_reassigned" ||
+          entry.eventType === "task_delegated")
       ) {
         ids.push(value);
       }

@@ -16,6 +16,7 @@ import {
   userProfiles,
   users,
 } from "@/lib/db/schema";
+import { activeDelegateFor } from "@/lib/delegations";
 import { computeDueAt } from "@/lib/due";
 import { notifyUser } from "@/lib/notifications/deliver";
 import type {
@@ -45,9 +46,26 @@ export type HumanTaskOpened = {
   assigneeDepartmentId: string | null;
 };
 
-type Assignee = { userId: string | null; departmentId: string | null };
+type Assignee = {
+  userId: string | null;
+  departmentId: string | null;
+  // Set when a delegation sent the task to someone else
+  delegatedFromId?: string;
+};
 
-async function resolveAssignee(input: HumanTaskStepInput): Promise<Assignee> {
+// If the person is away, the task goes to whoever covers for them. Only new
+// tasks are affected: tasks that already exist keep their assignee.
+async function applyDelegation(assignee: Assignee): Promise<Assignee> {
+  if (!assignee.userId) {
+    return assignee;
+  }
+  const delegateId = await activeDelegateFor(assignee.userId, new Date());
+  return delegateId
+    ? { ...assignee, delegatedFromId: assignee.userId, userId: delegateId }
+    : assignee;
+}
+
+async function resolveWho(input: HumanTaskStepInput): Promise<Assignee> {
   if (input.assigneeType === "user") {
     if (!input.assigneeUserId) {
       throw new Error(`Task "${input.name}" has no person selected`);
@@ -97,6 +115,10 @@ async function resolveAssignee(input: HumanTaskStepInput): Promise<Assignee> {
   return { departmentId: null, userId: row.managerId };
 }
 
+async function resolveAssignee(input: HumanTaskStepInput): Promise<Assignee> {
+  return applyDelegation(await resolveWho(input));
+}
+
 async function openTask(input: HumanTaskStepInput): Promise<HumanTaskOpened> {
   const assignee = await resolveAssignee(input);
 
@@ -106,6 +128,7 @@ async function openTask(input: HumanTaskStepInput): Promise<HumanTaskOpened> {
       .values({
         assigneeDepartmentId: assignee.departmentId,
         assigneeId: assignee.userId,
+        delegatedFromId: assignee.delegatedFromId ?? null,
         dueAt: computeDueAt(input.dueAmount, input.dueUnit, new Date()),
         formFields: input.formFields,
         instanceId: input.instanceId,
@@ -162,6 +185,18 @@ async function openTask(input: HumanTaskStepInput): Promise<HumanTaskOpened> {
         eventType: "task_created",
         nodeId: input.nodeId,
       });
+      if (assignee.delegatedFromId) {
+        await tx.insert(caseTimeline).values({
+          caseId: linkedCase.id,
+          data: {
+            from: assignee.delegatedFromId,
+            name: input.name,
+            to: assignee.userId,
+          },
+          eventType: "task_delegated",
+          nodeId: input.nodeId,
+        });
+      }
     }
 
     return { case: linkedCase ?? null, isNew: true, task: created };
