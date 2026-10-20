@@ -253,6 +253,7 @@ export type TimelineEventType =
   | "task_reassigned"
   | "task_claimed"
   | "task_released"
+  | "task_delegated"
   | "status_changed"
   | "comment_added"
   | "form_submitted"
@@ -400,6 +401,8 @@ export const tasks = pgTable(
     completedAt: timestamp("completed_at"),
     completedById: text("completed_by_id").references(() => users.id),
     createdAt: timestamp("created_at").notNull().defaultNow(),
+    // Who the task was meant for, when a delegation sent it to someone else
+    delegatedFromId: text("delegated_from_id").references(() => users.id),
     dueAt: timestamp("due_at"),
     // Set once when the assignee is reminded and once when the manager is told
     escalatedAt: timestamp("escalated_at"),
@@ -431,6 +434,41 @@ export const tasks = pgTable(
     check(
       "tasks_has_assignee",
       sql`${table.assigneeId} is not null or ${table.assigneeDepartmentId} is not null`
+    ),
+  ]
+);
+
+// While someone is away, new tasks meant for them go to a delegate. A row is
+// active between startsAt and endsAt unless it was revoked.
+export const delegations = pgTable(
+  "delegations",
+  {
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    createdById: text("created_by_id")
+      .notNull()
+      .references(() => users.id),
+    endsAt: timestamp("ends_at").notNull(),
+    fromUserId: text("from_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => generateId()),
+    revokedAt: timestamp("revoked_at"),
+    startsAt: timestamp("starts_at").notNull(),
+    toUserId: text("to_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    index("delegations_from_idx").on(table.fromUserId, table.startsAt),
+    check(
+      "delegations_ends_after_start",
+      sql`${table.endsAt} > ${table.startsAt}`
+    ),
+    check(
+      "delegations_not_self",
+      sql`${table.fromUserId} <> ${table.toUserId}`
     ),
   ]
 );
@@ -642,6 +680,7 @@ export type NewWorkflowExecutionLog = typeof workflowExecutionLogs.$inferInsert;
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type NewApiKey = typeof apiKeys.$inferInsert;
 export type Department = typeof departments.$inferSelect;
+export type Delegation = typeof delegations.$inferSelect;
 export type UserProfile = typeof userProfiles.$inferSelect;
 export type Form = typeof forms.$inferSelect;
 export type Case = typeof cases.$inferSelect;

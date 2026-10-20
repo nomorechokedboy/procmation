@@ -11,6 +11,7 @@ import {
   Plug,
   Settings,
   Sun,
+  UserRoundCheck,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -164,6 +165,12 @@ export const UserMenu = () => {
           <Link href="/tasks">
             <Inbox className="size-4" />
             <span>{m.nav_my_tasks()}</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/delegations">
+            <UserRoundCheck className="size-4" />
+            <span>{m.nav_delegations()}</span>
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>

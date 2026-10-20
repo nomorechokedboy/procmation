@@ -945,6 +945,40 @@ export const taskApi = {
     }),
 };
 
+export type DelegationRecord = {
+  id: string;
+  fromUserId: string;
+  fromName: string;
+  toUserId: string;
+  toName: string;
+  startsAt: string;
+  endsAt: string;
+};
+
+export const delegationApi = {
+  create: (data: {
+    toUserId: string;
+    startsAt: string;
+    endsAt: string;
+    fromUserId?: string;
+  }) =>
+    apiCall<{ id: string }>("/api/delegations", {
+      body: JSON.stringify(data),
+      method: "POST",
+    }),
+  list: () => apiCall<DelegationRecord[]>("/api/delegations"),
+  revoke: (id: string) =>
+    apiCall<{ success: boolean }>(`/api/delegations/${id}`, {
+      method: "DELETE",
+    }),
+};
+
+export type Person = { id: string; name: string | null; email: string };
+
+export const peopleApi = {
+  list: () => apiCall<Person[]>("/api/people"),
+};
+
 export const notificationApi = {
   list: (options?: { unread?: boolean; limit?: number }) => {
     const params = new URLSearchParams();
@@ -1115,12 +1149,14 @@ export const api = {
   aiGateway: aiGatewayApi,
   audit: auditApi,
   case: caseApi,
+  delegation: delegationApi,
   department: departmentApi,
   integration: integrationApi,
   invite: inviteApi,
   me: meApi,
   member: memberApi,
   notification: notificationApi,
+  people: peopleApi,
   process: processApi,
   report: reportApi,
   role: roleApi,

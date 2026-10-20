@@ -90,6 +90,12 @@ export function describeEvent(directory: Directory, entry: Entry): string {
         task: taskName(directory, entry),
         to: personName(directory, entry.data.to),
       });
+    case "task_delegated":
+      return m.tl_task_delegated({
+        from: personName(directory, entry.data.from),
+        task: taskName(directory, entry),
+        to: personName(directory, entry.data.to),
+      });
     case "task_claimed":
       return m.tl_task_claimed({
         actor: personName(directory, entry.actorId),
