@@ -583,7 +583,7 @@ export function canActOnTask(
   );
 }
 
-async function findCaseForInstance(tx: Tx, instanceId: string) {
+export async function findCaseForInstance(tx: Tx, instanceId: string) {
   const [found] = await tx
     .select({ caseNumber: cases.caseNumber, id: cases.id })
     .from(cases)

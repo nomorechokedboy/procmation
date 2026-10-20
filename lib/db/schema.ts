@@ -251,6 +251,8 @@ export type TimelineEventType =
   | "task_created"
   | "task_completed"
   | "task_reassigned"
+  | "task_claimed"
+  | "task_released"
   | "status_changed"
   | "comment_added"
   | "form_submitted"

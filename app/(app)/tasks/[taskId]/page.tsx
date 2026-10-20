@@ -17,13 +17,83 @@ import {
 } from "@/components/ui/card";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { api, type TaskRecord } from "@/lib/api-client";
+import { useSession } from "@/lib/auth-client";
 import { validateFormValues } from "@/lib/process-form-validation";
 import type { FormField, FormValues } from "@/lib/types/process-form";
 import * as m from "@/paraglide/messages";
 
 type TaskFormProps = { task: TaskRecord };
 
-function TaskForm({ task }: TaskFormProps) {
+// Pool tasks wait for someone in the department to take them
+function ClaimBar({
+  task,
+  onChanged,
+}: {
+  task: TaskRecord;
+  onChanged: (task: TaskRecord) => void;
+}) {
+  const { data: session } = useSession();
+  const [busy, setBusy] = useState(false);
+  const inPool = task.assigneeDepartmentId !== null;
+  const mine = task.assigneeId !== null && task.assigneeId === session?.user.id;
+
+  const run = useStableCallback(async (action: "claim" | "release") => {
+    setBusy(true);
+    try {
+      const updated =
+        action === "claim"
+          ? await api.task.claim(task.id)
+          : await api.task.release(task.id);
+      toast.success(
+        action === "claim" ? m.task_claimed_toast() : m.task_released_toast()
+      );
+      onChanged({ ...task, ...updated });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : m.task_claim_failed());
+    } finally {
+      setBusy(false);
+    }
+  });
+  const handleClaim = useStableCallback(() => run("claim"));
+  const handleRelease = useStableCallback(() => run("release"));
+
+  if (task.status !== "pending" || !inPool) {
+    return null;
+  }
+  if (task.assigneeId === null) {
+    return (
+      <div className="flex flex-wrap items-center gap-3 rounded-md border bg-muted/40 p-3">
+        <p className="flex-1 text-sm">{m.task_claim_hint()}</p>
+        <Button
+          data-testid="claim-task"
+          disabled={busy}
+          onClick={handleClaim}
+          size="sm"
+        >
+          {m.task_claim()}
+        </Button>
+      </div>
+    );
+  }
+  return mine || session?.user.role === "admin" ? (
+    <div>
+      <Button
+        data-testid="release-task"
+        disabled={busy}
+        onClick={handleRelease}
+        size="sm"
+        variant="outline"
+      >
+        {m.task_release()}
+      </Button>
+    </div>
+  ) : null;
+}
+
+function TaskForm({
+  task,
+  onChanged,
+}: TaskFormProps & { onChanged: (task: TaskRecord) => void }) {
   const router = useRouter();
   const [values, setValues] = useState<FormValues>({});
   const [submitting, setSubmitting] = useState(false);
@@ -75,6 +145,7 @@ function TaskForm({ task }: TaskFormProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        <ClaimBar onChanged={onChanged} task={task} />
         {done ? (
           <p className="text-muted-foreground text-sm">
             {task.outcome
@@ -143,7 +214,7 @@ export default function TaskPage() {
   return (
     <>
       <PageHeader title={m.task_title()} />
-      {task ? <TaskForm task={task} /> : null}
+      {task ? <TaskForm onChanged={setTask} task={task} /> : null}
       {missing ? (
         <div className="space-y-3">
           <p className="text-muted-foreground text-sm">{m.task_not_found()}</p>
