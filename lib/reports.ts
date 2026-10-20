@@ -62,11 +62,16 @@ export type PersonRow = {
 
 type Row = Record<string, unknown>;
 
+// Dates go to the database as UTC text; the columns hold UTC wall-clock time
+function asTimestamp(date: Date) {
+  return sql`${date.toISOString()}::timestamp`;
+}
+
 const num = (value: unknown): number => Number(value ?? 0);
 const hours = (value: unknown): number | null =>
   value === null || value === undefined
     ? null
-    : Math.round((Number(value) / SECONDS_PER_HOUR) * 10) / 10;
+    : Math.round((Number(value) / SECONDS_PER_HOUR) * 100) / 100;
 
 export function parseRange(value: string | null | undefined): number {
   const days = Number(value);
@@ -97,7 +102,7 @@ async function currentLoad(): Promise<ReportSummary["now"]> {
 async function statusCounts(since: Date) {
   const rows = await db.execute<Row>(sql`
     select status, count(*) as n from cases
-    where created_at >= ${since} group by status
+    where created_at >= ${asTimestamp(since)} group by status
   `);
   const counts: Record<string, number> = {};
   for (const row of rows) {
@@ -110,7 +115,7 @@ async function cycleTime(since: Date): Promise<number | null> {
   const [row] = await db.execute<Row>(sql`
     select avg(extract(epoch from completed_at - created_at)) as seconds
     from process_instances
-    where status = 'completed' and completed_at >= ${since}
+    where status = 'completed' and completed_at >= ${asTimestamp(since)}
   `);
   return hours(row?.seconds);
 }
@@ -120,7 +125,7 @@ async function startedPerDay(since: Date, days: number) {
   const rows = await db.execute<Row>(sql`
     select to_char(d.day, 'YYYY-MM-DD') as day, count(c.id) as n
     from generate_series(
-      date_trunc('day', ${since}::timestamp),
+      date_trunc('day', ${asTimestamp(since)}),
       date_trunc('day', now()::timestamp),
       interval '1 day'
     ) as d(day)
@@ -137,12 +142,12 @@ async function perProcess(since: Date): Promise<ProcessRow[]> {
     select
       p.id as process_id,
       w.name as name,
-      count(c.id) filter (where c.created_at >= ${since}) as started,
-      count(c.id) filter (where c.created_at >= ${since} and c.status = 'approved') as approved,
-      count(c.id) filter (where c.created_at >= ${since} and c.status = 'rejected') as rejected,
+      count(c.id) filter (where c.created_at >= ${asTimestamp(since)}) as started,
+      count(c.id) filter (where c.created_at >= ${asTimestamp(since)} and c.status = 'approved') as approved,
+      count(c.id) filter (where c.created_at >= ${asTimestamp(since)} and c.status = 'rejected') as rejected,
       count(c.id) filter (where c.status in ('open', 'in_progress', 'pending_approval')) as active,
       avg(extract(epoch from i.completed_at - i.created_at))
-        filter (where i.status = 'completed' and i.completed_at >= ${since}) as seconds
+        filter (where i.status = 'completed' and i.completed_at >= ${asTimestamp(since)}) as seconds
     from process_definitions p
     join workflows w on w.id = p.workflow_id
     left join cases c on c.process_definition_id = p.id
@@ -173,7 +178,7 @@ async function perStep(since: Date): Promise<StepRow[]> {
     join process_instances i on i.id = t.instance_id
     join process_definitions p on p.id = i.definition_id
     join workflows w on w.id = p.workflow_id
-    where t.status = 'completed' and t.completed_at >= ${since}
+    where t.status = 'completed' and t.completed_at >= ${asTimestamp(since)}
     group by t.name, w.name
     order by seconds desc
     limit 10
@@ -198,11 +203,11 @@ async function perPerson(since: Date): Promise<PersonRow[]> {
       ) as overdue,
       count(t.id) filter (
         where t.status = 'completed' and t.completed_by_id = u.id
-          and t.completed_at >= ${since}
+          and t.completed_at >= ${asTimestamp(since)}
       ) as completed,
       avg(extract(epoch from t.completed_at - t.created_at)) filter (
         where t.status = 'completed' and t.completed_by_id = u.id
-          and t.completed_at >= ${since}
+          and t.completed_at >= ${asTimestamp(since)}
       ) as seconds
     from users u
     left join tasks t on t.assignee_id = u.id or t.completed_by_id = u.id
