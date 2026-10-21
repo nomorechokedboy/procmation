@@ -1,14 +1,11 @@
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { readJsonObject } from "@/lib/api/read-json";
+import { parseCaseFilters } from "@/lib/case-filters";
 import { db } from "@/lib/db";
 import { listCases } from "@/lib/db/bpma";
-import {
-  CASE_PRIORITIES,
-  CASE_STATUSES,
-  MAX_CASE_TITLE_LENGTH,
-} from "@/lib/db/case-options";
-import type { CasePriority, CaseStatus } from "@/lib/db/schema";
+import { CASE_PRIORITIES, MAX_CASE_TITLE_LENGTH } from "@/lib/db/case-options";
+import type { CasePriority } from "@/lib/db/schema";
 import { processDefinitions } from "@/lib/db/schema";
 import { checkFormFiles, linkFormFiles } from "@/lib/form-files";
 import { validateFormValues } from "@/lib/process-form-validation";
@@ -24,14 +21,9 @@ export async function GET(request: Request) {
   }
 
   const params = new URL(request.url).searchParams;
-  const status = params.get("status");
-  const priority = params.get("priority");
-
-  if (status && !CASE_STATUSES.includes(status as CaseStatus)) {
-    return NextResponse.json({ error: "Unknown status" }, { status: 400 });
-  }
-  if (priority && !CASE_PRIORITIES.includes(priority as CasePriority)) {
-    return NextResponse.json({ error: "Unknown priority" }, { status: 400 });
+  const parsed = parseCaseFilters(params);
+  if (!parsed.ok) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
   const viewAll = params.get("all") === "true";
@@ -40,9 +32,7 @@ export async function GET(request: Request) {
   }
 
   const rows = await listCases({
-    priority: (priority as CasePriority | null) ?? undefined,
-    processDefinitionId: params.get("processId") ?? undefined,
-    status: (status as CaseStatus | null) ?? undefined,
+    ...parsed.filters,
     visibleTo: viewAll ? undefined : guard.user.id,
   });
 

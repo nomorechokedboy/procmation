@@ -846,6 +846,8 @@ export type TaskRecord = Serialized<Task> & {
 export type NotificationRecord = Serialized<Notification>;
 
 export type CaseDetail = {
+  // True when you may look but not change, as the manager of someone involved
+  readOnly?: boolean;
   case: CaseRecord;
   timeline: CaseTimelineRecord[];
   tasks: Serialized<Task>[];

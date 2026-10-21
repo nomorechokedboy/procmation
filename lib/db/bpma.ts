@@ -5,8 +5,10 @@ import {
   desc,
   eq,
   getTableColumns,
+  gte,
   inArray,
   isNull,
+  lt,
   or,
   type SQL,
   sql,
@@ -15,6 +17,7 @@ import { AUDIT_RESOURCES, type AuditEntry, recordAudit } from "@/lib/audit";
 import { CASE_ACTIVE_STATUSES } from "@/lib/db/case-options";
 import { pushNotificationToUser } from "@/lib/notifications/sse-hub";
 import type { Permission } from "@/lib/permissions";
+import { teamCaseCondition } from "@/lib/team-sql";
 import type { FormField } from "@/lib/types/process-form";
 import { db } from "./index";
 import {
@@ -148,14 +151,67 @@ function participantCondition(userId: string) {
   return sql`${cases.participants} @> ${JSON.stringify([userId])}::jsonb`;
 }
 
-export function listCases(filters: {
+export type CaseFilters = {
   // Restrict to cases the user started or takes part in
   visibleTo?: string;
+  // Restrict to cases of people who report to this manager
+  teamOf?: string;
   status?: CaseStatus;
   priority?: CasePriority;
   processDefinitionId?: string;
-}): Promise<Case[]> {
+  // Words to find in the title, number, requester name or any answer
+  q?: string;
+  // Created on or after / before the end of these days (UTC)
+  from?: Date;
+  to?: Date;
+  // Still running and past their due date
+  overdue?: boolean;
+};
+
+const LIKE_SPECIALS = /[\\%_]/g;
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+// Free-text search over what a person would remember about a case
+function searchCondition(q: string): SQL {
+  const like = `%${q.replace(LIKE_SPECIALS, "\\$&")}%`;
+  return sql`(
+    ${cases.title} ILIKE ${like}
+    OR ${cases.caseNumber} ILIKE ${like}
+    OR ${cases.metadata}::text ILIKE ${like}
+    OR EXISTS (SELECT 1 FROM users u WHERE u.id = ${cases.initiatorId} AND u.name ILIKE ${like})
+    OR EXISTS (SELECT 1 FROM form_submissions f WHERE f.instance_id = ${cases.processInstanceId} AND f.data::text ILIKE ${like})
+  )`;
+}
+
+function filterConditions(filters: CaseFilters): (SQL | undefined)[] {
   const conditions: (SQL | undefined)[] = [];
+  if (filters.teamOf) {
+    conditions.push(teamCaseCondition(filters.teamOf));
+  }
+  if (filters.q) {
+    conditions.push(searchCondition(filters.q));
+  }
+  if (filters.from) {
+    conditions.push(gte(cases.createdAt, filters.from));
+  }
+  if (filters.to) {
+    conditions.push(
+      lt(cases.createdAt, new Date(filters.to.getTime() + ONE_DAY_MS))
+    );
+  }
+  if (filters.overdue) {
+    conditions.push(
+      and(
+        inArray(cases.status, CASE_ACTIVE_STATUSES),
+        sql`${cases.dueAt} < now()`
+      )
+    );
+  }
+  return conditions;
+}
+
+export function listCases(filters: CaseFilters): Promise<Case[]> {
+  const conditions: (SQL | undefined)[] = filterConditions(filters);
   if (filters.visibleTo) {
     conditions.push(
       or(

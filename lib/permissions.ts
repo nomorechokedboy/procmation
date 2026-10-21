@@ -5,6 +5,7 @@ export const PERMISSIONS = [
   "reports.view",
   "audit.view",
   "cases.view_all",
+  "team.view",
   "processes.manage",
   "members.manage",
   "roles.manage",
