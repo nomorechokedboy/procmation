@@ -20,7 +20,13 @@ import { getLocale } from "@/paraglide/runtime";
 const BYTES_PER_MB = 1024 * 1024;
 
 // Files on a case. Hidden when the server has no storage set up.
-export function CaseAttachments({ caseId }: { caseId: string }) {
+export function CaseAttachments({
+  caseId,
+  readOnly = false,
+}: {
+  caseId: string;
+  readOnly?: boolean;
+}) {
   const { data: session } = useSession();
   const input = useRef<HTMLInputElement>(null);
   const [enabled, setEnabled] = useState(false);
@@ -104,22 +110,26 @@ export function CaseAttachments({ caseId }: { caseId: string }) {
     <Card data-testid="case-attachments">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>{m.attachments_title()}</CardTitle>
-        <Button
-          data-testid="attach-file"
-          disabled={busy}
-          onClick={choose}
-          size="sm"
-          variant="outline"
-        >
-          {m.attachments_add()}
-        </Button>
-        <input
-          className="hidden"
-          data-testid="attach-input"
-          onChange={handleFile}
-          ref={input}
-          type="file"
-        />
+        {readOnly ? null : (
+          <>
+            <Button
+              data-testid="attach-file"
+              disabled={busy}
+              onClick={choose}
+              size="sm"
+              variant="outline"
+            >
+              {m.attachments_add()}
+            </Button>
+            <input
+              className="hidden"
+              data-testid="attach-input"
+              onChange={handleFile}
+              ref={input}
+              type="file"
+            />
+          </>
+        )}
       </CardHeader>
       <CardContent className="divide-y">
         {files.length === 0 ? (
@@ -150,7 +160,8 @@ export function CaseAttachments({ caseId }: { caseId: string }) {
                 })}
               </p>
             </div>
-            {file.uploadedById === me?.id || me?.role === "admin" ? (
+            {!readOnly &&
+            (file.uploadedById === me?.id || me?.role === "admin") ? (
               <Bound args={[file.id]} fn={remove}>
                 {(onClick) => (
                   <Button

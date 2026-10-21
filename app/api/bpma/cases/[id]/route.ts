@@ -5,7 +5,6 @@ import { userActor } from "@/lib/audit";
 import { db } from "@/lib/db";
 import {
   type CasePatch,
-  canAccessCase,
   canViewCase,
   getCase,
   getCaseDetail,
@@ -19,6 +18,7 @@ import {
 import type { CasePriority, CaseStatus } from "@/lib/db/schema";
 import { users } from "@/lib/db/schema";
 import { requireUser } from "@/lib/session";
+import { caseAccess } from "@/lib/team";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -35,11 +35,15 @@ export async function GET(request: Request, { params }: Params) {
   const { id } = await params;
   const record = await getCase(id);
   // Answer 404 rather than 403 so case ids cannot be probed
-  if (!(record && (await canAccessCase(guard.user, record)))) {
+  const access = record ? await caseAccess(guard.user, record) : null;
+  if (!(record && access)) {
     return notFound();
   }
 
-  return NextResponse.json(await getCaseDetail(record));
+  return NextResponse.json({
+    ...(await getCaseDetail(record)),
+    readOnly: access === "read",
+  });
 }
 
 // Each applier validates one field and returns an error message, or nothing

@@ -8,6 +8,7 @@ import { type Attachment, attachments, users } from "@/lib/db/schema";
 import { ADMIN_ROLE } from "@/lib/permissions";
 import { requireUser } from "@/lib/session";
 import { deleteStored, presignDownload } from "@/lib/storage/s3";
+import { caseAccess } from "@/lib/team";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -15,7 +16,9 @@ type Params = { params: Promise<{ id: string }> };
 // can open its case
 async function canOpen(
   user: Parameters<typeof canAccessCase>[0],
-  row: Attachment
+  row: Attachment,
+  // Managers of people on the case may download but not change anything
+  readOnly = false
 ): Promise<boolean> {
   if (row.uploadedById === user.id) {
     return true;
@@ -24,7 +27,12 @@ async function canOpen(
     return false;
   }
   const record = await getCase(row.caseId);
-  return Boolean(record && (await canAccessCase(user, record)));
+  if (!record) {
+    return false;
+  }
+  return readOnly
+    ? Boolean(await caseAccess(user, record))
+    : await canAccessCase(user, record);
 }
 
 // GET /api/bpma/attachments/:id - sends the browser to a short-lived download
@@ -39,7 +47,9 @@ export async function GET(request: Request, { params }: Params) {
     .select()
     .from(attachments)
     .where(eq(attachments.id, id));
-  if (!(row && row.status === "ready" && (await canOpen(guard.user, row)))) {
+  if (
+    !(row && row.status === "ready" && (await canOpen(guard.user, row, true)))
+  ) {
     return NextResponse.json({ error: "File not found" }, { status: 404 });
   }
 

@@ -185,7 +185,13 @@ function CommentItem({
 
 // Comments on a case, newest at the bottom, with @mentions limited to people
 // who can see the case
-export function CaseComments({ caseId }: { caseId: string }) {
+export function CaseComments({
+  caseId,
+  readOnly = false,
+}: {
+  caseId: string;
+  readOnly?: boolean;
+}) {
   const { data: session } = useSession();
   const [comments, setComments] = useState<CommentRecord[]>([]);
   const [people, setPeople] = useState<CaseViewerRecord[]>([]);
@@ -203,11 +209,14 @@ export function CaseComments({ caseId }: { caseId: string }) {
 
   useEffect(() => {
     load();
+    if (readOnly) {
+      return;
+    }
     api.comment
       .viewers(caseId)
       .then(setPeople)
       .catch(() => setPeople([]));
-  }, [caseId, load]);
+  }, [caseId, load, readOnly]);
 
   const post = useCallback(async () => {
     setPosting(true);
@@ -247,8 +256,8 @@ export function CaseComments({ caseId }: { caseId: string }) {
           ) : null}
           {comments.map((comment) => (
             <CommentItem
-              canDelete={isAdmin || comment.authorId === me?.id}
-              canEdit={comment.authorId === me?.id}
+              canDelete={!readOnly && (isAdmin || comment.authorId === me?.id)}
+              canEdit={!readOnly && comment.authorId === me?.id}
               caseId={caseId}
               comment={comment}
               key={comment.id}
@@ -257,25 +266,27 @@ export function CaseComments({ caseId }: { caseId: string }) {
             />
           ))}
         </div>
-        <div className="space-y-2">
-          <MentionInput
-            disabled={posting}
-            mentions={mentions}
-            onChange={setText}
-            onMentionsChange={setMentions}
-            people={others}
-            testId="comment-input"
-            value={text}
-          />
-          <Button
-            data-testid="comment-post"
-            disabled={posting || !text.trim()}
-            onClick={post}
-            size="sm"
-          >
-            {m.comments_post()}
-          </Button>
-        </div>
+        {readOnly ? null : (
+          <div className="space-y-2">
+            <MentionInput
+              disabled={posting}
+              mentions={mentions}
+              onChange={setText}
+              onMentionsChange={setMentions}
+              people={others}
+              testId="comment-input"
+              value={text}
+            />
+            <Button
+              data-testid="comment-post"
+              disabled={posting || !text.trim()}
+              onClick={post}
+              size="sm"
+            >
+              {m.comments_post()}
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -20,4 +20,5 @@ export const PERMISSION_LABELS: Record<Permission, Label> = {
   },
   "reports.view": { hint: m.perm_reports_view_hint, name: m.perm_reports_view },
   "roles.manage": { hint: m.perm_roles_manage_hint, name: m.perm_roles_manage },
+  "team.view": { hint: m.perm_team_view_hint, name: m.perm_team_view },
 };

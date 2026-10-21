@@ -55,7 +55,9 @@ export default function CaseDetailPage() {
     return <PageHeader title={m.nav_my_cases()} />;
   }
 
+  const readOnly = detail.readOnly === true;
   const canCancel =
+    !readOnly &&
     CASE_ACTIVE_STATUSES.includes(detail.case.status) &&
     (session.user.role === "admin" ||
       detail.case.initiatorId === session.user.id);
@@ -70,6 +72,14 @@ export default function CaseDetailPage() {
         }
         title={m.nav_my_cases()}
       />
+      {readOnly ? (
+        <p
+          className="rounded-md border bg-muted/40 p-3 text-sm"
+          data-testid="read-only-banner"
+        >
+          {m.team_read_only()}
+        </p>
+      ) : null}
       <CaseSummary detail={detail} />
       <FailureNotice detail={detail} />
       <SubmittedInfo detail={detail} />
@@ -84,8 +94,8 @@ export default function CaseDetailPage() {
         viewerId={session.user.id}
       />
       <TimelineCard detail={detail} />
-      <CaseAttachments caseId={caseId} />
-      <CaseComments caseId={caseId} />
+      <CaseAttachments caseId={caseId} readOnly={readOnly} />
+      <CaseComments caseId={caseId} readOnly={readOnly} />
     </>
   );
 }
