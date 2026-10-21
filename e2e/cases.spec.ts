@@ -20,6 +20,8 @@ import {
 // another is cancelled, and everyone is told along the way. Tests share
 // state, so they run in sequence.
 test.describe.configure({ mode: "serial" });
+// Pages compile on first visit in dev, which can take a while
+test.setTimeout(120_000);
 
 const run = Date.now().toString(36);
 const BOB = { email: `bob-${run}@example.com`, name: `Bob ${run}` };

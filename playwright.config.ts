@@ -1,6 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
+  // Dev pages compile on first visit, so the default 5 seconds is too tight
+  expect: { timeout: 15_000 },
   forbidOnly: !!process.env.CI,
   fullyParallel: true,
   projects: [

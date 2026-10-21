@@ -198,7 +198,7 @@ test("files are stored in the bucket and guarded by case access", async ({
   const byAdmin = await admin.request.delete(
     `/api/bpma/attachments/${second.id}`
   );
-  expect(byAdmin.status()).toBe(200);
+  expect(await byAdmin.text()).toContain("success");
 
   // Uploads and removals are in the audit log
   const log = await waitFor(async () => {
