@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { PageHeader } from "@/components/app/page-header";
 import { CancelCaseButton } from "@/components/cases/cancel-case-button";
+import { CaseAttachments } from "@/components/cases/case-attachments";
 import { CaseComments } from "@/components/cases/case-comments";
 import {
   CaseSummary,
@@ -83,6 +84,7 @@ export default function CaseDetailPage() {
         viewerId={session.user.id}
       />
       <TimelineCard detail={detail} />
+      <CaseAttachments caseId={caseId} />
       <CaseComments caseId={caseId} />
     </>
   );

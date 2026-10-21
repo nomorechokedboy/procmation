@@ -32,6 +32,12 @@ export default defineConfig({
       RESEND_API_KEY: "e2e-resend-key",
       RESEND_API_URL: "http://localhost:4010",
       RESEND_FROM: "Procmation <noreply@example.com>",
+      // File attachments go to a stand-in for S3 that the tests run
+      // (see e2e/fake-s3.ts)
+      S3_ACCESS_KEY_ID: "e2e-access-key",
+      S3_BUCKET: "e2e-bucket",
+      S3_ENDPOINT: "http://localhost:4011",
+      S3_SECRET_ACCESS_KEY: "e2e-secret-key",
     },
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

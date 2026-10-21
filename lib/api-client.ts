@@ -855,6 +855,61 @@ export type CaseDetail = {
   submissions: Record<string, Record<string, unknown>>;
 };
 
+export type AttachmentRecord = {
+  id: string;
+  filename: string;
+  contentType: string;
+  size: number;
+  uploadedById: string;
+  uploadedByName: string;
+  createdAt: string;
+};
+
+export const attachmentApi = {
+  config: () =>
+    apiCall<{ enabled: boolean; maxBytes: number }>("/api/attachments/config"),
+  delete: (id: string) =>
+    apiCall<{ success: boolean }>(`/api/bpma/attachments/${id}`, {
+      method: "DELETE",
+    }),
+  downloadUrl: (id: string) => `/api/bpma/attachments/${id}`,
+  listForCase: (caseId: string) =>
+    apiCall<AttachmentRecord[]>(`/api/bpma/cases/${caseId}/attachments`),
+
+  // Reserves the file, sends it straight to storage, then confirms it. Pass
+  // no caseId for a file picked in a form that has no case yet.
+  async upload(file: File, caseId?: string): Promise<AttachmentRecord> {
+    const contentType = file.type || "application/octet-stream";
+    const reserved = await apiCall<{ id: string; uploadUrl: string }>(
+      "/api/bpma/attachments",
+      {
+        body: JSON.stringify({
+          caseId,
+          contentType,
+          filename: file.name,
+          size: file.size,
+        }),
+        method: "POST",
+      }
+    );
+    const put = await fetch(reserved.uploadUrl, {
+      body: file,
+      headers: { "Content-Type": contentType },
+      method: "PUT",
+    });
+    if (!put.ok) {
+      await apiCall(`/api/bpma/attachments/${reserved.id}`, {
+        method: "DELETE",
+      }).catch(() => undefined);
+      throw new Error("The upload failed");
+    }
+    return apiCall<AttachmentRecord>(
+      `/api/bpma/attachments/${reserved.id}/complete`,
+      { method: "POST" }
+    );
+  },
+};
+
 export type CommentRecord = {
   id: string;
   authorId: string;
@@ -1185,6 +1240,7 @@ export const meApi = {
 export const api = {
   ai: aiApi,
   aiGateway: aiGatewayApi,
+  attachment: attachmentApi,
   audit: auditApi,
   case: caseApi,
   comment: commentApi,
