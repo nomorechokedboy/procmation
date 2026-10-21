@@ -4,7 +4,8 @@ export type FormFieldType =
   | "number"
   | "date"
   | "select"
-  | "checkbox";
+  | "checkbox"
+  | "file";
 
 export type FormFieldOption = {
   label: string;
@@ -22,4 +23,5 @@ export type FormField = {
   options?: FormFieldOption[];
 };
 
+// A "file" field holds the id of an uploaded attachment
 export type FormValues = Record<string, string | number | boolean | null>;

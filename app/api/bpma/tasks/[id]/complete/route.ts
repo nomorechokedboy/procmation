@@ -9,6 +9,7 @@ import {
   getTask,
   reopenTask,
 } from "@/lib/db/bpma";
+import { checkFormFiles, linkFormFiles } from "@/lib/form-files";
 import { taskToken } from "@/lib/process-branches";
 import { validateFormValues } from "@/lib/process-form-validation";
 import { requireUser } from "@/lib/session";
@@ -76,6 +77,15 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ error: validated.error }, { status: 400 });
   }
 
+  const files = await checkFormFiles(
+    task.formFields as FormField[],
+    validated.values,
+    guard.user.id
+  );
+  if (!files.ok) {
+    return NextResponse.json({ error: files.error }, { status: 400 });
+  }
+
   const result = await completeTask({
     actor: userActor(guard.user),
     completedById: guard.user.id,
@@ -88,6 +98,15 @@ export async function POST(request: Request, { params }: Params) {
       { error: "Task is already completed or cancelled" },
       { status: 409 }
     );
+  }
+
+  if (task.caseId) {
+    await linkFormFiles({
+      caseId: task.caseId,
+      ids: files.ids,
+      taskId: task.id,
+      user: guard.user,
+    });
   }
 
   // Let the waiting process continue. If it cannot be reached, put the task

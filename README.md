@@ -66,6 +66,17 @@ REDIS_URL=redis://localhost:6379
 CRON_SECRET=a-long-random-string
 # Hours after the due time before the assignee's manager is told (default 24)
 ESCALATION_GRACE_HOURS=24
+
+# File attachments (optional). Any S3-compatible bucket: AWS S3, RustFS, R2...
+# Without S3_BUCKET the attach buttons and file form fields stay off.
+S3_BUCKET=procmation
+S3_REGION=us-east-1
+# For a self-hosted store such as RustFS (path-style addressing is then used)
+S3_ENDPOINT=http://localhost:9000
+S3_ACCESS_KEY_ID=procmation-dev
+S3_SECRET_ACCESS_KEY=procmation-dev-secret
+# Largest file in MB (default 25)
+ATTACHMENT_MAX_MB=25
 ```
 
 ### Deadlines, reminders and escalation
@@ -152,6 +163,12 @@ Anyone can open **Away** in the user menu and pick a person to cover for a date 
 ### Comments and mentions
 
 Cases and their tasks have a comment thread. Anyone who can open the case can comment; authors can edit or delete their own comments and admins can delete any. Typing `@` offers only people who can see the case (the requester, task holders, department pool members, admins and roles with `cases.view_all`), and the server drops any other mention. Mentioned people get a bell notification and an email when mail is set up. Comments are audited.
+
+### File attachments
+
+People can attach files to a case, and a start form or task form can have a **File** field. Files live in an S3-compatible bucket: the browser uploads straight to it with a short-lived presigned URL, the server checks the stored size, and downloads are short-lived signed links handed out only to people who can open the case. Downloads always save as a file rather than opening in the browser. Uploads and removals are audited. Files chosen in a form belong to the person who picked them until the form is submitted, and a file can be used by one submission only.
+
+For local development, `docker compose --profile storage up -d` starts [RustFS](https://github.com/rustfs/rustfs). Create the bucket named in `S3_BUCKET` in its console at `http://localhost:9001`, then use the values in the env block above. Because browsers upload directly, the bucket must allow your app's origin for `PUT` (CORS); the compose service sets `RUSTFS_CORS_ALLOWED_ORIGINS` for `http://localhost:3000`, and for a real deployment set it to your app's URL or add the equivalent CORS rule on your bucket. Abandoned uploads (a file picked in a form that was never submitted) stay in the bucket until you remove them; a lifecycle rule on the `attachments/` prefix is the simplest cleanup.
 
 ### Starting point
 
