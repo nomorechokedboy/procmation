@@ -560,6 +560,35 @@ export const caseComments = pgTable(
   (table) => [index("case_comments_case_idx").on(table.caseId, table.createdAt)]
 );
 
+// A file kept in object storage. It is uploaded straight to the bucket, then
+// marked ready once the server has seen it there. A file that belongs to no
+// case yet (picked in a start form) is private to whoever uploaded it.
+export const attachments = pgTable(
+  "attachments",
+  {
+    caseId: text("case_id").references(() => cases.id, { onDelete: "cascade" }),
+    contentType: text("content_type").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    filename: text("filename").notNull(),
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => generateId()),
+    size: integer("size").notNull(),
+    status: text("status")
+      .notNull()
+      .default("pending")
+      .$type<"pending" | "ready">(),
+    storageKey: text("storage_key").notNull().unique(),
+    taskId: text("task_id").references(() => tasks.id, {
+      onDelete: "set null",
+    }),
+    uploadedById: text("uploaded_by_id")
+      .notNull()
+      .references(() => users.id),
+  },
+  (table) => [index("attachments_case_idx").on(table.caseId)]
+);
+
 // Values someone submitted: the start form (no task) or a task form
 export const formSubmissions = pgTable(
   "form_submissions",
@@ -703,6 +732,7 @@ export type NewWorkflowExecutionLog = typeof workflowExecutionLogs.$inferInsert;
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type NewApiKey = typeof apiKeys.$inferInsert;
 export type Department = typeof departments.$inferSelect;
+export type Attachment = typeof attachments.$inferSelect;
 export type CaseComment = typeof caseComments.$inferSelect;
 export type Delegation = typeof delegations.$inferSelect;
 export type UserProfile = typeof userProfiles.$inferSelect;

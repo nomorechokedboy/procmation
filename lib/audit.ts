@@ -8,6 +8,7 @@ import { type AuditLog, auditLogs, type NewAuditLog } from "@/lib/db/schema";
 // Resource types written so far. The column is free text, so a new kind of
 // resource needs no migration: pick a name and start writing.
 export const AUDIT_RESOURCES = {
+  attachment: "attachment",
   case: "case",
   comment: "comment",
   delegation: "delegation",
