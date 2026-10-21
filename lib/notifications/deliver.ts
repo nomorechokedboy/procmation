@@ -22,6 +22,7 @@ export type NotifyInput = {
     | "task_assigned"
     | "task_overdue"
     | "escalation"
+    | "mentioned"
     | "case_completed"
     | "case_failed"
     | "case_cancelled"
@@ -33,6 +34,8 @@ export type NotifyInput = {
   taskName?: string;
   // For an escalation: whose task is overdue
   assigneeName?: string;
+  // For a mention: who tagged the person
+  actorName?: string;
   status?: CaseStatus;
 };
 
@@ -80,6 +83,16 @@ function contentFor(input: NotifyInput, locale: Locale): Content {
       cta: m.email_case_cta({}, opts),
       heading: m.email_escalated_heading({}, opts),
       subject: m.email_escalated_subject({ person, task }, opts),
+    };
+  }
+
+  if (input.type === "mentioned") {
+    const person = input.actorName ?? "";
+    return {
+      body: m.email_mention_body({ ...common, person }, opts),
+      cta: m.email_case_cta({}, opts),
+      heading: m.email_mention_heading({ person }, opts),
+      subject: m.email_mention_subject({ person }, opts),
     };
   }
 
@@ -148,6 +161,7 @@ export async function notifyUser(input: NotifyInput): Promise<void> {
     body: input.taskName ?? input.caseTitle,
     caseId: input.caseId,
     data: {
+      actorName: input.actorName,
       caseNumber: input.caseNumber,
       caseTitle: input.caseTitle,
       status: input.status,

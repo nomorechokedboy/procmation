@@ -267,7 +267,8 @@ export type NotificationType =
   | "case_completed"
   | "case_failed"
   | "case_cancelled"
-  | "escalation";
+  | "escalation"
+  | "mentioned";
 
 export const departments = pgTable("departments", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -537,6 +538,28 @@ export const caseTimeline = pgTable(
   (table) => [index("case_timeline_case_idx").on(table.caseId)]
 );
 
+// What people say about a case. Mentions hold the ids of people who were
+// tagged; the server only keeps people who can see the case.
+export const caseComments = pgTable(
+  "case_comments",
+  {
+    authorId: text("author_id")
+      .notNull()
+      .references(() => users.id),
+    body: text("body").notNull(),
+    caseId: text("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => generateId()),
+    mentions: jsonb("mentions").notNull().$type<string[]>().default([]),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [index("case_comments_case_idx").on(table.caseId, table.createdAt)]
+);
+
 // Values someone submitted: the start form (no task) or a task form
 export const formSubmissions = pgTable(
   "form_submissions",
@@ -680,6 +703,7 @@ export type NewWorkflowExecutionLog = typeof workflowExecutionLogs.$inferInsert;
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type NewApiKey = typeof apiKeys.$inferInsert;
 export type Department = typeof departments.$inferSelect;
+export type CaseComment = typeof caseComments.$inferSelect;
 export type Delegation = typeof delegations.$inferSelect;
 export type UserProfile = typeof userProfiles.$inferSelect;
 export type Form = typeof forms.$inferSelect;
