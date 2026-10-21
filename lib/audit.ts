@@ -46,6 +46,9 @@ function toRow(entry: AuditEntry): NewAuditLog {
     action: entry.action,
     actorId: actor?.id ?? null,
     actorName: actor?.name ?? null,
+    // The moment of the change, not of the write: entries are written in the
+    // background, so a slow write must not make an older event look newer
+    createdAt: new Date(),
     metadata: entry.metadata ?? null,
     parentId: entry.parent?.id ?? null,
     parentLabel: entry.parent?.label ?? null,
