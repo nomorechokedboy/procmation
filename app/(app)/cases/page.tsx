@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/app/page-header";
+import { CaseFilterBar } from "@/components/cases/case-filter-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { usePermissions } from "@/hooks/use-permissions";
-import { api, type CaseRecord } from "@/lib/api-client";
+import { api, type CaseListFilters, type CaseRecord } from "@/lib/api-client";
 import { casePriorityLabel, caseStatusLabel } from "@/lib/i18n/bpma-labels";
 import * as m from "@/paraglide/messages";
 import { getLocale } from "@/paraglide/runtime";
@@ -40,16 +41,17 @@ export default function CasesPage() {
   const [cases, setCases] = useState<CaseRecord[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const [filters, setFilters] = useState<CaseListFilters>({});
 
   useEffect(() => {
     api.case
-      .list({ all: showAll })
+      .list({ ...filters, all: showAll })
       .then(setCases)
       .catch((err) =>
         toast.error(err instanceof Error ? err.message : m.load_failed())
       )
       .finally(() => setLoaded(true));
-  }, [showAll]);
+  }, [showAll, filters]);
 
   const toggleAll = useCallback(() => setShowAll((value) => !value), []);
 
@@ -65,8 +67,13 @@ export default function CasesPage() {
         }
         title={m.nav_my_cases()}
       />
+      <CaseFilterBar filters={filters} onChange={setFilters} />
       {loaded && cases.length === 0 ? (
-        <p className="text-muted-foreground text-sm">{m.cases_empty()}</p>
+        <p className="text-muted-foreground text-sm">
+          {Object.values(filters).some(Boolean)
+            ? m.filters_no_match()
+            : m.cases_empty()}
+        </p>
       ) : null}
       <div className="divide-y">
         {cases.map((item) => (

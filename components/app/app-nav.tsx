@@ -17,6 +17,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/tasks", label: () => m.nav_my_tasks() },
   { href: "/cases", label: () => m.nav_my_cases() },
   { href: "/cases/new", label: () => m.nav_start_case() },
+  { href: "/team", label: () => m.nav_team(), permission: "team.view" },
   {
     href: "/admin/reports",
     label: () => m.nav_reports(),
