@@ -301,6 +301,8 @@ test("a run that cannot continue fails the case and says why", async ({
 });
 
 test("the bell updates live without polling", async ({ browser, baseURL }) => {
+  // It idles for 35 seconds on purpose, so the default 60 is too tight
+  test.setTimeout(150_000);
   const admin = await newAdminContext(browser, baseURL as string);
   const bob = await newMemberContext(
     browser,

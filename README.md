@@ -149,6 +149,10 @@ A task sent to a department waits in its pool, and everyone in that department s
 
 Anyone can open **Away** in the user menu and pick a person to cover for a date range. While it is active, new tasks meant for them (a named person, or the manager of a requester) go to the delegate instead, are marked as delegated on the case timeline, and are logged. Tasks that already exist keep their assignee, and ending a delegation does not take back what it already moved. It covers one hop only: a delegate who is also away does not pass tasks on again, and department pools are not affected. Delegations cannot overlap for the same person; members with `members.manage` can set one for someone else.
 
+### Comments and mentions
+
+Cases and their tasks have a comment thread. Anyone who can open the case can comment; authors can edit or delete their own comments and admins can delete any. Typing `@` offers only people who can see the case (the requester, task holders, department pool members, admins and roles with `cases.view_all`), and the server drops any other mention. Mentioned people get a bell notification and an email when mail is set up. Comments are audited.
+
 ### Starting point
 
 As an admin, the home page offers a leave request template that creates a ready-to-use

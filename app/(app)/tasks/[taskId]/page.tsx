@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/app/page-header";
+import { CaseComments } from "@/components/cases/case-comments";
 import { DynamicForm } from "@/components/forms/dynamic-form";
 import { Bound } from "@/components/ui/bound";
 import { Button } from "@/components/ui/button";
@@ -215,6 +216,7 @@ export default function TaskPage() {
     <>
       <PageHeader title={m.task_title()} />
       {task ? <TaskForm onChanged={setTask} task={task} /> : null}
+      {task?.caseId ? <CaseComments caseId={task.caseId} /> : null}
       {missing ? (
         <div className="space-y-3">
           <p className="text-muted-foreground text-sm">{m.task_not_found()}</p>
