@@ -855,6 +855,44 @@ export type CaseDetail = {
   submissions: Record<string, Record<string, unknown>>;
 };
 
+export type CommentRecord = {
+  id: string;
+  authorId: string;
+  authorName: string;
+  body: string;
+  mentions: { id: string; name: string }[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CaseViewerRecord = { id: string; name: string };
+
+export const commentApi = {
+  create: (caseId: string, data: { body: string; mentions: string[] }) =>
+    apiCall<CommentRecord>(`/api/bpma/cases/${caseId}/comments`, {
+      body: JSON.stringify(data),
+      method: "POST",
+    }),
+  delete: (caseId: string, commentId: string) =>
+    apiCall<{ success: boolean }>(
+      `/api/bpma/cases/${caseId}/comments/${commentId}`,
+      { method: "DELETE" }
+    ),
+  list: (caseId: string) =>
+    apiCall<CommentRecord[]>(`/api/bpma/cases/${caseId}/comments`),
+  update: (
+    caseId: string,
+    commentId: string,
+    data: { body: string; mentions: string[] }
+  ) =>
+    apiCall<CommentRecord>(`/api/bpma/cases/${caseId}/comments/${commentId}`, {
+      body: JSON.stringify(data),
+      method: "PATCH",
+    }),
+  viewers: (caseId: string) =>
+    apiCall<CaseViewerRecord[]>(`/api/bpma/cases/${caseId}/viewers`),
+};
+
 export const caseApi = {
   cancel: (caseId: string) =>
     apiCall<CaseRecord>(`/api/bpma/cases/${caseId}/cancel`, {
@@ -1149,6 +1187,7 @@ export const api = {
   aiGateway: aiGatewayApi,
   audit: auditApi,
   case: caseApi,
+  comment: commentApi,
   delegation: delegationApi,
   department: departmentApi,
   integration: integrationApi,
