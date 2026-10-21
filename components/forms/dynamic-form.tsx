@@ -1,6 +1,14 @@
 "use client";
 
-import { type ChangeEvent, useCallback } from "react";
+import {
+  type ChangeEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,12 +20,128 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useStableCallback } from "@/hooks/use-stable-callback";
+import { api } from "@/lib/api-client";
 import type { FormField, FormValues } from "@/lib/types/process-form";
+import * as m from "@/paraglide/messages";
 
 const TEXTAREA_CLASS =
   "min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50";
 
 type FieldValue = FormValues[string] | undefined;
+
+// Picks a file and uploads it right away; the form keeps the attachment id,
+// and the server attaches it to the case when the form is submitted
+function FileField({
+  id,
+  value,
+  disabled,
+  onPick,
+}: {
+  id: string;
+  value: FieldValue;
+  disabled: boolean;
+  onPick: (attachmentId: string | null) => void;
+}) {
+  const input = useRef<HTMLInputElement>(null);
+  // null until the server has said whether uploads are set up
+  const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [maxBytes, setMaxBytes] = useState(0);
+  const [name, setName] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    api.attachment
+      .config()
+      .then((settings) => {
+        setEnabled(settings.enabled);
+        setMaxBytes(settings.maxBytes);
+      })
+      .catch(() => setEnabled(false));
+  }, []);
+
+  const choose = useStableCallback(() => input.current?.click());
+  const remove = useStableCallback(() => {
+    setName(null);
+    onPick(null);
+  });
+  const handleFile = useStableCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      event.target.value = "";
+      if (!file) {
+        return;
+      }
+      if (file.size > maxBytes) {
+        toast.error(
+          m.attachments_too_big({ mb: Math.floor(maxBytes / (1024 * 1024)) })
+        );
+        return;
+      }
+      setBusy(true);
+      try {
+        const uploaded = await api.attachment.upload(file);
+        setName(uploaded.filename);
+        onPick(uploaded.id);
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : m.attachments_upload_failed()
+        );
+      } finally {
+        setBusy(false);
+      }
+    }
+  );
+
+  if (enabled === null) {
+    return null;
+  }
+  if (!enabled) {
+    return <p className="text-muted-foreground text-sm">{m.form_file_off()}</p>;
+  }
+  const picked = typeof value === "string" && value !== "";
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Button
+        disabled={disabled || busy}
+        id={id}
+        onClick={choose}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        {picked ? m.form_file_replace() : m.form_file_choose()}
+      </Button>
+      <input
+        className="hidden"
+        data-testid={`${id}-input`}
+        onChange={handleFile}
+        ref={input}
+        type="file"
+      />
+      {busy ? (
+        <span className="text-muted-foreground text-sm">
+          {m.form_file_uploading()}
+        </span>
+      ) : null}
+      {picked && !busy ? (
+        <>
+          <span className="text-sm" data-testid={`${id}-name`}>
+            {name ?? m.attachments_title()}
+          </span>
+          <Button
+            disabled={disabled}
+            onClick={remove}
+            size="sm"
+            type="button"
+            variant="ghost"
+          >
+            {m.form_file_remove()}
+          </Button>
+        </>
+      ) : null}
+    </div>
+  );
+}
 
 type FieldInputProps = {
   field: FormField;
@@ -54,7 +178,20 @@ function FieldInput({
       onChange(field.key, checked === true)
   );
 
+  const handleFilePick = useStableCallback((attachmentId: string | null) =>
+    onChange(field.key, attachmentId)
+  );
+
   switch (field.type) {
+    case "file":
+      return (
+        <FileField
+          disabled={disabled}
+          id={id}
+          onPick={handleFilePick}
+          value={value}
+        />
+      );
     case "textarea":
       return (
         <textarea

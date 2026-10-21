@@ -17,5 +17,31 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+
+  # Object storage for file attachments (S3-compatible). Optional: start it
+  # with `docker compose --profile storage up -d`, create the bucket named in
+  # S3_BUCKET in the console at http://localhost:9001, and point the app at it
+  # (see "File attachments" in the README). Set your own keys in the
+  # environment for anything beyond local development.
+  rustfs:
+    profiles: ["storage"]
+    image: rustfs/rustfs:1.0.0
+    container_name: rustfs
+    restart: unless-stopped
+    environment:
+      RUSTFS_VOLUMES: /data
+      RUSTFS_ADDRESS: 0.0.0.0:9000
+      RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:-procmation-dev}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:-procmation-dev-secret}
+      # Browsers upload straight to the bucket, so it must allow your app origin
+      RUSTFS_CORS_ALLOWED_ORIGINS: ${RUSTFS_CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - rustfs_data:/data
 volumes:
   postgres_data:
+  rustfs_data:

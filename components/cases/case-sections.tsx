@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { ReassignTask } from "@/components/cases/reassign-task";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { CaseDetail } from "@/lib/api-client";
+import { api, type CaseDetail } from "@/lib/api-client";
 import { casePriorityLabel, caseStatusLabel } from "@/lib/i18n/bpma-labels";
 import { isOverdue } from "@/lib/overdue";
 import type { FormField } from "@/lib/types/process-form";
@@ -30,7 +31,7 @@ function formatDateTime(value: string) {
   return new Date(value).toLocaleString(getLocale());
 }
 
-function Fact({ label, value }: { label: string; value: string }) {
+function Fact({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div>
       <dt className="text-muted-foreground text-xs">{label}</dt>
@@ -117,6 +118,24 @@ function ValueList({
     <dl className="grid gap-3 sm:grid-cols-2">
       {keys.map((key) => {
         const field = fields.find((item) => item.key === key);
+        const fileId = values[key];
+        if (field?.type === "file" && typeof fileId === "string") {
+          return (
+            <Fact
+              key={key}
+              label={field.label}
+              value={
+                <a
+                  className="underline underline-offset-2"
+                  data-testid="file-value"
+                  href={api.attachment.downloadUrl(fileId)}
+                >
+                  {m.attachments_open()}
+                </a>
+              }
+            />
+          );
+        }
         return (
           <Fact
             key={key}

@@ -7,6 +7,7 @@ const FIELD_TYPES: FormFieldType[] = [
   "date",
   "select",
   "checkbox",
+  "file",
 ];
 const KEY_PATTERN = /^[a-z][a-z0-9_]*$/;
 const MAX_FIELDS = 50;
@@ -154,6 +155,7 @@ export function validateFormFields(value: unknown): ValidationResult {
 }
 
 const MAX_TEXT_VALUE_LENGTH = 5000;
+const MAX_FILE_ID_LENGTH = 64;
 const DATE_VALUE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 type ValuesResult =
@@ -190,6 +192,10 @@ function validateFieldValue(field: FormField, value: unknown): string | null {
       return typeof value === "boolean"
         ? null
         : `"${field.label}" must be true or false`;
+    case "file":
+      return typeof value === "string" && value.length <= MAX_FILE_ID_LENGTH
+        ? null
+        : `"${field.label}" must be an uploaded file`;
     default:
       return null;
   }

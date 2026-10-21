@@ -21,6 +21,7 @@ import * as m from "@/paraglide/messages";
 const FIELD_TYPES: FormFieldType[] = [
   "checkbox",
   "date",
+  "file",
   "number",
   "select",
   "text",
@@ -33,6 +34,8 @@ function typeLabel(type: FormFieldType): string {
       return m.form_fields_type_checkbox();
     case "date":
       return m.form_fields_type_date();
+    case "file":
+      return m.form_fields_type_file();
     case "number":
       return m.form_fields_type_number();
     case "select":

@@ -10,6 +10,7 @@ import {
 } from "@/lib/db/case-options";
 import type { CasePriority, CaseStatus } from "@/lib/db/schema";
 import { processDefinitions } from "@/lib/db/schema";
+import { checkFormFiles, linkFormFiles } from "@/lib/form-files";
 import { validateFormValues } from "@/lib/process-form-validation";
 import { startProcessCase } from "@/lib/process-runner";
 import { requireUser } from "@/lib/session";
@@ -48,6 +49,15 @@ export async function GET(request: Request) {
   return NextResponse.json(rows);
 }
 
+// No date is fine; a value that is not a date is not
+function parseDueAt(value: unknown): Date | null | "invalid" {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  const date = new Date(String(value));
+  return Number.isNaN(date.getTime()) ? "invalid" : date;
+}
+
 // POST /api/bpma/cases - open a case for a published process and start it.
 // Body: { processDefinitionId, title, priority?, dueAt?, metadata?, values? }
 // where values answers the process start form.
@@ -78,12 +88,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unknown priority" }, { status: 400 });
   }
 
-  let dueAt: Date | null = null;
-  if (body.dueAt !== undefined && body.dueAt !== null) {
-    dueAt = new Date(String(body.dueAt));
-    if (Number.isNaN(dueAt.getTime())) {
-      return NextResponse.json({ error: "Invalid due date" }, { status: 400 });
-    }
+  const dueAt = parseDueAt(body.dueAt);
+  if (dueAt === "invalid") {
+    return NextResponse.json({ error: "Invalid due date" }, { status: 400 });
   }
 
   const metadata = body.metadata ?? {};
@@ -127,6 +134,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: startValues.error }, { status: 400 });
   }
 
+  const files = await checkFormFiles(
+    definition.startFormFields,
+    startValues.values,
+    guard.user.id
+  );
+  if (!files.ok) {
+    return NextResponse.json({ error: files.error }, { status: 400 });
+  }
+
   try {
     const created = await startProcessCase({
       dueAt,
@@ -142,6 +158,11 @@ export async function POST(request: Request) {
       startValues: startValues.values,
       title,
       workflowId: definition.workflowId,
+    });
+    await linkFormFiles({
+      caseId: created.id,
+      ids: files.ids,
+      user: guard.user,
     });
     return NextResponse.json(created, { status: 201 });
   } catch (error) {
