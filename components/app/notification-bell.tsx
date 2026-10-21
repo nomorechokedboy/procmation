@@ -23,6 +23,8 @@ function notificationTitle(type: NotificationRecord["type"]): string {
   switch (type) {
     case "task_assigned":
       return m.notif_task_assigned();
+    case "mentioned":
+      return m.notif_mentioned();
     case "case_completed":
       return m.notif_case_completed();
     case "case_failed":
