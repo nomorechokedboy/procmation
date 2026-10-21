@@ -950,6 +950,49 @@ export const commentApi = {
     apiCall<CaseViewerRecord[]>(`/api/bpma/cases/${caseId}/viewers`),
 };
 
+export type CaseListFilters = {
+  status?: CaseStatus;
+  priority?: CasePriority;
+  processId?: string;
+  q?: string;
+  // YYYY-MM-DD
+  from?: string;
+  to?: string;
+  overdue?: boolean;
+};
+
+function caseFilterParams(filters?: CaseListFilters): URLSearchParams {
+  const params = new URLSearchParams();
+  const entries: [string, string | undefined][] = [
+    ["status", filters?.status],
+    ["priority", filters?.priority],
+    ["processId", filters?.processId],
+    ["q", filters?.q],
+    ["from", filters?.from],
+    ["to", filters?.to],
+    ["overdue", filters?.overdue ? "true" : undefined],
+  ];
+  for (const [key, value] of entries) {
+    if (value) {
+      params.set(key, value);
+    }
+  }
+  return params;
+}
+
+export type TeamTaskRecord = TaskRecord & { assigneeName: string };
+
+export const teamApi = {
+  cases: (filters?: CaseListFilters) => {
+    const query = caseFilterParams(filters).toString();
+    return apiCall<CaseRecord[]>(`/api/team/cases${query ? `?${query}` : ""}`);
+  },
+  tasks: (status?: TaskStatus) =>
+    apiCall<TeamTaskRecord[]>(
+      `/api/team/tasks${status ? `?status=${status}` : ""}`
+    ),
+};
+
 export const caseApi = {
   cancel: (caseId: string) =>
     apiCall<CaseRecord>(`/api/bpma/cases/${caseId}/cancel`, {
@@ -969,13 +1012,8 @@ export const caseApi = {
     }),
 
   get: (caseId: string) => apiCall<CaseDetail>(`/api/bpma/cases/${caseId}`),
-  list: (filters?: {
-    all?: boolean;
-    status?: CaseStatus;
-    priority?: CasePriority;
-    processId?: string;
-  }) => {
-    const params = new URLSearchParams();
+  list: (filters?: CaseListFilters & { all?: boolean }) => {
+    const params = caseFilterParams(filters);
     if (filters?.all) {
       params.set("all", "true");
     }
@@ -1259,6 +1297,7 @@ export const api = {
   role: roleApi,
   setup: setupApi,
   task: taskApi,
+  team: teamApi,
   template: templateApi,
   user: userApi,
   workflow: workflowApi,
