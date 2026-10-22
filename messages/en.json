@@ -537,5 +537,17 @@
   "processes_version_badge": "v{version}",
   "processes_unpublished_changes": "Unpublished changes",
   "processes_action_publish_changes": "Publish changes",
-  "processes_published_version": "{name} is now at version {version}"
+  "processes_published_version": "{name} is now at version {version}",
+  "versions_title": "Version history",
+  "versions_back": "Back to processes",
+  "versions_history": "Version history",
+  "versions_empty": "Nothing has been published yet.",
+  "versions_published_by": "Published by {name}",
+  "versions_steps": "{count} steps",
+  "versions_restore": "Restore as draft",
+  "versions_restore_confirm": "Version {version} will replace the current draft of the workflow and start form. Nothing is published until you publish it.",
+  "versions_restored": "Version {version} is now the draft",
+  "versions_restore_failed": "Could not restore the version",
+  "versions_current": "Current",
+  "versions_open_editor": "Review in editor"
 }

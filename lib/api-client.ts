@@ -709,6 +709,27 @@ export type ProcessSummary = {
   updatedAt: string;
 };
 
+export type ProcessVersionSummary = {
+  id: string;
+  version: number;
+  note: string | null;
+  publishedAt: string;
+  publishedByName: string | null;
+  stepCount: number;
+};
+
+export type ProcessVersionDetail = {
+  id: string;
+  version: number;
+  name: string;
+  description: string | null;
+  note: string | null;
+  startFormFields: FormField[];
+  // biome-ignore lint/suspicious/noExplicitAny: nodes are the stored workflow graph
+  nodes: any[];
+  createdAt: string;
+};
+
 export type InvitationSummary = {
   id: string;
   email: string;
@@ -816,6 +837,11 @@ export const processApi = {
   get: (processId: string) =>
     apiCall<ProcessSummary>(`/api/processes/${processId}`),
   list: () => apiCall<ProcessSummary[]>("/api/processes"),
+  restoreVersion: (processId: string, version: number) =>
+    apiCall<{ restored: number }>(
+      `/api/processes/${processId}/versions/${version}/restore`,
+      { method: "POST" }
+    ),
 
   update: (
     processId: string,
@@ -832,6 +858,12 @@ export const processApi = {
       body: JSON.stringify(data),
       method: "PATCH",
     }),
+  version: (processId: string, version: number) =>
+    apiCall<ProcessVersionDetail>(
+      `/api/processes/${processId}/versions/${version}`
+    ),
+  versions: (processId: string) =>
+    apiCall<ProcessVersionSummary[]>(`/api/processes/${processId}/versions`),
 };
 
 // Dates arrive as ISO strings once a row has been through JSON
@@ -860,7 +892,11 @@ export type CaseDetail = {
   tasks: Serialized<Task>[];
   people: Record<string, string>;
   departments: Record<string, string>;
-  process: { name: string; startFormFields: FormField[] } | null;
+  process: {
+    name: string;
+    startFormFields: FormField[];
+    version: number | null;
+  } | null;
   submissions: Record<string, Record<string, unknown>>;
 };
 

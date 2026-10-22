@@ -4,7 +4,9 @@ import {
   humanTaskNode,
   newAdminContext,
   newMemberContext,
+  openAs,
   patch,
+  post,
   publishProcess,
   triggerNode,
 } from "./helpers";
@@ -127,4 +129,86 @@ test("cases start from the published version and edits wait for a publish", asyn
     name: `Versioned renamed ${run}`,
   });
   expect((await summary()).hasUnpublishedChanges).toBe(true);
+});
+
+test("a case keeps its version, and an old version can be restored", async ({
+  browser,
+  baseURL,
+}) => {
+  const url = baseURL as string;
+  const admin = await newAdminContext(browser, url);
+  const processId = await publishProcess(admin.request, {
+    edges: [{ id: "e1", source: "t", target: "h" }],
+    name: `Pinned ${run}`,
+    nodes: [
+      triggerNode(),
+      humanTaskNode("h", "Look", { assigneeType: "initiator" }),
+    ],
+    startFormFields: [reason],
+  });
+  const startCase = async (values: Record<string, unknown>) =>
+    (
+      await post<{ id: string }>(admin.request, "/api/bpma/cases", {
+        processDefinitionId: processId,
+        title: `Pinned case ${run}`,
+        values,
+      })
+    ).id;
+  const detailOf = (id: string) =>
+    get<{ process: { version: number; startFormFields: unknown[] } }>(
+      admin.request,
+      `/api/bpma/cases/${id}`
+    );
+
+  const oldCase = await startCase({ reason: "a" });
+  await patch(admin.request, `/api/processes/${processId}`, {
+    publish: true,
+    startFormFields: [reason, extra],
+  });
+  const newCase = await startCase({ extra: "b", reason: "a" });
+
+  // Each case shows the form of the version it started on
+  const before = await detailOf(oldCase);
+  expect(before.process.version).toBe(1);
+  expect(before.process.startFormFields).toHaveLength(1);
+  const after = await detailOf(newCase);
+  expect(after.process.version).toBe(2);
+  expect(after.process.startFormFields).toHaveLength(2);
+
+  const page = await openAs(admin, `/cases/${oldCase}`);
+  await expect(page.getByTestId("case-version")).toHaveText("v1");
+
+  // Restoring v1 only changes the draft
+  const restore = await admin.request.post(
+    `/api/processes/${processId}/versions/1/restore`
+  );
+  expect(restore.status()).toBe(200);
+  const draft = await get<{
+    hasUnpublishedChanges: boolean;
+    publishedStartFormFields: unknown[];
+    startFormFields: unknown[];
+    version: number;
+  }>(admin.request, `/api/processes/${processId}`);
+  expect(draft.startFormFields).toHaveLength(1);
+  expect(draft.publishedStartFormFields).toHaveLength(2);
+  expect(draft.hasUnpublishedChanges).toBe(true);
+  expect(draft.version).toBe(2);
+
+  // Publishing it makes version 3, with v1's content
+  await patch(admin.request, `/api/processes/${processId}`, { publish: true });
+  const published = await get<{
+    publishedStartFormFields: unknown[];
+    version: number;
+  }>(admin.request, `/api/processes/${processId}`);
+  expect(published.version).toBe(3);
+  expect(published.publishedStartFormFields).toHaveLength(1);
+  expect(
+    (
+      await admin.request.post(`/api/processes/${processId}/versions/9/restore`)
+    ).status()
+  ).toBe(404);
+
+  // The history page lists all three
+  await page.goto(`/admin/processes/${processId}/versions`);
+  await expect(page.getByTestId("version-row")).toHaveCount(3);
 });
