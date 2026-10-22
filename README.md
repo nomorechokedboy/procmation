@@ -146,6 +146,7 @@ Admins define roles in **Roles** (`/admin/roles`). A role is a named set of perm
 | `reports.view` | Reports and dashboard |
 | `audit.view` | Audit log |
 | `cases.view_all` | Seeing every case, not only your own |
+| `team.view` | Reading the cases and tasks of people who report to you |
 | `processes.manage` | Processes, templates and the workflow editor |
 | `members.manage` | Members, invitations, departments and profiles |
 | `roles.manage` | Creating roles and giving them to people |
@@ -169,6 +170,12 @@ Cases and their tasks have a comment thread. Anyone who can open the case can co
 People can attach files to a case, and a start form or task form can have a **File** field. Files live in an S3-compatible bucket: the browser uploads straight to it with a short-lived presigned URL, the server checks the stored size, and downloads are short-lived signed links handed out only to people who can open the case. Downloads always save as a file rather than opening in the browser. Uploads and removals are audited. Files chosen in a form belong to the person who picked them until the form is submitted, and a file can be used by one submission only.
 
 For local development, `docker compose --profile storage up -d` starts [RustFS](https://github.com/rustfs/rustfs). Create the bucket named in `S3_BUCKET` in its console at `http://localhost:9001`, then use the values in the env block above. Because browsers upload directly, the bucket must allow your app's origin for `PUT` (CORS); the compose service sets `RUSTFS_CORS_ALLOWED_ORIGINS` for `http://localhost:3000`, and for a real deployment set it to your app's URL or add the equivalent CORS rule on your bucket. Abandoned uploads (a file picked in a form that was never submitted) stay in the bucket until you remove them; a lifecycle rule on the `attachments/` prefix is the simplest cleanup.
+
+### Search, filters and the team view
+
+My cases and My team have a search box and filters: status, priority, date range and overdue. Search matches the title, case number, requester name and what was typed into forms. The same filters work on `GET /api/bpma/cases` (`q`, `status`, `priority`, `processId`, `from`, `to`, `overdue=true`).
+
+Roles with `team.view` get a **My team** page listing the cases and open tasks of people who report to them, directly or through other managers (set under Members). A manager can open those cases but only to read: no comments, cancelling or attaching, and assignees are not changed. The built-in Member role does not have `team.view`; choose which roles do under Roles.
 
 ### Starting point
 
