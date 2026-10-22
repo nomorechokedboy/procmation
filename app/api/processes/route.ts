@@ -3,7 +3,11 @@ import { NextResponse } from "next/server";
 import { AUDIT_RESOURCES, recordAudit, userActor } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { PG_UNIQUE_VIOLATION, pgErrorCode } from "@/lib/db/errors";
-import { processSummarySelection } from "@/lib/db/process-queries";
+import {
+  currentVersion,
+  currentVersionJoin,
+  processSummarySelection,
+} from "@/lib/db/process-queries";
 import { processDefinitions, workflows } from "@/lib/db/schema";
 import { validateFormFields } from "@/lib/process-form-validation";
 import { requirePermission, requireUser } from "@/lib/session";
@@ -19,7 +23,8 @@ export async function GET(request: Request) {
   const query = db
     .select(processSummarySelection)
     .from(processDefinitions)
-    .innerJoin(workflows, eq(processDefinitions.workflowId, workflows.id));
+    .innerJoin(workflows, eq(processDefinitions.workflowId, workflows.id))
+    .leftJoin(currentVersion, currentVersionJoin());
 
   // Members only see processes they can start
   const rows = await (guard.user.permissions.includes("processes.manage")
@@ -93,6 +98,7 @@ export async function POST(request: Request) {
       .select(processSummarySelection)
       .from(processDefinitions)
       .innerJoin(workflows, eq(processDefinitions.workflowId, workflows.id))
+      .leftJoin(currentVersion, currentVersionJoin())
       .where(eq(processDefinitions.id, created.id));
 
     return NextResponse.json(summary, { status: 201 });

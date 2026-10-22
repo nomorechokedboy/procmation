@@ -6,7 +6,11 @@ import {
   userActor,
 } from "@/lib/audit";
 import { db } from "@/lib/db";
-import { processDefinitions, workflows } from "@/lib/db/schema";
+import {
+  processDefinitions,
+  processVersions,
+  workflows,
+} from "@/lib/db/schema";
 import { getRequestLocale } from "@/lib/i18n/request-locale";
 import { requirePermission } from "@/lib/session";
 import { buildTemplate, isTemplateId } from "@/lib/templates";
@@ -55,9 +59,21 @@ export async function POST(request: Request, { params }: Params) {
         publishedAt: new Date(),
         startFormFields: template.startFormFields,
         status: "published",
+        version: 1,
         workflowId: workflow.id,
       })
       .returning({ id: processDefinitions.id });
+
+    await tx.insert(processVersions).values({
+      definitionId: process.id,
+      description: template.description,
+      edges: template.edges,
+      name: template.name,
+      nodes: template.nodes,
+      publishedById: guard.user.id,
+      startFormFields: template.startFormFields,
+      version: 1,
+    });
 
     audits.push({
       action: "created",

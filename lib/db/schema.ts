@@ -336,13 +336,48 @@ export const processDefinitions = pgTable(
       .default("draft")
       .$type<ProcessDefinitionStatus>(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
-    version: integer("version").notNull().default(1),
+    // Number of the latest published version, 0 until the first publish
+    version: integer("version").notNull().default(0),
     workflowId: text("workflow_id")
       .notNull()
       .unique()
       .references(() => workflows.id),
   },
   (table) => [index("process_definitions_status_idx").on(table.status)]
+);
+
+// A frozen copy of a process as it was when published. Cases start from a
+// version and keep it, so editing the draft never changes running work.
+export const processVersions = pgTable(
+  "process_versions",
+  {
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    definitionId: text("definition_id")
+      .notNull()
+      .references(() => processDefinitions.id, { onDelete: "cascade" }),
+    description: text("description"),
+    // biome-ignore lint/suspicious/noExplicitAny: JSONB type - copied from the workflow
+    edges: jsonb("edges").notNull().$type<any[]>(),
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => generateId()),
+    name: text("name").notNull(),
+    // biome-ignore lint/suspicious/noExplicitAny: JSONB type - copied from the workflow
+    nodes: jsonb("nodes").notNull().$type<any[]>(),
+    note: text("note"),
+    publishedById: text("published_by_id").references(() => users.id),
+    startFormFields: jsonb("start_form_fields")
+      .notNull()
+      .$type<FormField[]>()
+      .default([]),
+    version: integer("version").notNull(),
+  },
+  (table) => [
+    uniqueIndex("process_versions_definition_version_idx").on(
+      table.definitionId,
+      table.version
+    ),
+  ]
 );
 
 // One run of a process for one requester
@@ -369,6 +404,8 @@ export const processInstances = pgTable(
       .default("running")
       .$type<ProcessInstanceStatus>(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    // The version this run started from; null only for runs older than versions
+    versionId: text("version_id").references(() => processVersions.id),
     // Link to the execution record that holds per-node logs for the Runs UI
     workflowExecutionId: text("workflow_execution_id").unique(),
   },
@@ -741,6 +778,7 @@ export type Case = typeof cases.$inferSelect;
 export type NewCase = typeof cases.$inferInsert;
 export type CaseTimelineEntry = typeof caseTimeline.$inferSelect;
 export type ProcessDefinition = typeof processDefinitions.$inferSelect;
+export type ProcessVersion = typeof processVersions.$inferSelect;
 export type NewProcessDefinition = typeof processDefinitions.$inferInsert;
 export type ProcessInstance = typeof processInstances.$inferSelect;
 export type NewProcessInstance = typeof processInstances.$inferInsert;

@@ -533,5 +533,9 @@
   "perm_members_manage": "Manage members",
   "perm_members_manage_hint": "Invite people, edit profiles and departments.",
   "perm_roles_manage": "Manage roles",
-  "perm_roles_manage_hint": "Create roles and change what each person's role is. Gives control over access, so grant it carefully."
+  "perm_roles_manage_hint": "Create roles and change what each person's role is. Gives control over access, so grant it carefully.",
+  "processes_version_badge": "v{version}",
+  "processes_unpublished_changes": "Unpublished changes",
+  "processes_action_publish_changes": "Publish changes",
+  "processes_published_version": "{name} is now at version {version}"
 }

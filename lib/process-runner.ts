@@ -11,6 +11,7 @@ import {
   caseTimeline,
   formSubmissions,
   processInstances,
+  processVersions,
   workflowExecutions,
   workflows,
 } from "@/lib/db/schema";
@@ -19,6 +20,8 @@ import type { WorkflowEdge, WorkflowNode } from "@/lib/workflow-store";
 
 export type StartCaseInput = NewCaseInput & {
   workflowId: string;
+  // The published version this case runs; its graph is what gets executed
+  versionId: string;
   // Validated answers to the process start form
   startValues: Record<string, unknown>;
   requester: { id: string; name: string; email: string };
@@ -30,18 +33,21 @@ export type StartCaseInput = NewCaseInput & {
  * are created together, then the run is handed to the workflow engine.
  */
 export async function startProcessCase(input: StartCaseInput): Promise<Case> {
-  const [workflow] = await db
-    .select({
-      edges: workflows.edges,
-      id: workflows.id,
-      nodes: workflows.nodes,
-      userId: workflows.userId,
-    })
+  const [owner] = await db
+    .select({ id: workflows.id, userId: workflows.userId })
     .from(workflows)
     .where(eq(workflows.id, input.workflowId));
-  if (!workflow) {
+  if (!owner) {
     throw new Error("The workflow behind this process no longer exists");
   }
+  const [version] = await db
+    .select({ edges: processVersions.edges, nodes: processVersions.nodes })
+    .from(processVersions)
+    .where(eq(processVersions.id, input.versionId));
+  if (!version) {
+    throw new Error("The version of this process no longer exists");
+  }
+  const workflow = { ...owner, edges: version.edges, nodes: version.nodes };
 
   const audits: AuditEntry[] = [];
   const created = await db.transaction(async (tx) => {
@@ -75,6 +81,7 @@ export async function startProcessCase(input: StartCaseInput): Promise<Case> {
       .values({
         definitionId: input.processDefinitionId,
         requesterId: input.requester.id,
+        versionId: input.versionId,
         workflowExecutionId: execution.id,
       })
       .returning({ id: processInstances.id });

@@ -45,6 +45,7 @@ function StartForm({ process, onBack }: StartFormProps) {
   const [dueDate, setDueDate] = useState("");
   const [values, setValues] = useState<FormValues>({});
   const [submitting, setSubmitting] = useState(false);
+  const startFields = process.publishedStartFormFields ?? [];
   const handleTitleChange = useInputChange(setTitle);
   const handleDueDateChange = useInputChange(setDueDate);
   const handlePriorityChange = useStableCallback((next: string) =>
@@ -53,7 +54,7 @@ function StartForm({ process, onBack }: StartFormProps) {
 
   const handleSubmit = useStableCallback(async (event: FormEvent) => {
     event.preventDefault();
-    const checked = validateFormValues(process.startFormFields, values);
+    const checked = validateFormValues(startFields, values);
     if (!checked.ok) {
       toast.error(checked.error);
       return;
@@ -124,7 +125,7 @@ function StartForm({ process, onBack }: StartFormProps) {
           </div>
           <DynamicForm
             disabled={submitting}
-            fields={process.startFormFields}
+            fields={startFields}
             idPrefix="start"
             onChange={setValues}
             values={values}

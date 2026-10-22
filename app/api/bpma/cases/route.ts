@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { readJsonObject } from "@/lib/api/read-json";
 import { parseCaseFilters } from "@/lib/case-filters";
@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { listCases } from "@/lib/db/bpma";
 import { CASE_PRIORITIES, MAX_CASE_TITLE_LENGTH } from "@/lib/db/case-options";
 import type { CasePriority } from "@/lib/db/schema";
-import { processDefinitions } from "@/lib/db/schema";
+import { processDefinitions, processVersions } from "@/lib/db/schema";
 import { checkFormFiles, linkFormFiles } from "@/lib/form-files";
 import { validateFormValues } from "@/lib/process-form-validation";
 import { startProcessCase } from "@/lib/process-runner";
@@ -98,34 +98,41 @@ export async function POST(request: Request) {
     );
   }
 
+  // New cases start from the latest published version, never the draft
   const [definition] = await db
     .select({
-      startFormFields: processDefinitions.startFormFields,
+      startFormFields: processVersions.startFormFields,
       status: processDefinitions.status,
+      versionId: processVersions.id,
       workflowId: processDefinitions.workflowId,
     })
     .from(processDefinitions)
+    .leftJoin(
+      processVersions,
+      and(
+        eq(processVersions.definitionId, processDefinitions.id),
+        eq(processVersions.version, processDefinitions.version)
+      )
+    )
     .where(eq(processDefinitions.id, body.processDefinitionId));
   if (!definition) {
     return NextResponse.json({ error: "Process not found" }, { status: 404 });
   }
-  if (definition.status !== "published") {
+  if (definition.status !== "published" || !definition.versionId) {
     return NextResponse.json(
       { error: "Process is not published" },
       { status: 400 }
     );
   }
 
-  const startValues = validateFormValues(
-    definition.startFormFields,
-    body.values ?? {}
-  );
+  const startFields = definition.startFormFields ?? [];
+  const startValues = validateFormValues(startFields, body.values ?? {});
   if (!startValues.ok) {
     return NextResponse.json({ error: startValues.error }, { status: 400 });
   }
 
   const files = await checkFormFiles(
-    definition.startFormFields,
+    startFields,
     startValues.values,
     guard.user.id
   );
@@ -147,6 +154,7 @@ export async function POST(request: Request) {
       },
       startValues: startValues.values,
       title,
+      versionId: definition.versionId,
       workflowId: definition.workflowId,
     });
     await linkFormFiles({

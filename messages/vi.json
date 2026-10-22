@@ -533,5 +533,9 @@
   "perm_members_manage": "Quản lý thành viên",
   "perm_members_manage_hint": "Mời người, sửa hồ sơ và phòng ban.",
   "perm_roles_manage": "Quản lý vai trò",
-  "perm_roles_manage_hint": "Tạo vai trò và đổi vai trò của từng người. Quyền này kiểm soát việc truy cập nên hãy cấp cẩn thận."
+  "perm_roles_manage_hint": "Tạo vai trò và đổi vai trò của từng người. Quyền này kiểm soát việc truy cập nên hãy cấp cẩn thận.",
+  "processes_version_badge": "v{version}",
+  "processes_unpublished_changes": "Có thay đổi chưa xuất bản",
+  "processes_action_publish_changes": "Xuất bản thay đổi",
+  "processes_published_version": "{name} đã lên phiên bản {version}"
 }
