@@ -148,6 +148,13 @@ function ProcessRow({
             {m.processes_open_editor()}
           </Link>
         </Button>
+        {process.version > 0 ? (
+          <Button asChild size="sm" variant="outline">
+            <Link href={`/admin/processes/${process.id}/versions`}>
+              {m.versions_history()}
+            </Link>
+          </Button>
+        ) : null}
         <Button onClick={handleEdit} size="sm" variant="outline">
           {m.processes_edit_start_form()}
         </Button>

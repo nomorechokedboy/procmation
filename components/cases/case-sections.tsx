@@ -48,6 +48,11 @@ export function CaseSummary({ detail }: SectionProps) {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardDescription>{record.caseNumber}</CardDescription>
           <div className="flex items-center gap-2">
+            {detail.process?.version ? (
+              <Badge data-testid="case-version" variant="outline">
+                {m.processes_version_badge({ version: detail.process.version })}
+              </Badge>
+            ) : null}
             <Badge variant="outline">
               {casePriorityLabel(record.priority)}
             </Badge>

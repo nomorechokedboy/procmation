@@ -33,6 +33,7 @@ import {
   notifications,
   processDefinitions,
   processInstances,
+  processVersions,
   type Task,
   type TaskStatus,
   type TimelineEventType,
@@ -293,6 +294,8 @@ export type CaseDetailData = {
   process: {
     name: string;
     startFormFields: FormField[];
+    // The published version this case runs; null for cases older than versions
+    version: number | null;
   } | null;
   // What each task's form received, by task id
   submissions: Record<string, Record<string, unknown>>;
@@ -343,13 +346,22 @@ export async function getCaseDetail(record: Case): Promise<CaseDetailData> {
           .from(formSubmissions)
           .where(eq(formSubmissions.instanceId, instanceId))
       : Promise.resolve([]),
+    // The case shows its own version, so a later edit never rewrites its history
     db
       .select({
-        name: workflows.name,
-        startFormFields: processDefinitions.startFormFields,
+        name: sql<string>`coalesce(${processVersions.name}, ${workflows.name})`,
+        startFormFields: sql<
+          FormField[]
+        >`coalesce(${processVersions.startFormFields}, ${processDefinitions.startFormFields})`,
+        version: processVersions.version,
       })
       .from(processDefinitions)
       .innerJoin(workflows, eq(processDefinitions.workflowId, workflows.id))
+      .leftJoin(processInstances, eq(processInstances.id, instanceId ?? ""))
+      .leftJoin(
+        processVersions,
+        eq(processVersions.id, processInstances.versionId)
+      )
       .where(eq(processDefinitions.id, record.processDefinitionId)),
   ]);
 
@@ -400,6 +412,7 @@ export async function getCaseDetail(record: Case): Promise<CaseDetailData> {
       ? {
           name: definition[0].name,
           startFormFields: definition[0].startFormFields as FormField[],
+          version: definition[0].version,
         }
       : null,
     submissions,

@@ -537,5 +537,17 @@
   "processes_version_badge": "v{version}",
   "processes_unpublished_changes": "Có thay đổi chưa xuất bản",
   "processes_action_publish_changes": "Xuất bản thay đổi",
-  "processes_published_version": "{name} đã lên phiên bản {version}"
+  "processes_published_version": "{name} đã lên phiên bản {version}",
+  "versions_title": "Lịch sử phiên bản",
+  "versions_back": "Quay lại quy trình",
+  "versions_history": "Lịch sử phiên bản",
+  "versions_empty": "Chưa có phiên bản nào được xuất bản.",
+  "versions_published_by": "Xuất bản bởi {name}",
+  "versions_steps": "{count} bước",
+  "versions_restore": "Khôi phục thành bản nháp",
+  "versions_restore_confirm": "Phiên bản {version} sẽ thay thế bản nháp hiện tại của quy trình và biểu mẫu bắt đầu. Sẽ không có gì được xuất bản cho đến khi bạn xuất bản.",
+  "versions_restored": "Phiên bản {version} đã trở thành bản nháp",
+  "versions_restore_failed": "Không thể khôi phục phiên bản",
+  "versions_current": "Hiện tại",
+  "versions_open_editor": "Xem lại trong trình soạn thảo"
 }
