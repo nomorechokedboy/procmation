@@ -96,11 +96,17 @@ function ProcessRow({
   process,
   onEditStartForm,
   onChangeStatus,
+  onPublishChanges,
 }: {
   process: ProcessSummary;
   onEditStartForm: (process: ProcessSummary) => void;
   onChangeStatus: (process: ProcessSummary, status: ProcessStatus) => void;
+  onPublishChanges: (process: ProcessSummary) => void;
 }) {
+  const handlePublishChanges = useCallback(
+    () => onPublishChanges(process),
+    [onPublishChanges, process]
+  );
   const handleEdit = useCallback(
     () => onEditStartForm(process),
     [onEditStartForm, process]
@@ -120,9 +126,21 @@ function ProcessRow({
                 })}
           </p>
         </div>
-        <Badge variant={STATUS_BADGE[process.status]}>
-          {statusLabel(process.status)}
-        </Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          {process.version > 0 ? (
+            <Badge data-testid="process-version" variant="outline">
+              {m.processes_version_badge({ version: process.version })}
+            </Badge>
+          ) : null}
+          {process.status === "published" && process.hasUnpublishedChanges ? (
+            <Badge data-testid="process-unpublished" variant="secondary">
+              {m.processes_unpublished_changes()}
+            </Badge>
+          ) : null}
+          <Badge variant={STATUS_BADGE[process.status]}>
+            {statusLabel(process.status)}
+          </Badge>
+        </div>
       </div>
       <div className="flex flex-wrap gap-2">
         <Button asChild size="sm" variant="outline">
@@ -133,6 +151,15 @@ function ProcessRow({
         <Button onClick={handleEdit} size="sm" variant="outline">
           {m.processes_edit_start_form()}
         </Button>
+        {process.status === "published" && process.hasUnpublishedChanges ? (
+          <Button
+            data-testid="publish-changes"
+            onClick={handlePublishChanges}
+            size="sm"
+          >
+            {m.processes_action_publish_changes()}
+          </Button>
+        ) : null}
         {STATUS_ACTIONS[process.status].map((action) => (
           <StatusActionButton
             action={action}
@@ -177,6 +204,26 @@ export default function ProcessesPage() {
       load();
     }
   }, [isAdmin, load]);
+
+  const publishChanges = useCallback(
+    async (process: ProcessSummary) => {
+      try {
+        const updated = await api.process.update(process.id, { publish: true });
+        toast.success(
+          m.processes_published_version({
+            name: process.name,
+            version: updated.version,
+          })
+        );
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : m.processes_update_failed()
+        );
+      }
+      await load();
+    },
+    [load]
+  );
 
   const changeStatus = useCallback(
     async (process: ProcessSummary, status: ProcessStatus) => {
@@ -282,6 +329,7 @@ export default function ProcessesPage() {
                   key={process.id}
                   onChangeStatus={changeStatus}
                   onEditStartForm={editStartForm}
+                  onPublishChanges={publishChanges}
                   process={process}
                 />
               ))}

@@ -2,13 +2,18 @@ import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { AUDIT_RESOURCES, recordAudit, userActor } from "@/lib/audit";
 import { db } from "@/lib/db";
-import { processSummarySelection } from "@/lib/db/process-queries";
+import {
+  currentVersion,
+  currentVersionJoin,
+  processSummarySelection,
+} from "@/lib/db/process-queries";
 import {
   type ProcessDefinitionStatus,
   processDefinitions,
   workflows,
 } from "@/lib/db/schema";
 import { validateFormFields } from "@/lib/process-form-validation";
+import { MAX_VERSION_NOTE_LENGTH, publishDraft } from "@/lib/process-versions";
 import { requirePermission, requireUser } from "@/lib/session";
 
 const MAX_CATEGORY_LENGTH = 60;
@@ -27,6 +32,7 @@ async function loadSummary(processId: string) {
     .select(processSummarySelection)
     .from(processDefinitions)
     .innerJoin(workflows, eq(processDefinitions.workflowId, workflows.id))
+    .leftJoin(currentVersion, currentVersionJoin())
     .where(eq(processDefinitions.id, processId))
     .limit(1);
   return row;
@@ -79,15 +85,36 @@ function auditProcessChange(
   user: { id: string; name: string; email: string },
   current: { name: string; status: string },
   processId: string,
-  updates: ProcessUpdates
+  updates: ProcessUpdates,
+  newVersion?: number
 ) {
-  const statusChanged = updates.status !== undefined;
+  const statusChanged =
+    updates.status !== undefined && updates.status !== current.status;
+  const changed = Object.keys(updates).filter(
+    (key) =>
+      key !== "publishedAt" &&
+      (key !== "status" || updates.status !== current.status)
+  );
   const actorName = user.name || user.email;
+  if (newVersion !== undefined) {
+    recordAudit({
+      action: "version_published",
+      actor: userActor(user),
+      metadata: { version: newVersion },
+      resourceId: processId,
+      resourceLabel: current.name,
+      resourceType: AUDIT_RESOURCES.process,
+      summary: `${actorName} published version ${newVersion} of the process ${current.name}`,
+    });
+  }
+  if (!(statusChanged || changed.length > 0)) {
+    return;
+  }
   recordAudit({
     action: statusChanged ? `status_${updates.status}` : "updated",
     actor: userActor(user),
     metadata: {
-      changed: Object.keys(updates),
+      changed,
       ...(statusChanged ? { from: current.status, to: updates.status } : {}),
     },
     resourceId: processId,
@@ -97,6 +124,46 @@ function auditProcessChange(
       ? `${actorName} changed the process ${current.name} from ${current.status} to ${updates.status}`
       : `${actorName} updated the process ${current.name}`,
   });
+}
+
+type EditBody = {
+  category?: string | null;
+  startFormFields?: unknown;
+  note?: string;
+};
+
+// The draft edits in a request body, or the reason they are not acceptable
+function parseEdits(
+  body: EditBody
+):
+  | { ok: true; updates: ProcessUpdates; note: string | null }
+  | { ok: false; error: string } {
+  const updates: ProcessUpdates = {};
+  if (body.category !== undefined) {
+    const category = body.category?.trim() || null;
+    if (category && category.length > MAX_CATEGORY_LENGTH) {
+      return {
+        error: `Category must be at most ${MAX_CATEGORY_LENGTH} characters`,
+        ok: false,
+      };
+    }
+    updates.category = category;
+  }
+  if (body.startFormFields !== undefined) {
+    const fields = validateFormFields(body.startFormFields);
+    if (!fields.ok) {
+      return { error: fields.error, ok: false };
+    }
+    updates.startFormFields = fields.fields;
+  }
+  const note = body.note?.trim() || null;
+  if (note && note.length > MAX_VERSION_NOTE_LENGTH) {
+    return {
+      error: `Note must be at most ${MAX_VERSION_NOTE_LENGTH} characters`,
+      ok: false,
+    };
+  }
+  return { note, ok: true, updates };
 }
 
 export async function PATCH(
@@ -113,6 +180,9 @@ export async function PATCH(
     status?: ProcessDefinitionStatus;
     category?: string | null;
     startFormFields?: unknown;
+    // Publish the draft as a new version, also for a process already published
+    publish?: boolean;
+    note?: string;
   };
 
   const current = await loadSummary(processId);
@@ -120,25 +190,19 @@ export async function PATCH(
     return NextResponse.json({ error: "Process not found" }, { status: 404 });
   }
 
-  const updates: Partial<typeof processDefinitions.$inferInsert> = {};
-
-  if (body.category !== undefined) {
-    const category = body.category?.trim() || null;
-    if (category && category.length > MAX_CATEGORY_LENGTH) {
-      return NextResponse.json(
-        { error: `Category must be at most ${MAX_CATEGORY_LENGTH} characters` },
-        { status: 400 }
-      );
-    }
-    updates.category = category;
+  const edited = parseEdits(body);
+  if (!edited.ok) {
+    return NextResponse.json({ error: edited.error }, { status: 400 });
   }
-
-  if (body.startFormFields !== undefined) {
-    const fields = validateFormFields(body.startFormFields);
-    if (!fields.ok) {
-      return NextResponse.json({ error: fields.error }, { status: 400 });
-    }
-    updates.startFormFields = fields.fields;
+  const { note, updates } = edited;
+  const publishing =
+    body.publish === true ||
+    (body.status === "published" && current.status !== "published");
+  if (publishing && current.status === "archived") {
+    return NextResponse.json(
+      { error: "Restore an archived process before publishing it" },
+      { status: 409 }
+    );
   }
 
   if (body.status !== undefined && body.status !== current.status) {
@@ -149,30 +213,44 @@ export async function PATCH(
       );
     }
 
-    if (body.status === "published") {
-      const publishError = await checkCanPublish(current.workflowId);
-      if (publishError) {
-        return NextResponse.json({ error: publishError }, { status: 409 });
-      }
-      updates.publishedAt = new Date();
-    }
     updates.status = body.status;
+  }
+
+  if (publishing) {
+    const publishError = await checkCanPublish(current.workflowId);
+    if (publishError) {
+      return NextResponse.json({ error: publishError }, { status: 409 });
+    }
+    updates.publishedAt = new Date();
+    updates.status = "published";
   }
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
   }
 
-  await db
-    .update(processDefinitions)
-    .set({ ...updates, updatedAt: new Date() })
-    .where(eq(processDefinitions.id, processId));
+  // Fields and status are saved together with the new version, so a process
+  // is never published without the version that cases will start from
+  const published = await db.transaction(async (tx) => {
+    await tx
+      .update(processDefinitions)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(processDefinitions.id, processId));
+    return publishing
+      ? await publishDraft(tx, {
+          definitionId: processId,
+          note,
+          userId: guard.user.id,
+        })
+      : null;
+  });
 
   auditProcessChange(
     guard.user,
     { name: current.name, status: current.status },
     processId,
-    updates
+    updates,
+    published?.created ? published.version : undefined
   );
 
   return NextResponse.json(await loadSummary(processId));

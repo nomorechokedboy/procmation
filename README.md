@@ -177,6 +177,10 @@ My cases and My team have a search box and filters: status, priority, date range
 
 Roles with `team.view` get a **My team** page listing the cases and open tasks of people who report to them, directly or through other managers (set under Members). A manager can open those cases but only to read: no comments, cancelling or attaching, and assignees are not changed. The built-in Member role does not have `team.view`; choose which roles do under Roles.
 
+### Process versions
+
+Publishing a process freezes a **version** (v1, v2, …): the workflow, its start form, name and description as they were. New cases always start from the latest published version and stay on it, so editing the workflow or the start form never changes work already running. Edits are a draft until you publish: the process shows an **Unpublished changes** badge and a **Publish changes** button creates the next version (optionally with a note). Publishing with nothing new reuses the latest version, and unpublishing only stops new cases from starting. Versions are listed at `GET /api/processes/:id/versions` and read in full at `GET /api/processes/:id/versions/:n`, and each publish is audited. Processes published before versions existed were given a v1 from their state at upgrade time.
+
 ### Starting point
 
 As an admin, the home page offers a leave request template that creates a ready-to-use

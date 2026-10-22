@@ -701,6 +701,10 @@ export type ProcessSummary = {
   version: number;
   category: string | null;
   startFormFields: FormField[];
+  // What a new case is asked, from the latest published version (null before the first publish)
+  publishedStartFormFields: FormField[] | null;
+  // The draft differs from the latest published version
+  hasUnpublishedChanges: boolean;
   publishedAt: string | null;
   updatedAt: string;
 };
@@ -819,6 +823,9 @@ export const processApi = {
       status?: ProcessStatus;
       category?: string | null;
       startFormFields?: FormField[];
+      // Publish the draft as a new version
+      publish?: boolean;
+      note?: string;
     }
   ) =>
     apiCall<ProcessSummary>(`/api/processes/${processId}`, {
