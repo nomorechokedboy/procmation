@@ -549,5 +549,10 @@
   "versions_restored": "Version {version} is now the draft",
   "versions_restore_failed": "Could not restore the version",
   "versions_current": "Current",
-  "versions_open_editor": "Review in editor"
+  "versions_open_editor": "Review in editor",
+  "login_sso": "Sign in with {name}",
+  "login_or": "or",
+  "login_sso_failed": "Sign-in with SSO did not work. You need an invitation, or your email domain must be allowed.",
+  "login_sso_only": "Password sign-in is turned off. Use single sign-on.",
+  "invite_sso_hint": "You can also join by signing in with {name} using {email}."
 }

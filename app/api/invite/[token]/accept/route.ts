@@ -8,6 +8,7 @@ import {
 } from "@/lib/auth-provision";
 import { db } from "@/lib/db";
 import { invitations, users } from "@/lib/db/schema";
+import { passwordLoginEnabled } from "@/lib/sso-config";
 
 class InviteError extends Error {
   status: number;
@@ -23,6 +24,12 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ token: string }> }
 ) {
+  if (!passwordLoginEnabled()) {
+    return NextResponse.json(
+      { error: "Password sign-in is turned off. Join with single sign-on." },
+      { status: 403 }
+    );
+  }
   try {
     const { token } = await params;
     const body = (await request.json()) as { name?: string; password?: string };
