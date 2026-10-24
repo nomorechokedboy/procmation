@@ -31,6 +31,13 @@ export default defineConfig({
     // Emails go to a stand-in for Resend that the tests run (see e2e/helpers.ts)
     env: {
       CRON_SECRET: "e2e-cron-secret",
+      // Single sign-on goes to a stand-in provider that the tests run
+      // (see e2e/fake-oidc.ts)
+      OIDC_AUTO_JOIN_DOMAINS: "sso-corp.test",
+      OIDC_CLIENT_ID: "e2e-client",
+      OIDC_CLIENT_SECRET: "e2e-client-secret",
+      OIDC_ISSUER: "http://localhost:4012",
+      OIDC_NAME: "E2E SSO",
       RESEND_API_KEY: "e2e-resend-key",
       RESEND_API_URL: "http://localhost:4010",
       RESEND_FROM: "Procmation <noreply@example.com>",

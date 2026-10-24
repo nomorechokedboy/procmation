@@ -549,5 +549,10 @@
   "versions_restored": "Phiên bản {version} đã trở thành bản nháp",
   "versions_restore_failed": "Không thể khôi phục phiên bản",
   "versions_current": "Hiện tại",
-  "versions_open_editor": "Xem lại trong trình soạn thảo"
+  "versions_open_editor": "Xem lại trong trình soạn thảo",
+  "login_sso": "Đăng nhập bằng {name}",
+  "login_or": "hoặc",
+  "login_sso_failed": "Đăng nhập SSO không thành công. Bạn cần được mời, hoặc tên miền email của bạn phải được cho phép.",
+  "login_sso_only": "Đăng nhập bằng mật khẩu đã bị tắt. Hãy dùng đăng nhập một lần (SSO).",
+  "invite_sso_hint": "Bạn cũng có thể tham gia bằng cách đăng nhập với {name} bằng email {email}."
 }

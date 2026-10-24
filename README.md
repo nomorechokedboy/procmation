@@ -77,6 +77,23 @@ S3_ACCESS_KEY_ID=procmation-dev
 S3_SECRET_ACCESS_KEY=procmation-dev-secret
 # Largest file in MB (default 25)
 ATTACHMENT_MAX_MB=25
+
+# Single sign-on (optional). Any OpenID Connect provider: Google, Entra ID,
+# Keycloak, Authentik, Okta... The redirect URL to register at the provider is
+# <your app URL>/api/auth/oauth2/callback/oidc
+OIDC_ISSUER=https://accounts.example.com
+OIDC_CLIENT_ID=procmation
+OIDC_CLIENT_SECRET=a-long-secret
+# Button label (default "SSO")
+OIDC_NAME=Acme SSO
+# People at these email domains may join without an invitation (default: none)
+OIDC_AUTO_JOIN_DOMAINS=acme.com
+# Role they get (default member)
+OIDC_DEFAULT_ROLE=member
+# Providers that do not send email_verified, such as Microsoft Entra ID
+# OIDC_REQUIRE_VERIFIED_EMAIL=false
+# Hide and disable email + password once SSO works
+# PASSWORD_LOGIN=false
 ```
 
 ### Deadlines, reminders and escalation
@@ -180,6 +197,12 @@ Roles with `team.view` get a **My team** page listing the cases and open tasks o
 ### Process versions
 
 Publishing a process freezes a **version** (v1, v2, …): the workflow, its start form, name and description as they were. New cases always start from the latest published version and stay on it, so editing the workflow or the start form never changes work already running. Edits are a draft until you publish: the process shows an **Unpublished changes** badge and a **Publish changes** button creates the next version (optionally with a note). Publishing with nothing new reuses the latest version, and unpublishing only stops new cases from starting. Versions are listed at `GET /api/processes/:id/versions` and read in full at `GET /api/processes/:id/versions/:n`, and each publish is audited. A case shows the version it runs and the start form it was asked. **Version history** (per process under Processes) lists every version with who published it and when; **Restore as draft** copies an old version back into the draft so you can review it in the editor and publish it as the next version (history is never rewritten). Processes published before versions existed were given a v1 from their state at upgrade time.
+
+### Single sign-on
+
+With the `OIDC_*` settings above, the sign-in page gets a **Sign in with …** button. The app stays closed to strangers: a first SSO sign-in creates an account only for someone with a pending invitation (they get the invited role and the invitation is used up) or, when `OIDC_AUTO_JOIN_DOMAINS` lists their domain, anyone with a verified email there (they get `OIDC_DEFAULT_ROLE`). Anyone else is sent back to the sign-in page. Someone who already has an account signs in to it, matched by email. The provider must report the email as verified, because the email is what links a person to an invitation or an account; set `OIDC_REQUIRE_VERIFIED_EMAIL=false` only for a provider you trust to confirm emails, such as your own Entra tenant. Joining by SSO is recorded in the audit log.
+
+`PASSWORD_LOGIN=false` turns off email and password sign-in and the password invite form (invited people join with SSO instead). Keep it on until an admin has signed in with SSO at least once, and if SSO ever breaks, set it back to `true` and restart to get in. Roles and departments stay managed inside the app; group mapping and SCIM are not included.
 
 ### Starting point
 

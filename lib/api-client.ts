@@ -748,6 +748,15 @@ export const setupApi = {
   getStatus: () => apiCall<{ needsSetup: boolean }>("/api/setup"),
 };
 
+export type AuthConfig = {
+  passwordLogin: boolean;
+  sso: { name: string } | null;
+};
+
+export const authConfigApi = {
+  get: () => apiCall<AuthConfig>("/api/auth-config"),
+};
+
 export const inviteApi = {
   accept: (token: string, data: { name: string; password: string }) =>
     apiCall<{ success: boolean; email: string }>(
