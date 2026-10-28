@@ -47,6 +47,8 @@ export default defineConfig({
       S3_BUCKET: "e2e-bucket",
       S3_ENDPOINT: "http://localhost:4011",
       S3_SECRET_ACCESS_KEY: "e2e-secret-key",
+      // Low enough for a test to reach it with a few cheap calls
+      TRIGGER_RATE_LIMIT: "12",
       // Retries are due at once, so a test can run the sweep right away
       WEBHOOK_RETRY_SCALE: "0",
     },

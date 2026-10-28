@@ -98,6 +98,10 @@ OIDC_DEFAULT_ROLE=member
 # Webhooks (optional). Outgoing webhooks may target private network addresses
 # unless you set this; most self-hosted setups call services on their own network.
 # WEBHOOK_BLOCK_PRIVATE=true
+# Days to keep finished delivery history (default 30, 0 keeps everything)
+# WEBHOOK_LOG_DAYS=30
+# Calls a minute allowed for each incoming webhook URL (default 60)
+# TRIGGER_RATE_LIMIT=60
 ```
 
 ### Deadlines, reminders and escalation
@@ -221,7 +225,7 @@ Each delivery is a `POST` with a JSON body like `{ "id", "type", "createdAt", "d
 | `X-Procmation-Timestamp` | Unix seconds when it was sent |
 | `X-Procmation-Signature` | `sha256=` + hex HMAC-SHA256 of `<timestamp>.<raw body>` with the endpoint's secret |
 
-Verify by recomputing the HMAC over the raw body and comparing in constant time, and reject old timestamps. Any `2xx` answer counts as delivered; redirects do not. The first attempt is immediate, then failures are retried after 1 minute, 5 minutes, 30 minutes, 2 hours and 12 hours, and then given up. The retries need the sweep to run: call `/api/cron/webhooks` every minute with `Authorization: Bearer $CRON_SECRET`, in the same way as the deadlines endpoint above. An endpoint that fails 15 deliveries in a row is switched off (turn it back on from the page). Each endpoint has a delivery log with the status of each attempt, a **Send again** button and a **Send test** button. Creating, changing, rotating and deleting endpoints are audited. Procmation does not follow redirects and, with `WEBHOOK_BLOCK_PRIVATE=true`, refuses private, loopback and link-local addresses.
+Verify by recomputing the HMAC over the raw body and comparing in constant time, and reject old timestamps. Any `2xx` answer counts as delivered; redirects do not. The first attempt is immediate, then failures are retried after 1 minute, 5 minutes, 30 minutes, 2 hours and 12 hours, and then given up. The retries need the sweep to run: call `/api/cron/webhooks` every minute with `Authorization: Bearer $CRON_SECRET`, in the same way as the deadlines endpoint above. An endpoint that fails 15 deliveries in a row is switched off (turn it back on from the page). Each endpoint has a delivery log; open a row to see the payload that was sent and every attempt with its time, status code, duration and the start of the receiver's answer. It also has a **Send again** button and a **Send test** button. Creating, changing, rotating and deleting endpoints are audited. Procmation does not follow redirects and, with `WEBHOOK_BLOCK_PRIVATE=true`, refuses private, loopback and link-local addresses.
 
 ### Incoming webhooks
 
@@ -234,11 +238,77 @@ curl -X POST https://your-host/api/hooks/pmh_… \
   -d '{"title": "Order 1042", "priority": "high", "values": {"reason": "Broken printer", "amount": 42.5}}'
 ```
 
-The body is a JSON object. Start form answers can be under `values` or at the top level, read by field key; `title`, `priority` (`low`, `medium`, `high`, `urgent`) and `dueAt` are optional. For payloads you cannot change, such as another product's webhook, a trigger can map each field and the title to a dot path in the incoming JSON (`issue.summary`), and numbers or booleans sent as text are converted to fit the field. Answers are validated like a normal start: `422` with the reason when something is missing or wrong, `404` for an unknown, switched-off or revoked URL, `409` while the process is not published, `413` over 256 KB and `429` over 60 calls a minute per trigger. Success is `201` with `{ id, number, status, url }`.
+The body is a JSON object. Start form answers can be under `values` or at the top level, read by field key; `title`, `priority` (`low`, `medium`, `high`, `urgent`) and `dueAt` are optional. For payloads you cannot change, such as another product's webhook, a trigger can map each field and the title to a dot path in the incoming JSON (`issue.summary`), and numbers or booleans sent as text are converted to fit the field. Answers are validated like a normal start: `422` with the reason when something is missing or wrong, `404` for an unknown, switched-off or revoked URL, `409` while the process is not published, `413` over 256 KB and `429` over 60 calls a minute per trigger (set `TRIGGER_RATE_LIMIT` to change it). Success is `201` with `{ id, number, status, url }`.
 
 A call with an `Idempotency-Key` header that was seen before answers `200` with the same case and `"duplicate": true` instead of opening another, so senders can retry safely; a call that fails validation does not use up its key. A trigger can also require a signature: sign `<timestamp>.<raw body>` with HMAC-SHA256 using the trigger's secret (shown once) and send `X-Procmation-Timestamp` and `X-Procmation-Signature: sha256=<hex>`, the same scheme as outgoing webhooks, with timestamps older than 5 minutes refused.
 
-Cases started this way belong to a built-in **Webhooks** service account (it has no password and does not appear in the member list), and the case records which trigger started it. Because the requester is that account, people see these cases through their tasks, their team, or `cases.view_all`. A start form with a required file field cannot be used with a trigger, since a call cannot carry a file. The rate limit counts per app instance.
+Cases started this way belong to a built-in **Webhooks** service account (it has no password and does not appear in the member list), and the case records which trigger started it. Because the requester is that account, people see these cases through their tasks, their team, or `cases.view_all`. A start form with a required file field cannot be used with a trigger, since a call cannot carry a file. The rate limit is kept in the database, so every app instance shares one count per trigger.
+
+#### Payload reference
+
+Outgoing events (the `json` format) look like this; `task` is present for `task.*` events only, and `process.version` is the published version the case runs on:
+
+```json
+{
+  "id": "6f1c2b0e-8d0c-4d7e-9d52-1c0f6a3b9a10",
+  "type": "task.created",
+  "createdAt": "2026-10-28T09:15:02.311Z",
+  "data": {
+    "case": {
+      "id": "…",
+      "number": "C-0042",
+      "title": "Order 1042",
+      "status": "running",
+      "priority": "high",
+      "dueAt": null,
+      "url": "https://your-host/cases/…",
+      "initiator": { "id": "…", "name": "Ada", "email": "ada@example.com" },
+      "process": { "id": "…", "name": "Purchase request", "version": 3 }
+    },
+    "task": {
+      "id": "…",
+      "name": "Approve",
+      "status": "pending",
+      "outcome": null,
+      "dueAt": null,
+      "assignee": { "id": "…", "name": "Grace" },
+      "assigneeDepartmentId": null
+    }
+  }
+}
+```
+
+Verify a delivery in Node (the same check works for the signature on a trigger call you sign yourself):
+
+```js
+import { createHmac, timingSafeEqual } from "node:crypto";
+
+function verify(secret, headers, rawBody) {
+  const timestamp = headers["x-procmation-timestamp"];
+  if (Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) return false;
+  const expected = "sha256=" + createHmac("sha256", secret)
+    .update(`${timestamp}.${rawBody}`).digest("hex");
+  const given = Buffer.from(headers["x-procmation-signature"] ?? "");
+  const want = Buffer.from(expected);
+  return given.length === want.length && timingSafeEqual(given, want);
+}
+```
+
+Or sign a call to a signed trigger from a shell:
+
+```bash
+body='{"values":{"reason":"Broken printer"}}'
+ts=$(date +%s)
+sig=$(printf '%s.%s' "$ts" "$body" | openssl dgst -sha256 -hmac "$TRIGGER_SECRET" -hex | sed 's/^.* //')
+curl -X POST https://your-host/api/hooks/pmh_… \
+  -H "Content-Type: application/json" \
+  -H "X-Procmation-Timestamp: $ts" -H "X-Procmation-Signature: sha256=$sig" \
+  -d "$body"
+```
+
+#### Retention
+
+The sweep at `/api/cron/webhooks` also deletes finished deliveries, with their attempts, older than `WEBHOOK_LOG_DAYS` (default 30; `0` keeps everything), and clears old rate limit counters.
 
 ### Starting point
 
