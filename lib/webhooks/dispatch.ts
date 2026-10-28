@@ -1,15 +1,17 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
-import { and, asc, eq, isNull, lte, or, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, lt, lte, ne, or, sql } from "drizzle-orm";
 import { AUDIT_RESOURCES, keepAlive, recordAudit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import {
   type WebhookDelivery,
   type WebhookEndpoint,
+  webhookAttempts,
   webhookDeliveries,
   webhookEndpoints,
 } from "@/lib/db/schema";
+import { clearRateLimitWindows } from "@/lib/rate-limit";
 import type { WebhookEventType } from "@/lib/webhooks/events";
 import { bodyFor } from "@/lib/webhooks/format";
 import {
@@ -148,9 +150,18 @@ export async function attemptDelivery(
   endpoint: WebhookEndpoint,
   delivery: WebhookDelivery
 ): Promise<AttemptResult> {
+  const startedAt = Date.now();
   const result = await send(endpoint, delivery);
   const attempts = delivery.attempts + 1;
   const status = nextStatus(result.ok, attempts);
+  await db.insert(webhookAttempts).values({
+    attempt: attempts,
+    deliveryId: delivery.id,
+    durationMs: Date.now() - startedAt,
+    error: result.error ?? null,
+    response: result.body ?? null,
+    statusCode: result.status ?? null,
+  });
   await db
     .update(webhookDeliveries)
     .set({
@@ -272,9 +283,35 @@ export function emitWebhookEvent(type: WebhookEventType, ref: EventRef): void {
   keepAlive(work);
 }
 
+// Deliveries (and their attempts) older than WEBHOOK_LOG_DAYS are deleted,
+// but only once they are finished, so a retry in progress keeps its history.
+// Rate limit windows from the past are cleared in the same sweep.
+async function pruneOldDeliveries(): Promise<number> {
+  const days = Number(process.env.WEBHOOK_LOG_DAYS ?? "30");
+  await clearRateLimitWindows();
+  if (!Number.isFinite(days) || days <= 0) {
+    return 0;
+  }
+  const cutoff = new Date(Date.now() - days * 24 * 60 * 60_000);
+  const removed = await db
+    .delete(webhookDeliveries)
+    .where(
+      and(
+        lt(webhookDeliveries.createdAt, cutoff),
+        ne(webhookDeliveries.status, "pending")
+      )
+    )
+    .returning({ id: webhookDeliveries.id });
+  return removed.length;
+}
+
 // Sends deliveries whose retry time has come. Run it every minute or so
 // (see the cron endpoint); each one is claimed first so runs can overlap.
-export async function runDueDeliveries(): Promise<{ sent: number }> {
+export async function runDueDeliveries(): Promise<{
+  pruned: number;
+  sent: number;
+}> {
+  const pruned = await pruneOldDeliveries();
   const due = await db
     .select({ id: webhookDeliveries.id })
     .from(webhookDeliveries)
@@ -311,5 +348,5 @@ export async function runDueDeliveries(): Promise<{ sent: number }> {
       return true;
     })
   );
-  return { sent: results.filter(Boolean).length };
+  return { pruned, sent: results.filter(Boolean).length };
 }

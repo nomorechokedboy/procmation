@@ -62,8 +62,14 @@ function eventsAt(path: string, title: string) {
     .filter((item) => item.path === path)
     .filter((item) => (item.body as EventBody).data.case.title === title);
 }
+// An endpoint left over from an earlier run on the same database may send the
+// same event to the same path, so each event id counts once
 function typesAt(path: string, title: string) {
-  return eventsAt(path, title).map((item) => (item.body as EventBody).type);
+  const ids = new Set<string>();
+  return eventsAt(path, title)
+    .map((item) => item.body as EventBody)
+    .filter((body) => !ids.has(body.id) && ids.add(body.id))
+    .map((body) => body.type);
 }
 
 test("events reach the endpoints that asked for them, signed", async ({
@@ -247,11 +253,13 @@ test("a failed delivery is retried and can be sent again", async ({
 
   // Once the receiver is back, the sweep delivers it
   receiver.respondWith(200);
-  const sweep = await admin.request.post("/api/cron/webhooks", {
-    headers: { Authorization: "Bearer e2e-cron-secret" },
-  });
-  expect(sweep.ok()).toBe(true);
+  // Other tests leave retries behind, and a sweep sends a limited batch of the
+  // oldest first, so run it until this delivery's turn comes
   const retried = await waitFor(async () => {
+    const sweep = await admin.request.post("/api/cron/webhooks", {
+      headers: { Authorization: "Bearer e2e-cron-secret" },
+    });
+    expect(sweep.ok()).toBe(true);
     const rows = await get<Delivery[]>(
       admin.request,
       `/api/webhooks/${endpoint.id}/deliveries`
@@ -259,6 +267,24 @@ test("a failed delivery is retried and can be sent again", async ({
     return rows.find((row) => row.status === "succeeded") ?? null;
   });
   expect(retried.attempts).toBe(2);
+
+  // Each try is on record, with what the receiver answered
+  const detail = await get<{
+    delivery: { payload: { type: string } };
+    attempts: { attempt: number; statusCode: number | null }[];
+  }>(admin.request, `/api/webhooks/${endpoint.id}/deliveries/${retried.id}`);
+  expect(detail.delivery.payload.type).toBe("case.created");
+  expect(
+    detail.attempts.map((item) => [item.attempt, item.statusCode])
+  ).toEqual([
+    [1, 500],
+    [2, 200],
+  ]);
+  // A delivery is only shown under its own endpoint
+  const wrong = await admin.request.get(
+    `/api/webhooks/not-this-one/deliveries/${retried.id}`
+  );
+  expect(wrong.status()).toBe(404);
   const sent = eventsAt("/retry", title);
   expect(sent).toHaveLength(2);
   // The same event both times, so receivers can de-duplicate

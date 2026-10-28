@@ -127,6 +127,13 @@
       "when": 1793168614432,
       "tag": "0017_natural_vulcan",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793186946922,
+      "tag": "0018_wealthy_maelstrom",
+      "breakpoints": true
     }
   ]
 }

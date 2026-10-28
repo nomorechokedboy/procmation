@@ -1351,6 +1351,21 @@ export type WebhookDeliverySummary = {
   lastError: string | null;
 };
 
+export type WebhookAttemptSummary = {
+  id: string;
+  attempt: number;
+  createdAt: string;
+  durationMs: number;
+  statusCode: number | null;
+  error: string | null;
+  response: string | null;
+};
+
+export type WebhookDeliveryDetail = {
+  delivery: WebhookDeliverySummary & { payload: Record<string, unknown> };
+  attempts: WebhookAttemptSummary[];
+};
+
 type WebhookSend = {
   ok: boolean;
   status: number | null;
@@ -1367,6 +1382,10 @@ export const webhookApi = {
     apiCall<{ success: boolean }>(`/api/webhooks/${id}`, { method: "DELETE" }),
   deliveries: (id: string) =>
     apiCall<WebhookDeliverySummary[]>(`/api/webhooks/${id}/deliveries`),
+  delivery: (id: string, deliveryId: string) =>
+    apiCall<WebhookDeliveryDetail>(
+      `/api/webhooks/${id}/deliveries/${deliveryId}`
+    ),
   list: () => apiCall<WebhookEndpointSummary[]>("/api/webhooks"),
   redeliver: (id: string, deliveryId: string) =>
     apiCall<WebhookSend>(

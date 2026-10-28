@@ -9,6 +9,7 @@ import {
   jsonb,
   pgSequence,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -439,6 +440,39 @@ export const webhookDeliveries = pgTable(
     ),
     index("webhook_deliveries_due_idx").on(table.status, table.nextAttemptAt),
   ]
+);
+
+// One row per send of a delivery, so the log shows what each try got back
+export const webhookAttempts = pgTable(
+  "webhook_attempts",
+  {
+    attempt: integer("attempt").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    deliveryId: text("delivery_id")
+      .notNull()
+      .references(() => webhookDeliveries.id, { onDelete: "cascade" }),
+    durationMs: integer("duration_ms").notNull().default(0),
+    error: text("error"),
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => generateId()),
+    response: text("response"),
+    statusCode: integer("status_code"),
+  },
+  (table) => [
+    index("webhook_attempts_delivery_idx").on(table.deliveryId, table.attempt),
+  ]
+);
+
+// Calls counted per key and time window; shared by every app instance
+export const rateLimits = pgTable(
+  "rate_limits",
+  {
+    count: integer("count").notNull().default(0),
+    key: text("key").notNull(),
+    windowStart: timestamp("window_start").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.key, table.windowStart] })]
 );
 
 // A URL an outside system calls to start a case of a process
@@ -896,6 +930,7 @@ export type CaseTimelineEntry = typeof caseTimeline.$inferSelect;
 export type ProcessDefinition = typeof processDefinitions.$inferSelect;
 export type ProcessTrigger = typeof processTriggers.$inferSelect;
 export type WebhookEndpoint = typeof webhookEndpoints.$inferSelect;
+export type WebhookAttempt = typeof webhookAttempts.$inferSelect;
 export type WebhookDelivery = typeof webhookDeliveries.$inferSelect;
 export type ProcessVersion = typeof processVersions.$inferSelect;
 export type NewProcessDefinition = typeof processDefinitions.$inferInsert;

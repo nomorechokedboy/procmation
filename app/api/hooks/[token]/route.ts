@@ -15,14 +15,21 @@ import { checkFormFiles } from "@/lib/form-files";
 import { validateFormValues } from "@/lib/process-form-validation";
 import { startProcessCase } from "@/lib/process-runner";
 import { findStartableProcess } from "@/lib/process-start";
+import { allowCall } from "@/lib/rate-limit";
 import { getServiceUser } from "@/lib/service-account";
 import { extractTitle, extractValues } from "@/lib/triggers/mapping";
-import { allowCall } from "@/lib/triggers/rate-limit";
 import { hashTriggerToken } from "@/lib/triggers/token";
 import type { FormField } from "@/lib/types/process-form";
 import { verifySignature } from "@/lib/webhooks/sign";
 
 const MAX_BODY_BYTES = 256 * 1024;
+// A guard against a sender gone wrong; TRIGGER_RATE_LIMIT overrides the calls
+// allowed per minute for each trigger
+const RATE_WINDOW_MS = 60_000;
+function rateLimit(): number {
+  const value = Number(process.env.TRIGGER_RATE_LIMIT);
+  return Number.isInteger(value) && value > 0 ? value : 60;
+}
 const MAX_KEY_LENGTH = 200;
 // A signed call older than this is refused, so a captured one cannot be replayed
 const SIGNATURE_TOLERANCE_S = 5 * 60;
@@ -227,7 +234,9 @@ export async function POST(
   if (!trigger?.enabled) {
     return problem("Not found", 404);
   }
-  if (!allowCall(trigger.id)) {
+  if (
+    !(await allowCall(`trigger:${trigger.id}`, rateLimit(), RATE_WINDOW_MS))
+  ) {
     return problem("Too many calls, slow down", 429);
   }
   const read = await readBody(request, trigger);

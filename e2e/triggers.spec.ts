@@ -345,3 +345,34 @@ test("managing triggers needs permission, and deleting revokes the URL", async (
   expect(removed.ok()).toBe(true);
   expect((await call(browser, trigger.url, { reason: "x" })).status).toBe(404);
 });
+
+test("a trigger called too often answers 429 until the minute is over", async ({
+  browser,
+  baseURL,
+}) => {
+  const { admin, processId } = await setup(
+    browser,
+    baseURL as string,
+    "Busy process"
+  );
+  const trigger = await post<Trigger>(
+    admin.request,
+    `/api/processes/${processId}/triggers`,
+    { name: `Busy ${run}` }
+  );
+  const other = await post<Trigger>(
+    admin.request,
+    `/api/processes/${processId}/triggers`,
+    { name: `Quiet ${run}` }
+  );
+  // The e2e limit is 12 a minute; refused calls count too
+  const statuses: number[] = [];
+  for (let i = 0; i < 13; i += 1) {
+    // biome-ignore lint/performance/noAwaitInLoops: the calls must be in order
+    statuses.push((await call(browser, trigger.url, {})).status);
+  }
+  expect(statuses.slice(0, 12).every((status) => status === 422)).toBe(true);
+  expect(statuses[12]).toBe(429);
+  // Another trigger has its own count
+  expect((await call(browser, other.url, { reason: "fine" })).status).toBe(201);
+});
