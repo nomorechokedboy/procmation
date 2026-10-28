@@ -1,3 +1,4 @@
+import { emitWebhookEvent } from "@/lib/webhooks/dispatch";
 import "server-only";
 
 import {
@@ -497,6 +498,9 @@ export async function cancelCase(input: {
     return { ok: true, record, runId } as const;
   });
   recordAudit(audits);
+  if (result.ok) {
+    emitWebhookEvent("case.cancelled", { caseId: input.caseId });
+  }
   return result;
 }
 
@@ -662,7 +666,7 @@ export async function findCaseForInstance(tx: Tx, instanceId: string) {
 }
 
 export type CompleteTaskResult =
-  | { ok: true; task: Task }
+  | { ok: true; task: Task; caseId: string | null }
   | { ok: false; reason: "not_pending" };
 
 // Only a pending task can be completed, and only once: the status check is
@@ -757,9 +761,15 @@ export async function completeTask(input: {
       }
     }
 
-    return { ok: true, task: updated } as const;
+    return { caseId, ok: true, task: updated } as const;
   });
   recordAudit(audits);
+  if (result.ok && result.caseId) {
+    emitWebhookEvent("task.completed", {
+      caseId: result.caseId,
+      taskId: result.task.id,
+    });
+  }
   return result;
 }
 

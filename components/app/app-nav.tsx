@@ -39,6 +39,11 @@ const NAV_ITEMS: NavItem[] = [
     permission: "members.manage",
   },
   {
+    href: "/admin/webhooks",
+    label: () => m.nav_webhooks(),
+    permission: "integrations.manage",
+  },
+  {
     href: "/admin/roles",
     label: () => m.nav_roles(),
     permission: "roles.manage",
