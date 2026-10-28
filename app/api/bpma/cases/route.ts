@@ -1,15 +1,13 @@
-import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { readJsonObject } from "@/lib/api/read-json";
 import { parseCaseFilters } from "@/lib/case-filters";
-import { db } from "@/lib/db";
 import { listCases } from "@/lib/db/bpma";
 import { CASE_PRIORITIES, MAX_CASE_TITLE_LENGTH } from "@/lib/db/case-options";
 import type { CasePriority } from "@/lib/db/schema";
-import { processDefinitions, processVersions } from "@/lib/db/schema";
 import { checkFormFiles, linkFormFiles } from "@/lib/form-files";
 import { validateFormValues } from "@/lib/process-form-validation";
 import { startProcessCase } from "@/lib/process-runner";
+import { findStartableProcess } from "@/lib/process-start";
 import { requireUser } from "@/lib/session";
 
 // GET /api/bpma/cases - cases the user started or takes part in.
@@ -98,34 +96,17 @@ export async function POST(request: Request) {
     );
   }
 
-  // New cases start from the latest published version, never the draft
-  const [definition] = await db
-    .select({
-      startFormFields: processVersions.startFormFields,
-      status: processDefinitions.status,
-      versionId: processVersions.id,
-      workflowId: processDefinitions.workflowId,
-    })
-    .from(processDefinitions)
-    .leftJoin(
-      processVersions,
-      and(
-        eq(processVersions.definitionId, processDefinitions.id),
-        eq(processVersions.version, processDefinitions.version)
-      )
-    )
-    .where(eq(processDefinitions.id, body.processDefinitionId));
-  if (!definition) {
-    return NextResponse.json({ error: "Process not found" }, { status: 404 });
+  const found = await findStartableProcess(body.processDefinitionId);
+  if (!found.ok) {
+    return found.reason === "not_found"
+      ? NextResponse.json({ error: "Process not found" }, { status: 404 })
+      : NextResponse.json(
+          { error: "Process is not published" },
+          { status: 400 }
+        );
   }
-  if (definition.status !== "published" || !definition.versionId) {
-    return NextResponse.json(
-      { error: "Process is not published" },
-      { status: 400 }
-    );
-  }
-
-  const startFields = definition.startFormFields ?? [];
+  const definition = found.process;
+  const startFields = definition.startFormFields;
   const startValues = validateFormValues(startFields, body.values ?? {});
   if (!startValues.ok) {
     return NextResponse.json({ error: startValues.error }, { status: 400 });

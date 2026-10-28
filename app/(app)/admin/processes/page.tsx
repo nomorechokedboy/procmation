@@ -97,11 +97,13 @@ function ProcessRow({
   onEditStartForm,
   onChangeStatus,
   onPublishChanges,
+  canManageIntegrations,
 }: {
   process: ProcessSummary;
   onEditStartForm: (process: ProcessSummary) => void;
   onChangeStatus: (process: ProcessSummary, status: ProcessStatus) => void;
   onPublishChanges: (process: ProcessSummary) => void;
+  canManageIntegrations: boolean;
 }) {
   const handlePublishChanges = useCallback(
     () => onPublishChanges(process),
@@ -152,6 +154,13 @@ function ProcessRow({
           <Button asChild size="sm" variant="outline">
             <Link href={`/admin/processes/${process.id}/versions`}>
               {m.versions_history()}
+            </Link>
+          </Button>
+        ) : null}
+        {canManageIntegrations ? (
+          <Button asChild size="sm" variant="outline">
+            <Link href={`/admin/processes/${process.id}/triggers`}>
+              {m.triggers_open()}
             </Link>
           </Button>
         ) : null}
@@ -333,6 +342,7 @@ export default function ProcessesPage() {
             <CardContent className="divide-y">
               {processes.map((process) => (
                 <ProcessRow
+                  canManageIntegrations={can("integrations.manage")}
                   key={process.id}
                   onChangeStatus={changeStatus}
                   onEditStartForm={editStartForm}

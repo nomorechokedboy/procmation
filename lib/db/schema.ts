@@ -42,6 +42,8 @@ export const users = pgTable("users", {
   image: text("image"),
   // Anonymous user tracking (legacy column, anonymous sign-in is disabled)
   isAnonymous: boolean("is_anonymous").default(false),
+  // The account webhook-started cases belong to; it cannot sign in
+  isService: boolean("is_service").notNull().default(false),
   name: text("name"),
   role: text("role")
     .$type<UserRole>()
@@ -436,6 +438,61 @@ export const webhookDeliveries = pgTable(
       table.createdAt
     ),
     index("webhook_deliveries_due_idx").on(table.status, table.nextAttemptAt),
+  ]
+);
+
+// A URL an outside system calls to start a case of a process
+export const processTriggers = pgTable(
+  "process_triggers",
+  {
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => users.id),
+    definitionId: text("definition_id")
+      .notNull()
+      .references(() => processDefinitions.id, { onDelete: "cascade" }),
+    enabled: boolean("enabled").notNull().default(true),
+    // Start form field key -> dot path in the incoming JSON, such as "issue.title"
+    fieldMap: jsonb("field_map")
+      .notNull()
+      .$type<Record<string, string>>()
+      .default({}),
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => generateId()),
+    lastUsedAt: timestamp("last_used_at"),
+    name: text("name").notNull(),
+    // When set, calls must carry a valid X-Procmation-Signature
+    signingSecret: text("signing_secret"),
+    // Dot path in the incoming JSON for the case title
+    titlePath: text("title_path"),
+    // Only the hash is kept; the URL with the token is shown once
+    tokenHash: text("token_hash").notNull().unique(),
+    tokenPrefix: text("token_prefix").notNull(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [index("process_triggers_definition_idx").on(table.definitionId)]
+);
+
+// Calls already handled, so a sender that retries does not open a second case
+export const triggerRequests = pgTable(
+  "trigger_requests",
+  {
+    caseId: text("case_id").references(() => cases.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    idempotencyKey: text("idempotency_key").notNull(),
+    triggerId: text("trigger_id")
+      .notNull()
+      .references(() => processTriggers.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    uniqueIndex("trigger_requests_key_idx").on(
+      table.triggerId,
+      table.idempotencyKey
+    ),
   ]
 );
 
@@ -837,6 +894,7 @@ export type Case = typeof cases.$inferSelect;
 export type NewCase = typeof cases.$inferInsert;
 export type CaseTimelineEntry = typeof caseTimeline.$inferSelect;
 export type ProcessDefinition = typeof processDefinitions.$inferSelect;
+export type ProcessTrigger = typeof processTriggers.$inferSelect;
 export type WebhookEndpoint = typeof webhookEndpoints.$inferSelect;
 export type WebhookDelivery = typeof webhookDeliveries.$inferSelect;
 export type ProcessVersion = typeof processVersions.$inferSelect;

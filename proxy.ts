@@ -11,6 +11,8 @@ const PUBLIC_API_PREFIXES = [
   "/api/setup",
   "/api/invite/",
   "/api/cron/",
+  // Incoming webhooks carry their own token
+  "/api/hooks/",
 ];
 // Workflow webhooks authenticate with API keys, not sessions
 const WEBHOOK_PATTERN = /^\/api\/workflows\/[^/]+\/webhook$/;
