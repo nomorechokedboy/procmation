@@ -1382,6 +1382,46 @@ export const webhookApi = {
     ),
 };
 
+export type ProcessTriggerSummary = {
+  id: string;
+  name: string;
+  tokenPrefix: string;
+  titlePath: string | null;
+  fieldMap: Record<string, string>;
+  enabled: boolean;
+  signed: boolean;
+  lastUsedAt: string | null;
+};
+
+export type TriggerInput = {
+  name?: string;
+  titlePath?: string | null;
+  fieldMap?: Record<string, string>;
+  enabled?: boolean;
+  requireSignature?: boolean;
+  rotateToken?: boolean;
+};
+
+// The URL and secret are only in the response that made or changed them
+type TriggerSecrets = { url?: string; secret?: string | null };
+
+export const triggerApi = {
+  create: (processId: string, data: TriggerInput) =>
+    apiCall<ProcessTriggerSummary & TriggerSecrets>(
+      `/api/processes/${processId}/triggers`,
+      { body: JSON.stringify(data), method: "POST" }
+    ),
+  delete: (id: string) =>
+    apiCall<{ success: boolean }>(`/api/triggers/${id}`, { method: "DELETE" }),
+  list: (processId: string) =>
+    apiCall<ProcessTriggerSummary[]>(`/api/processes/${processId}/triggers`),
+  update: (id: string, data: TriggerInput) =>
+    apiCall<ProcessTriggerSummary & TriggerSecrets>(`/api/triggers/${id}`, {
+      body: JSON.stringify(data),
+      method: "PATCH",
+    }),
+};
+
 export type Me = {
   id: string;
   name: string;
@@ -1416,6 +1456,7 @@ export const api = {
   task: taskApi,
   team: teamApi,
   template: templateApi,
+  trigger: triggerApi,
   user: userApi,
   webhook: webhookApi,
   workflow: workflowApi,

@@ -120,6 +120,13 @@
       "when": 1792838077701,
       "tag": "0016_crazy_hellcat",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793168614432,
+      "tag": "0017_natural_vulcan",
+      "breakpoints": true
     }
   ]
 }

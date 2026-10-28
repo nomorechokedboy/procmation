@@ -1,4 +1,4 @@
-import { asc, eq, isNull, or } from "drizzle-orm";
+import { and, asc, eq, isNull, or } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
@@ -15,7 +15,12 @@ export async function GET(request: Request) {
   const rows = await db
     .select({ email: users.email, id: users.id, name: users.name })
     .from(users)
-    .where(or(isNull(users.isAnonymous), eq(users.isAnonymous, false)))
+    .where(
+      and(
+        or(isNull(users.isAnonymous), eq(users.isAnonymous, false)),
+        eq(users.isService, false)
+      )
+    )
     .orderBy(asc(users.name));
 
   return NextResponse.json(rows);

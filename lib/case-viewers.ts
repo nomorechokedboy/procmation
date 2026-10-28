@@ -66,7 +66,8 @@ export async function listCaseViewers(
     .where(
       and(
         inArray(users.id, [...ids]),
-        or(isNull(users.isAnonymous), eq(users.isAnonymous, false))
+        or(isNull(users.isAnonymous), eq(users.isAnonymous, false)),
+        eq(users.isService, false)
       )
     );
   return people

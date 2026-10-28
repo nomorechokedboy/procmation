@@ -18,6 +18,7 @@ export const AUDIT_RESOURCES = {
   process: "process",
   role: "role",
   task: "task",
+  trigger: "trigger",
   webhook: "webhook",
   workflow: "workflow",
 } as const;

@@ -223,6 +223,23 @@ Each delivery is a `POST` with a JSON body like `{ "id", "type", "createdAt", "d
 
 Verify by recomputing the HMAC over the raw body and comparing in constant time, and reject old timestamps. Any `2xx` answer counts as delivered; redirects do not. The first attempt is immediate, then failures are retried after 1 minute, 5 minutes, 30 minutes, 2 hours and 12 hours, and then given up. The retries need the sweep to run: call `/api/cron/webhooks` every minute with `Authorization: Bearer $CRON_SECRET`, in the same way as the deadlines endpoint above. An endpoint that fails 15 deliveries in a row is switched off (turn it back on from the page). Each endpoint has a delivery log with the status of each attempt, a **Send again** button and a **Send test** button. Creating, changing, rotating and deleting endpoints are audited. Procmation does not follow redirects and, with `WEBHOOK_BLOCK_PRIVATE=true`, refuses private, loopback and link-local addresses.
 
+### Incoming webhooks
+
+Outside systems can start cases. Under **Processes > Triggers** (the `integrations.manage` permission), make a trigger for a process: it gets its own URL, `POST /api/hooks/pmh_…`, shown once (stored hashed; **New URL** replaces it and the old one stops working at once; deleting a trigger revokes it). Calls start a case from the process's latest published version, so versions and webhooks work together.
+
+```bash
+curl -X POST https://your-host/api/hooks/pmh_… \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: order-1042" \
+  -d '{"title": "Order 1042", "priority": "high", "values": {"reason": "Broken printer", "amount": 42.5}}'
+```
+
+The body is a JSON object. Start form answers can be under `values` or at the top level, read by field key; `title`, `priority` (`low`, `medium`, `high`, `urgent`) and `dueAt` are optional. For payloads you cannot change, such as another product's webhook, a trigger can map each field and the title to a dot path in the incoming JSON (`issue.summary`), and numbers or booleans sent as text are converted to fit the field. Answers are validated like a normal start: `422` with the reason when something is missing or wrong, `404` for an unknown, switched-off or revoked URL, `409` while the process is not published, `413` over 256 KB and `429` over 60 calls a minute per trigger. Success is `201` with `{ id, number, status, url }`.
+
+A call with an `Idempotency-Key` header that was seen before answers `200` with the same case and `"duplicate": true` instead of opening another, so senders can retry safely; a call that fails validation does not use up its key. A trigger can also require a signature: sign `<timestamp>.<raw body>` with HMAC-SHA256 using the trigger's secret (shown once) and send `X-Procmation-Timestamp` and `X-Procmation-Signature: sha256=<hex>`, the same scheme as outgoing webhooks, with timestamps older than 5 minutes refused.
+
+Cases started this way belong to a built-in **Webhooks** service account (it has no password and does not appear in the member list), and the case records which trigger started it. Because the requester is that account, people see these cases through their tasks, their team, or `cases.view_all`. A start form with a required file field cannot be used with a trigger, since a call cannot carry a file. The rate limit counts per app instance.
+
 ### Starting point
 
 As an admin, the home page offers a leave request template that creates a ready-to-use
