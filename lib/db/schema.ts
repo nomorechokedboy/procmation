@@ -380,6 +380,65 @@ export const processVersions = pgTable(
   ]
 );
 
+// Where an admin wants case and task events sent
+export const webhookEndpoints = pgTable("webhook_endpoints", {
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  createdBy: text("created_by")
+    .notNull()
+    .references(() => users.id),
+  // Why the endpoint was switched off by the system, if it was
+  disabledReason: text("disabled_reason"),
+  enabled: boolean("enabled").notNull().default(true),
+  // Event names such as case.created; see lib/webhooks/events.ts
+  events: jsonb("events").notNull().$type<string[]>().default([]),
+  // Deliveries failed in a row; reset by a success
+  failureCount: integer("failure_count").notNull().default(0),
+  // "standard" sends the event as JSON; "slack" sends a chat message
+  format: text("format").notNull().default("standard"),
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => generateId()),
+  name: text("name").notNull(),
+  // Only events of these processes are sent; empty means every process
+  processIds: jsonb("process_ids").notNull().$type<string[]>().default([]),
+  // Signs every delivery, so the receiver can tell it came from here
+  secret: text("secret").notNull(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  url: text("url").notNull(),
+});
+
+// One event on its way to one endpoint, with the result of the last attempt
+export const webhookDeliveries = pgTable(
+  "webhook_deliveries",
+  {
+    attempts: integer("attempts").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    deliveredAt: timestamp("delivered_at"),
+    endpointId: text("endpoint_id")
+      .notNull()
+      .references(() => webhookEndpoints.id, { onDelete: "cascade" }),
+    // Same for every endpoint that receives the event, so receivers can de-duplicate
+    eventId: text("event_id").notNull(),
+    eventType: text("event_type").notNull(),
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => generateId()),
+    lastError: text("last_error"),
+    lastResponse: text("last_response"),
+    lastStatusCode: integer("last_status_code"),
+    nextAttemptAt: timestamp("next_attempt_at"),
+    payload: jsonb("payload").notNull().$type<Record<string, unknown>>(),
+    status: text("status").notNull().default("pending"),
+  },
+  (table) => [
+    index("webhook_deliveries_endpoint_idx").on(
+      table.endpointId,
+      table.createdAt
+    ),
+    index("webhook_deliveries_due_idx").on(table.status, table.nextAttemptAt),
+  ]
+);
+
 // One run of a process for one requester
 export const processInstances = pgTable(
   "process_instances",
@@ -778,6 +837,8 @@ export type Case = typeof cases.$inferSelect;
 export type NewCase = typeof cases.$inferInsert;
 export type CaseTimelineEntry = typeof caseTimeline.$inferSelect;
 export type ProcessDefinition = typeof processDefinitions.$inferSelect;
+export type WebhookEndpoint = typeof webhookEndpoints.$inferSelect;
+export type WebhookDelivery = typeof webhookDeliveries.$inferSelect;
 export type ProcessVersion = typeof processVersions.$inferSelect;
 export type NewProcessDefinition = typeof processDefinitions.$inferInsert;
 export type ProcessInstance = typeof processInstances.$inferSelect;

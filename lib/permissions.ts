@@ -8,6 +8,7 @@ export const PERMISSIONS = [
   "team.view",
   "processes.manage",
   "members.manage",
+  "integrations.manage",
   "roles.manage",
 ] as const;
 

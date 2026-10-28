@@ -1,3 +1,4 @@
+import { emitWebhookEvent } from "@/lib/webhooks/dispatch";
 import "server-only";
 
 import { eq } from "drizzle-orm";
@@ -103,6 +104,7 @@ export async function startProcessCase(input: StartCaseInput): Promise<Case> {
 
   // The case exists now, so its entry can be written
   recordAudit(audits);
+  emitWebhookEvent("case.created", { caseId: created.linked.id });
 
   try {
     const run = await start(executeWorkflow, [

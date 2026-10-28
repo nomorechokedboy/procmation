@@ -1,6 +1,8 @@
 /**
  * Steps that keep the process instance and its case in step with the run.
  */
+import { emitWebhookEvent } from "@/lib/webhooks/dispatch";
+import { eventForCaseStatus } from "@/lib/webhooks/events";
 import "server-only";
 
 import { eq } from "drizzle-orm";
@@ -110,6 +112,10 @@ export async function finishInstanceStep(
 
   recordAudit(audits);
   if (finished) {
+    const event = eventForCaseStatus(finished.status);
+    if (event) {
+      emitWebhookEvent(event, { caseId: finished.id });
+    }
     await notifyUser({
       caseId: finished.id,
       caseNumber: finished.caseNumber,

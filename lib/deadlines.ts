@@ -1,3 +1,4 @@
+import { emitWebhookEvent } from "@/lib/webhooks/dispatch";
 import "server-only";
 
 import { and, eq, isNotNull, isNull, lte } from "drizzle-orm";
@@ -125,6 +126,12 @@ async function remindAssignees(now: Date): Promise<number> {
         `"${task.name}" is overdue, so its assignee was reminded`
       )
     );
+    if (task.caseId) {
+      emitWebhookEvent("task.overdue", {
+        caseId: task.caseId,
+        taskId: task.id,
+      });
+    }
     await notifyUser({
       caseId: task.caseId,
       caseNumber: task.caseNumber,

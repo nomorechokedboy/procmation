@@ -10,6 +10,10 @@ export const PERMISSION_LABELS: Record<Permission, Label> = {
     hint: m.perm_cases_view_all_hint,
     name: m.perm_cases_view_all,
   },
+  "integrations.manage": {
+    hint: m.perm_integrations_manage_hint,
+    name: m.perm_integrations_manage,
+  },
   "members.manage": {
     hint: m.perm_members_manage_hint,
     name: m.perm_members_manage,

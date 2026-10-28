@@ -3,6 +3,7 @@
  * department and records it on the case. The workflow then waits on a hook
  * until the task is completed through the API.
  */
+import { emitWebhookEvent } from "@/lib/webhooks/dispatch";
 import "server-only";
 
 import { and, eq } from "drizzle-orm";
@@ -202,6 +203,12 @@ async function openTask(input: HumanTaskStepInput): Promise<HumanTaskOpened> {
     return { case: linkedCase ?? null, isNew: true, task: created };
   });
 
+  if (opened.isNew && opened.case) {
+    emitWebhookEvent("task.created", {
+      caseId: opened.case.id,
+      taskId: opened.task.id,
+    });
+  }
   if (opened.isNew && assignee.userId) {
     await notifyUser({
       caseId: opened.case?.id ?? null,

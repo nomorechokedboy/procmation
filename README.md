@@ -94,6 +94,10 @@ OIDC_DEFAULT_ROLE=member
 # OIDC_REQUIRE_VERIFIED_EMAIL=false
 # Hide and disable email + password once SSO works
 # PASSWORD_LOGIN=false
+
+# Webhooks (optional). Outgoing webhooks may target private network addresses
+# unless you set this; most self-hosted setups call services on their own network.
+# WEBHOOK_BLOCK_PRIVATE=true
 ```
 
 ### Deadlines, reminders and escalation
@@ -203,6 +207,21 @@ Publishing a process freezes a **version** (v1, v2, …): the workflow, its star
 With the `OIDC_*` settings above, the sign-in page gets a **Sign in with …** button. The app stays closed to strangers: a first SSO sign-in creates an account only for someone with a pending invitation (they get the invited role and the invitation is used up) or, when `OIDC_AUTO_JOIN_DOMAINS` lists their domain, anyone with a verified email there (they get `OIDC_DEFAULT_ROLE`). Anyone else is sent back to the sign-in page. Someone who already has an account signs in to it, matched by email. The provider must report the email as verified, because the email is what links a person to an invitation or an account; set `OIDC_REQUIRE_VERIFIED_EMAIL=false` only for a provider you trust to confirm emails, such as your own Entra tenant. Joining by SSO is recorded in the audit log.
 
 `PASSWORD_LOGIN=false` turns off email and password sign-in and the password invite form (invited people join with SSO instead). Keep it on until an admin has signed in with SSO at least once, and if SSO ever breaks, set it back to `true` and restart to get in. Roles and departments stay managed inside the app; group mapping and SCIM are not included.
+
+### Outgoing webhooks
+
+**Admin > Webhooks** (the `integrations.manage` permission) sends case and task events to other systems. An endpoint has a URL, a signing secret (shown once when it is made or rotated), the events it wants (`case.created`, `case.completed`, `case.rejected`, `case.failed`, `case.cancelled`, `task.created`, `task.completed`, `task.overdue`), an optional list of processes (none means all) and a format: the JSON event, or a Slack-style `{ "text": ... }` message that Slack, Mattermost and similar incoming webhooks accept.
+
+Each delivery is a `POST` with a JSON body like `{ "id", "type", "createdAt", "data": { "case": {...}, "task": {...} } }` and these headers:
+
+| Header | Meaning |
+| --- | --- |
+| `X-Procmation-Event` / `X-Procmation-Event-Id` | Event type, and an id that stays the same on retries so you can de-duplicate |
+| `X-Procmation-Delivery` | Id of this delivery |
+| `X-Procmation-Timestamp` | Unix seconds when it was sent |
+| `X-Procmation-Signature` | `sha256=` + hex HMAC-SHA256 of `<timestamp>.<raw body>` with the endpoint's secret |
+
+Verify by recomputing the HMAC over the raw body and comparing in constant time, and reject old timestamps. Any `2xx` answer counts as delivered; redirects do not. The first attempt is immediate, then failures are retried after 1 minute, 5 minutes, 30 minutes, 2 hours and 12 hours, and then given up. The retries need the sweep to run: call `/api/cron/webhooks` every minute with `Authorization: Bearer $CRON_SECRET`, in the same way as the deadlines endpoint above. An endpoint that fails 15 deliveries in a row is switched off (turn it back on from the page). Each endpoint has a delivery log with the status of each attempt, a **Send again** button and a **Send test** button. Creating, changing, rotating and deleting endpoints are audited. Procmation does not follow redirects and, with `WEBHOOK_BLOCK_PRIVATE=true`, refuses private, loopback and link-local addresses.
 
 ### Starting point
 

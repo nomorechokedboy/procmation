@@ -1317,6 +1317,71 @@ export const roleApi = {
     }),
 };
 
+export type WebhookEndpointSummary = {
+  id: string;
+  name: string;
+  url: string;
+  events: string[];
+  processIds: string[];
+  format: "standard" | "slack";
+  enabled: boolean;
+  disabledReason: string | null;
+  failureCount: number;
+  lastDeliveryStatus: string | null;
+  lastDeliveryAt: string | null;
+};
+
+export type WebhookInput = {
+  name?: string;
+  url?: string;
+  events?: string[];
+  processIds?: string[];
+  format?: "standard" | "slack";
+  enabled?: boolean;
+  rotateSecret?: boolean;
+};
+
+export type WebhookDeliverySummary = {
+  id: string;
+  eventType: string;
+  status: string;
+  attempts: number;
+  createdAt: string;
+  lastStatusCode: number | null;
+  lastError: string | null;
+};
+
+type WebhookSend = {
+  ok: boolean;
+  status: number | null;
+  error: string | null;
+};
+
+export const webhookApi = {
+  create: (data: WebhookInput) =>
+    apiCall<WebhookEndpointSummary & { secret: string }>("/api/webhooks", {
+      body: JSON.stringify(data),
+      method: "POST",
+    }),
+  delete: (id: string) =>
+    apiCall<{ success: boolean }>(`/api/webhooks/${id}`, { method: "DELETE" }),
+  deliveries: (id: string) =>
+    apiCall<WebhookDeliverySummary[]>(`/api/webhooks/${id}/deliveries`),
+  list: () => apiCall<WebhookEndpointSummary[]>("/api/webhooks"),
+  redeliver: (id: string, deliveryId: string) =>
+    apiCall<WebhookSend>(
+      `/api/webhooks/${id}/deliveries/${deliveryId}/redeliver`,
+      { method: "POST" }
+    ),
+  test: (id: string) =>
+    apiCall<WebhookSend>(`/api/webhooks/${id}/test`, { method: "POST" }),
+  update: (id: string, data: WebhookInput) =>
+    apiCall<WebhookEndpointSummary & { secret?: string }>(
+      `/api/webhooks/${id}`,
+      { body: JSON.stringify(data), method: "PATCH" }
+    ),
+};
+
 export type Me = {
   id: string;
   name: string;
@@ -1352,5 +1417,6 @@ export const api = {
   team: teamApi,
   template: templateApi,
   user: userApi,
+  webhook: webhookApi,
   workflow: workflowApi,
 };

@@ -18,6 +18,7 @@ export const AUDIT_RESOURCES = {
   process: "process",
   role: "role",
   task: "task",
+  webhook: "webhook",
   workflow: "workflow",
 } as const;
 
@@ -63,7 +64,7 @@ function toRow(entry: AuditEntry): NewAuditLog {
 // Inside a request, ask Next.js to keep the work going after the response
 // (serverless hosts may otherwise stop it). Outside a request, such as in a
 // workflow step, the write just carries on in the background.
-function keepAlive(work: Promise<unknown>) {
+export function keepAlive(work: Promise<unknown>) {
   try {
     after(work);
   } catch {
