@@ -97,6 +97,10 @@ test("overdue tasks remind once, then escalate to the manager once", async ({
   const inbox = (person: { context: { request: APIRequestContext } }) =>
     get<Notifications>(person.context.request, "/api/bpma/notifications");
 
+  // Other specs leave overdue tasks behind and the sweep is global, so clear
+  // those first; what follows then counts only this test's task
+  await runCron();
+
   // Not due yet: nothing happens
   const early = await runCron();
   expect(early.reminded).toBe(0);
