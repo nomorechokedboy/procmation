@@ -8,7 +8,9 @@ on:
 
 jobs:
   e2e:
-    runs-on: ubuntu-latest
+    # Pinned: Playwright installs browser dependencies only on distributions it
+    # supports, and ubuntu-latest can move to one it does not yet
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
 
     services:
