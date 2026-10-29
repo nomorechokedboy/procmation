@@ -150,9 +150,11 @@ test("changes are written to the audit log and only admins can read it", async (
   );
   await page.getByTestId("audit-search").fill(`Dropped ${run}`);
   await page.getByTestId("audit-search").press("Enter");
-  await expect(page.getByTestId("audit-entry").first()).toContainText(
-    "cancelled"
-  );
+  // The case's "started" entry matches the search too and can be written
+  // after the cancel one, so look for the entry rather than the first row
+  await expect(
+    page.getByTestId("audit-entry").filter({ hasText: "cancelled" })
+  ).toHaveCount(1);
   await expect(page.getByTestId("audit-list")).not.toContainText(
     `Audit Dept ${run}`
   );
