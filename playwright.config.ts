@@ -16,7 +16,8 @@ export default defineConfig({
       },
     },
   ],
-  reporter: "html",
+  // On CI each failed test also becomes an annotation on the run
+  reporter: process.env.CI ? [["github"], ["html"]] : "html",
   retries: process.env.CI ? 2 : 0,
   testDir: "./e2e",
   timeout: 60_000,

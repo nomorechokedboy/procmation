@@ -24,6 +24,7 @@ type Entry = {
   resourceType: string;
   resourceId: string | null;
   actorName: string | null;
+  resourceLabel: string | null;
   parentId: string | null;
   summary: string;
 };
@@ -148,11 +149,17 @@ test("changes are written to the audit log and only admins can read it", async (
   await expect(page.getByTestId("audit-list")).toContainText(
     `Audit Dept ${run}`
   );
-  await page.getByTestId("audit-search").fill(`Dropped ${run}`);
+  // The cancel entry names the case by its number, not its title, so search
+  // for the number; the case's "started" entry matches too and may sit above it
+  const cancelled = find("case", "cancelled", dropped.id);
+  expect(cancelled?.resourceLabel).toBeTruthy();
+  await page
+    .getByTestId("audit-search")
+    .fill(cancelled?.resourceLabel as string);
   await page.getByTestId("audit-search").press("Enter");
-  await expect(page.getByTestId("audit-entry").first()).toContainText(
-    "cancelled"
-  );
+  await expect(
+    page.getByTestId("audit-entry").filter({ hasText: "cancelled" })
+  ).toHaveCount(1);
   await expect(page.getByTestId("audit-list")).not.toContainText(
     `Audit Dept ${run}`
   );

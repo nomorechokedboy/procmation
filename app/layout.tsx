@@ -4,9 +4,8 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ReactFlowProvider } from "@xyflow/react";
 import { Provider } from "jotai";
-import { type ReactNode, Suspense } from "react";
+import type { ReactNode } from "react";
 import { AuthProvider } from "@/components/auth/provider";
-import { GitHubStarsLoader } from "@/components/github-stars-loader";
 import { GitHubStarsProvider } from "@/components/github-stars-provider";
 import { GlobalModals } from "@/components/global-modals";
 import { LocaleBoundary } from "@/components/locale-boundary";
@@ -38,7 +37,7 @@ type RootLayoutProps = {
   children: ReactNode;
 };
 
-// Inner content wrapped by GitHubStarsProvider (used for both loading and loaded states)
+// The app inside its providers, shared by every page
 function LayoutContent({
   children,
   locale,
@@ -73,17 +72,11 @@ const RootLayout = async ({ children }: RootLayoutProps) => {
           <Provider>
             <AuthProvider>
               <OverlayProvider>
-                <Suspense
-                  fallback={
-                    <GitHubStarsProvider stars={null}>
-                      <LayoutContent locale={locale}>{children}</LayoutContent>
-                    </GitHubStarsProvider>
-                  }
-                >
-                  <GitHubStarsLoader>
-                    <LayoutContent locale={locale}>{children}</LayoutContent>
-                  </GitHubStarsLoader>
-                </Suspense>
+                {/* The star count is not fetched: it would hold the whole app
+                    behind a request to GitHub, and render it twice meanwhile */}
+                <GitHubStarsProvider stars={null}>
+                  <LayoutContent locale={locale}>{children}</LayoutContent>
+                </GitHubStarsProvider>
                 <Toaster />
                 <GlobalModals />
               </OverlayProvider>
