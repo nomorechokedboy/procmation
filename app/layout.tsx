@@ -12,6 +12,7 @@ import { GlobalModals } from "@/components/global-modals";
 import { LocaleBoundary } from "@/components/locale-boundary";
 import { OverlayProvider } from "@/components/overlays/overlay-provider";
 import { ThemeProvider } from "@/components/theme-provider";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { PersistentCanvas } from "@/components/workflow/persistent-canvas";
 import { mono, sans } from "@/lib/fonts";
@@ -47,10 +48,13 @@ function LayoutContent({
 }) {
   return (
     <ReactFlowProvider>
-      <PersistentCanvas />
-      <LocaleBoundary locale={locale}>
-        <div className="pointer-events-none relative z-10">{children}</div>
-      </LocaleBoundary>
+      {/* The sidebar's state is shared with the canvas, which sits beside it */}
+      <SidebarProvider className="block min-h-0">
+        <PersistentCanvas />
+        <LocaleBoundary locale={locale}>
+          <div className="pointer-events-none relative z-10">{children}</div>
+        </LocaleBoundary>
+      </SidebarProvider>
     </ReactFlowProvider>
   );
 }

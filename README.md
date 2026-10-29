@@ -104,6 +104,10 @@ OIDC_DEFAULT_ROLE=member
 # TRIGGER_RATE_LIMIT=60
 ```
 
+### Language
+
+The app opens in Vietnamese for everyone, whatever the browser's language, until a person picks English (or Vietnamese) in the language menu; the choice is kept in a cookie. Messages live in `messages/vi.json` and `messages/en.json`; run `pnpm i18n` after changing them.
+
 ### Deadlines, reminders and escalation
 
 Set "Due after" on a Human Task in the editor. When the task opens it gets a
