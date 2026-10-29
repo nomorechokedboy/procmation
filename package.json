@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "tsx scripts/migrate-prod.ts && pnpm i18n && pnpm discover-plugins && next build",
+    "changeset": "changeset",
     "check": "ultracite check",
     "create-plugin": "tsx scripts/create-plugin.ts",
     "db:generate": "drizzle-kit generate",
@@ -72,6 +73,8 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.0",
+    "@changesets/changelog-github": "0.4.8",
+    "@changesets/cli": "2.26.2",
     "@inlang/paraglide-js": "^2.29.0",
     "@inlang/plugin-message-format": "^4.5.4",
     "@inquirer/prompts": "^8.0.1",

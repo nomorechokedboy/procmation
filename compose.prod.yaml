@@ -1,0 +1,99 @@
+# Procmation on one machine: Postgres, the app, a migration step and a
+# scheduler for deadlines and webhook retries.
+#
+#   cp .env.example .env     # then fill it in (see the list below)
+#   docker compose -f compose.prod.yaml up -d
+#
+# Needed in .env:
+#   APP_URL                      public URL, e.g. https://procmation.example.com
+#   POSTGRES_PASSWORD            any strong password
+#   BETTER_AUTH_SECRET           openssl rand -base64 32
+#   INTEGRATION_ENCRYPTION_KEY   openssl rand -hex 32  (exactly 64 hex characters)
+#   CRON_SECRET                  openssl rand -hex 24
+# Optional ones (email, single sign-on, file storage, webhooks) are listed in
+# the README under "Environment Variables"; add them to the `app` environment.
+#
+# By default this pulls the images published by the release workflow. To build
+# them from this checkout instead, use `docker compose ... up -d --build`.
+
+name: procmation
+
+x-database-url: &database-url postgresql://postgres:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/procmation
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: procmation
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d procmation"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Applies the database migrations and exits; the app starts after it succeeds
+  migrate:
+    image: ghcr.io/nomorechokedboy/procmation-migrate:${PROCMATION_VERSION:-latest}
+    build:
+      context: .
+      target: migrate
+    restart: "no"
+    environment:
+      DATABASE_URL: *database-url
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  app:
+    image: ghcr.io/nomorechokedboy/procmation:${PROCMATION_VERSION:-latest}
+    build:
+      context: .
+      args:
+        # Baked into the client bundle, so a prebuilt image carries the URL it
+        # was built with (the release workflow uses the repository variable
+        # APP_URL). Build it yourself if your public URL differs.
+        NEXT_PUBLIC_APP_URL: ${APP_URL:?set APP_URL}
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: *database-url
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET}
+      BETTER_AUTH_URL: ${APP_URL:?set APP_URL}
+      INTEGRATION_ENCRYPTION_KEY: ${INTEGRATION_ENCRYPTION_KEY:?set INTEGRATION_ENCRYPTION_KEY}
+      CRON_SECRET: ${CRON_SECRET:?set CRON_SECRET}
+      # Add optional settings here, for example:
+      # RESEND_API_KEY: ${RESEND_API_KEY}
+      # RESEND_FROM: ${RESEND_FROM}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  # Calls the deadline and webhook-retry endpoints every minute
+  cron:
+    image: curlimages/curl:8.11.1
+    restart: unless-stopped
+    environment:
+      CRON_SECRET: ${CRON_SECRET:?set CRON_SECRET}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do
+          for job in deadlines webhooks; do
+            curl -fsS -X POST -H "Authorization: Bearer $$CRON_SECRET" \
+              "http://app:3000/api/cron/$$job" > /dev/null \
+              || echo "cron $$job failed"
+          done
+          sleep 60
+        done
+    depends_on:
+      - app
+
+volumes:
+  postgres_data:

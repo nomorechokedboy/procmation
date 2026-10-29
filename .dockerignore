@@ -1,0 +1,48 @@
+# Version control and editors
+.git
+.gitignore
+.github
+.cursor
+.vscode
+
+# Dependencies and build output (installed and built inside the image)
+**/node_modules
+.next
+.swc
+out
+build
+coverage
+paraglide
+*.tsbuildinfo
+next-env.d.ts
+
+# Tests and reports
+e2e
+playwright-report
+test-results
+playwright.config.ts
+
+# Local environment files: never copy secrets into an image
+**/.env
+**/.env.*
+
+# Docs, images and tooling the app does not need to build
+*.md
+# discover-plugins rewrites a section of the README during the build
+!README.md
+LICENSE
+screenshot.png
+example-workflow.json
+vercel-template.json
+knip.json
+biome.jsonc
+
+# Docker files themselves
+Dockerfile
+.dockerignore
+compose.yaml
+compose.prod.yaml
+
+# Logs and OS files
+*.log
+.DS_Store

@@ -1,0 +1,107 @@
+name: Docker
+
+on:
+  # Pre-merge gate: a pull request that touches the image only proves it
+  # still builds. It never pushes, so a PR (including from a fork) never
+  # touches the registry or needs its secrets.
+  pull_request:
+    branches: ['*']
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - compose.prod.yaml
+      - package.json
+      - pnpm-lock.yaml
+      - next.config.ts
+      - .github/workflows/docker.yaml
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to tag the images with (set by the release workflow; leave blank for a manual run)'
+        type: string
+        default: ''
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository_owner }}
+
+jobs:
+  build-check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build app image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          cache-from: type=gha,scope=app
+          build-args: |
+            NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+      - name: Build migrate image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: migrate
+          push: false
+          cache-from: type=gha,scope=migrate
+
+  # The app image carries NEXT_PUBLIC_APP_URL, set from the repository
+  # variable APP_URL (Settings > Secrets and variables > Actions > Variables).
+  # The migrate image applies the database migrations.
+  publish:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - name: procmation
+            target: runner
+          - name: procmation-migrate
+            target: migrate
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.name }}
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix={{branch}}-
+            type=raw,value=${{ inputs.version }},enable=${{ inputs.version != '' }}
+
+      - name: Build and push ${{ matrix.name }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: ${{ matrix.target }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_APP_URL=${{ vars.APP_URL }}

@@ -314,6 +314,23 @@ curl -X POST https://your-host/api/hooks/pmh_… \
 
 The sweep at `/api/cron/webhooks` also deletes finished deliveries, with their attempts, older than `WEBHOOK_LOG_DAYS` (default 30; `0` keeps everything), and clears old rate limit counters.
 
+### Docker
+
+`compose.prod.yaml` runs everything on one machine: Postgres, the app, a one-shot migration step and a small scheduler that calls the deadline and webhook-retry endpoints every minute.
+
+```bash
+cp .env.example .env     # fill in APP_URL, POSTGRES_PASSWORD and the three secrets
+docker compose -f compose.prod.yaml up -d
+```
+
+The app listens on port 3000; put a reverse proxy with TLS in front of it and set `APP_URL` to the public address. Images are published by the release workflow to `ghcr.io/nomorechokedboy/procmation` (the app) and `ghcr.io/nomorechokedboy/procmation-migrate` (database migrations), tagged `latest`, with the version (for example `0.2.0`) and the commit. Run a fixed version with `PROCMATION_VERSION=0.2.0`, or build from your checkout with `up -d --build`.
+
+The only setting baked into an image is `NEXT_PUBLIC_APP_URL` (a build argument); everything else is read when the container starts, so no secret is stored in the image. A prebuilt image carries the URL it was built with (the repository variable `APP_URL` in the release workflow); build the image yourself if your public address differs. Sign-in attempts are rate limited when the app runs in production, so make the reverse proxy pass the client address (`X-Forwarded-For`).
+
+### Releases
+
+Changes that users should see come with a changeset (`pnpm changeset`). When they reach `main`, the Release workflow opens a "chore: version packages" pull request that bumps the version and writes `CHANGELOG.md`. Merging it tags `v<version>`, publishes a GitHub Release from the changelog and starts the Docker workflow for that version. The repository needs the setting "Allow GitHub Actions to create and approve pull requests", and an `APP_URL` repository variable for the image's public address.
+
 ### Starting point
 
 As an admin, the home page offers a leave request template that creates a ready-to-use
