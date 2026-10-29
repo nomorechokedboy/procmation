@@ -1,12 +1,19 @@
 "use client";
 
-import { Workflow } from "lucide-react";
+import { ChevronDown, Workflow } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { isActive, NAV_GROUPS } from "@/components/app/nav-items";
+import { isActive, NAV_GROUPS, type NavItem } from "@/components/app/nav-items";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -16,14 +23,43 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import { useSidebar } from "@/components/ui/use-sidebar";
 import { usePermissions } from "@/hooks/use-permissions";
 import * as m from "@/paraglide/messages";
 
 // The one navigation for every signed-in page, including the editor. It
 // collapses to icons on wide screens and becomes a drawer on phones.
+function NavMenu({ items, pathname }: { items: NavItem[]; pathname: string }) {
+  return (
+    <SidebarGroupContent>
+      <SidebarMenu>
+        {items.map((item) => (
+          <SidebarMenuItem key={item.href}>
+            <SidebarMenuButton
+              asChild
+              isActive={isActive(pathname, item.href)}
+              tooltip={item.label()}
+            >
+              <Link href={item.href}>
+                <item.icon />
+                <span>{item.label()}</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        ))}
+      </SidebarMenu>
+    </SidebarGroupContent>
+  );
+}
+
+// The one navigation for every signed-in page, including the editor. Groups
+// fold away, the whole sidebar collapses to icons on wide screens, and it
+// becomes a drawer on phones.
 export function AppSidebar() {
   const pathname = usePathname();
   const { can } = usePermissions();
+  const { state } = useSidebar();
+  const collapsed = state === "collapsed";
 
   return (
     <Sidebar collapsible="icon">
@@ -52,31 +88,38 @@ export function AppSidebar() {
           if (items.length === 0) {
             return null;
           }
+          // Icons only: nothing to fold, so the items are always shown
+          if (collapsed) {
+            return (
+              <SidebarGroup key={group.label()}>
+                <NavMenu items={items} pathname={pathname} />
+              </SidebarGroup>
+            );
+          }
           return (
-            <SidebarGroup key={group.label()}>
-              <SidebarGroupLabel>{group.label()}</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {items.map((item) => (
-                    <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={isActive(pathname, item.href)}
-                        tooltip={item.label()}
-                      >
-                        <Link href={item.href}>
-                          <item.icon />
-                          <span>{item.label()}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+            <Collapsible
+              className="group/collapsible"
+              defaultOpen
+              key={group.label()}
+            >
+              <SidebarGroup>
+                <SidebarGroupLabel asChild>
+                  <CollapsibleTrigger>
+                    {group.label()}
+                    <ChevronDown className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                  </CollapsibleTrigger>
+                </SidebarGroupLabel>
+                <CollapsibleContent>
+                  <NavMenu items={items} pathname={pathname} />
+                </CollapsibleContent>
+              </SidebarGroup>
+            </Collapsible>
           );
         })}
       </SidebarContent>
+      <SidebarFooter className="group-data-[collapsible=icon]:hidden">
+        <LanguageSwitcher />
+      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   );
