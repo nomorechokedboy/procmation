@@ -1,6 +1,12 @@
 import { expect, test } from "@playwright/test";
 import { type FakeOidc, type Identity, startFakeOidc } from "./fake-oidc";
-import { get, newAdminContext, newMemberContext, post } from "./helpers";
+import {
+  get,
+  newAdminContext,
+  newMemberContext,
+  post,
+  preferEnglish,
+} from "./helpers";
 
 // Single sign-on: invited people and listed domains get in, nobody else.
 test.describe.configure({ mode: "serial" });
@@ -36,6 +42,7 @@ async function ssoSignIn(
       providerId: "oidc",
     }
   );
+  await preferEnglish(context, baseURL);
   const end = await context.request.get(start.url);
   const session = await get<{ user: { id: string; email: string } } | null>(
     context.request,
@@ -55,7 +62,9 @@ test("the sign-in page offers SSO and says what is turned on", async ({
   }>((await browser.newContext({ baseURL: url })).request, "/api/auth-config");
   expect(config).toEqual({ passwordLogin: true, sso: { name: "E2E SSO" } });
 
-  const page = await (await browser.newContext({ baseURL: url })).newPage();
+  const loginContext = await browser.newContext({ baseURL: url });
+  await preferEnglish(loginContext, url);
+  const page = await loginContext.newPage();
   await page.goto("/login");
   await expect(page.getByTestId("sso-button")).toHaveText(
     "Sign in with E2E SSO"

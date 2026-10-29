@@ -135,6 +135,15 @@ export async function signIn(
   }
 }
 
+// The app opens in Vietnamese; the tests read English, so they ask for it
+// the way the language switcher does. Set it after the API calls that sign
+// in: with a cookie present, the auth routes want an Origin header.
+export async function preferEnglish(context: BrowserContext, baseURL: string) {
+  await context.addCookies([
+    { name: "PARAGLIDE_LOCALE", url: baseURL, value: "en" },
+  ]);
+}
+
 // Creates the first admin (a repeat run gets 409, which is fine) and signs in
 export async function newAdminContext(
   browser: Browser,
@@ -143,6 +152,7 @@ export async function newAdminContext(
   const context = await browser.newContext({ baseURL, locale: "en-US" });
   await context.request.post("/api/setup", { data: ADMIN });
   await signIn(context.request, ADMIN.email, ADMIN.password);
+  await preferEnglish(context, baseURL);
   return context;
 }
 
@@ -166,6 +176,7 @@ export async function newMemberContext(
     password: MEMBER_PASSWORD,
   });
   await signIn(context.request, person.email, MEMBER_PASSWORD);
+  await preferEnglish(context, baseURL);
   const members = await get<{ id: string; email: string }[]>(
     admin,
     "/api/members"
