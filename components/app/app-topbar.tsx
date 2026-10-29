@@ -2,7 +2,6 @@
 
 import type { CSSProperties } from "react";
 import { NotificationBell } from "@/components/app/notification-bell";
-import { LanguageSwitcher } from "@/components/language-switcher";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { UserMenu } from "@/components/workflows/user-menu";
 import { cn } from "@/lib/utils";
@@ -26,9 +25,6 @@ export function AppTopbar({
     >
       <SidebarTrigger className="-ml-1" />
       <div className="flex items-center gap-2">
-        <div className="hidden sm:block">
-          <LanguageSwitcher />
-        </div>
         <NotificationBell />
         <UserMenu />
       </div>
