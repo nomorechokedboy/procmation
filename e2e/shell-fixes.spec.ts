@@ -51,11 +51,23 @@ test("only admins create API keys", async ({ browser, baseURL }) => {
     data: { name: "nope" },
   });
   expect(denied.status()).toBe(403);
+  expect((await bob.context.request.get("/api/api-keys")).status()).toBe(403);
 
   const created = await post<{ key: string }>(admin.request, "/api/api-keys", {
     name: `Admin key ${run}`,
   });
   expect(created.key).toMatch(KEY_PREFIX);
+  const listed = await get<{ id: string; name: string }[]>(
+    admin.request,
+    "/api/api-keys"
+  );
+  const mine = listed.find((item) => item.name === `Admin key ${run}`);
+  expect(mine).toBeTruthy();
+  const refused = await bob.context.request.delete(`/api/api-keys/${mine?.id}`);
+  expect(refused.status()).toBe(403);
+  expect(
+    (await admin.request.delete(`/api/api-keys/${mine?.id}`)).status()
+  ).toBe(200);
 
   // The menu offers the keys to admins only
   const adminPage = await openAs(admin, "/tasks");
