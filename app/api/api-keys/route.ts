@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { apiKeys } from "@/lib/db/schema";
+import { requireAdmin } from "@/lib/session";
 
 // Generate a secure API key
 function generateApiKey(): { key: string; hash: string; prefix: string } {
@@ -49,6 +50,11 @@ export async function GET(request: Request) {
 
 // POST - Create a new API key
 export async function POST(request: Request) {
+  // Keys act as the person who made them, so only admins may make them
+  const admin = await requireAdmin(request);
+  if (!admin.ok) {
+    return admin.response;
+  }
   try {
     const session = await auth.api.getSession({
       headers: request.headers,

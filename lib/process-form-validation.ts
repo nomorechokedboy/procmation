@@ -1,3 +1,4 @@
+import { parseDateRange } from "@/lib/date-range";
 import type { FormField, FormFieldType } from "@/lib/types/process-form";
 
 const FIELD_TYPES: FormFieldType[] = [
@@ -5,6 +6,7 @@ const FIELD_TYPES: FormFieldType[] = [
   "textarea",
   "number",
   "date",
+  "daterange",
   "select",
   "checkbox",
   "file",
@@ -184,6 +186,10 @@ function validateFieldValue(field: FormField, value: unknown): string | null {
         !Number.isNaN(Date.parse(value))
         ? null
         : `"${field.label}" must be a date (YYYY-MM-DD)`;
+    case "daterange":
+      return parseDateRange(value)
+        ? null
+        : `"${field.label}" must be a range of dates, the first day not after the last`;
     case "select":
       return field.options?.some((option) => option.value === value)
         ? null

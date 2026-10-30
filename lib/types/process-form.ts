@@ -3,6 +3,7 @@ export type FormFieldType =
   | "textarea"
   | "number"
   | "date"
+  | "daterange"
   | "select"
   | "checkbox"
   | "file";

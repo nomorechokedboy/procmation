@@ -1,8 +1,10 @@
 import type { CaseDetail } from "@/lib/api-client";
+import { formatDateRange } from "@/lib/date-range";
 import type { CaseStatus } from "@/lib/db/schema";
 import { caseStatusLabel } from "@/lib/i18n/bpma-labels";
 import type { FormField } from "@/lib/types/process-form";
 import * as m from "@/paraglide/messages";
+import { getLocale } from "@/paraglide/runtime";
 
 type Entry = CaseDetail["timeline"][number];
 type Directory = Pick<CaseDetail, "people" | "departments" | "tasks">;
@@ -128,6 +130,9 @@ export function formatValue(field: FormField | undefined, value: unknown) {
   }
   if (value === null || value === undefined || value === "") {
     return "-";
+  }
+  if (field?.type === "daterange") {
+    return formatDateRange(value, getLocale()) ?? String(value);
   }
   if (field?.type === "select") {
     return (

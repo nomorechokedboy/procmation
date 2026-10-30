@@ -22,16 +22,10 @@ export function leaveRequestTemplate(locale: Locale): ProcessTemplate {
       type: "select",
     },
     {
-      key: "from_date",
-      label: m.tpl_leave_from({}, opts),
+      key: "leave_dates",
+      label: m.tpl_leave_dates({}, opts),
       required: true,
-      type: "date",
-    },
-    {
-      key: "to_date",
-      label: m.tpl_leave_to({}, opts),
-      required: true,
-      type: "date",
+      type: "daterange",
     },
     { key: "reason", label: m.tpl_leave_reason({}, opts), type: "textarea" },
   ];
