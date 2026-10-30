@@ -56,7 +56,7 @@ function handleLocaleChange(value: string) {
 
 export const UserMenu = () => {
   const { data: session, isPending } = useSession();
-  const { can } = usePermissions();
+  const { can, me } = usePermissions();
   const { theme, setTheme } = useTheme();
   const { open: openOverlay } = useOverlay();
   const [providerId, setProviderId] = useState<string | null>(null);
@@ -73,6 +73,8 @@ export const UserMenu = () => {
 
   const handleLogout = useStableCallback(async () => {
     await signOut();
+    // A full navigation, so nothing from the signed-in session stays on screen
+    window.location.assign("/login");
   });
   const openSettings = useStableCallback(() => openOverlay(SettingsOverlay));
   const openIntegrations = useStableCallback(() =>
@@ -157,10 +159,12 @@ export const UserMenu = () => {
             <span>{m.user_menu_connections()}</span>
           </DropdownMenuItem>
         ) : null}
-        <DropdownMenuItem onClick={openApiKeys}>
-          <Key className="size-4" />
-          <span>{m.user_menu_api_keys()}</span>
-        </DropdownMenuItem>
+        {me?.role === "admin" ? (
+          <DropdownMenuItem onClick={openApiKeys}>
+            <Key className="size-4" />
+            <span>{m.user_menu_api_keys()}</span>
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuItem asChild>
           <Link href="/tasks">
             <Inbox className="size-4" />

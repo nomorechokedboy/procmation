@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import { toast } from "sonner";
+import { DateRangeField } from "@/components/forms/date-range-field";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -178,6 +179,9 @@ function FieldInput({
       onChange(field.key, checked === true)
   );
 
+  const handleRange = useStableCallback((next: string | null) =>
+    onChange(field.key, next)
+  );
   const handleFilePick = useStableCallback((attachmentId: string | null) =>
     onChange(field.key, attachmentId)
   );
@@ -220,6 +224,15 @@ function FieldInput({
           onChange={handleText}
           type="date"
           value={typeof value === "string" ? value : ""}
+        />
+      );
+    case "daterange":
+      return (
+        <DateRangeField
+          disabled={disabled}
+          id={id}
+          onChange={handleRange}
+          value={value}
         />
       );
     case "select":
