@@ -96,6 +96,7 @@
   "form_fields_key": "Key: {key}",
   "form_fields_add": "Add field",
   "form_fields_type_daterange": "Date range",
+  "date_range_clear": "Clear",
   "date_range_placeholder": "Pick the first and last day",
   "form_fields_type_date": "Date",
   "form_fields_type_number": "Number",
