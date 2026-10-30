@@ -104,8 +104,8 @@ test("a date range is one field: picked in a calendar, checked on the server", a
   await page.getByTestId(`start-process-${processId}`).click();
   await page.getByLabel("Title").fill(`Range case ${run}`);
   await page.locator("#start-leave_dates").click();
-  await page.getByRole("button", { name: TENTH }).click();
-  await page.getByRole("button", { name: TWELFTH }).click();
+  await page.getByRole("button", { name: TENTH }).first().click();
+  await page.getByRole("button", { name: TWELFTH }).first().click();
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Start case" }).click();
   await page.waitForURL(CASES_URL);

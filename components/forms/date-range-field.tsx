@@ -22,6 +22,10 @@ import {
 import * as m from "@/paraglide/messages";
 import { getLocale } from "@/paraglide/runtime";
 
+// How far the month and year dropdowns reach
+const FIRST_MONTH = new Date(2000, 0);
+const LAST_MONTH = new Date(2100, 11);
+
 type Props = {
   id: string;
   value: unknown;
@@ -48,6 +52,11 @@ export function DateRangeField({ id, value, disabled, onChange }: Props) {
     );
   });
 
+  const handleClear = useStableCallback(() => {
+    onChange(null);
+    setOpen(false);
+  });
+
   return (
     <Popover onOpenChange={setOpen} open={open}>
       <PopoverTrigger asChild>
@@ -68,12 +77,28 @@ export function DateRangeField({ id, value, disabled, onChange }: Props) {
       </PopoverTrigger>
       <PopoverContent align="start" className="w-auto p-0">
         <Calendar
+          captionLayout="dropdown"
           defaultMonth={selected?.from}
+          endMonth={LAST_MONTH}
           locale={getLocale() === "vi" ? vi : undefined}
           mode="range"
+          numberOfMonths={2}
           onSelect={handleSelect}
           selected={selected}
+          startMonth={FIRST_MONTH}
         />
+        {range ? (
+          <div className="flex justify-end border-t p-2">
+            <Button
+              onClick={handleClear}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              {m.date_range_clear()}
+            </Button>
+          </div>
+        ) : null}
       </PopoverContent>
     </Popover>
   );

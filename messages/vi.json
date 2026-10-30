@@ -96,6 +96,7 @@
   "form_fields_key": "Khóa: {key}",
   "form_fields_add": "Thêm trường",
   "form_fields_type_daterange": "Khoảng ngày",
+  "date_range_clear": "Xóa",
   "date_range_placeholder": "Chọn ngày đầu và ngày cuối",
   "form_fields_type_date": "Ngày",
   "form_fields_type_number": "Số",
