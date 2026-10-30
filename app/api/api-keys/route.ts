@@ -15,8 +15,12 @@ function generateApiKey(): { key: string; hash: string; prefix: string } {
   return { hash, key, prefix };
 }
 
-// GET - List all API keys for the current user
+// GET - List all API keys for the current user (admins only)
 export async function GET(request: Request) {
+  const admin = await requireAdmin(request);
+  if (!admin.ok) {
+    return admin.response;
+  }
   try {
     const session = await auth.api.getSession({
       headers: request.headers,

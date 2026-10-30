@@ -3,12 +3,17 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { apiKeys } from "@/lib/db/schema";
+import { requireAdmin } from "@/lib/session";
 
 // DELETE - Delete an API key
 export async function DELETE(
   request: Request,
   context: { params: Promise<{ keyId: string }> }
 ) {
+  const admin = await requireAdmin(request);
+  if (!admin.ok) {
+    return admin.response;
+  }
   try {
     const { keyId } = await context.params;
     const session = await auth.api.getSession({
